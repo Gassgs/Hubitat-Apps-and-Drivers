@@ -25,7 +25,7 @@ metadata {
 		capability "Configuration"
 		capability "Battery"
 		capability "Tamper Alert"
-        capability "Motion Sensor"
+                capability "Motion Sensor"
 		capability "Refresh"
 
 		attribute "lastCheckin", "string"
