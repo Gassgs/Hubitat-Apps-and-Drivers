@@ -52,6 +52,7 @@ metadata {
 
 	preferences {
 		input "tempOffset", "number", title: "Temperature offset", description: "Select how many degrees to adjust the temperature.", range: "-100..100", displayDuringSetup: false
+         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 	}
 }
 
@@ -66,8 +67,13 @@ private getFAST_POLL_TIMEOUT_ATTRIBUTE() { 0x0003 }
 private getSET_LONG_POLL_INTERVAL_CMD() { 0x02 }
 private getSET_SHORT_POLL_INTERVAL_CMD() { 0x03 }
 
+def logsOff() {
+    log.warn "debug logging disabled..."
+    device.updateSetting("logEnable", [value: "false", type: "bool"])
+}
+
 def parse(String description) {
-	log.debug "description: $description"
+	 if (logEnable) log.debug "description: $description"
 
 	Map map = zigbee.getEvent(description)
 	if (!map) {
@@ -82,17 +88,17 @@ def parse(String description) {
 				map = getContactResult(zs.isAlarm1Set() ? "open" : "closed")
 			} else if (descMap?.clusterInt == zigbee.IAS_ZONE_CLUSTER && descMap.commandInt == 0x07) {
 				if (descMap.data[0] == "00") {
-					log.debug "IAS ZONE REPORTING CONFIG RESPONSE: $descMap"
+					 if (logEnable) log.debug "IAS ZONE REPORTING CONFIG RESPONSE: $descMap"
 					sendEvent(name: "checkInterval", value: 60 * 12, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID, offlinePingable: "1"])
 				} else {
-					log.warn "IAS ZONE REPORTING CONFIG FAILED- error code: ${descMap.data[0]}"
+					 if (logEnable) log.warn "IAS ZONE REPORTING CONFIG FAILED- error code: ${descMap.data[0]}"
 				}
 			} else if (descMap?.clusterInt == zigbee.IAS_ZONE_CLUSTER && descMap.attrInt == IAS_ZONE_TYPE_ATTRIBUTE && isBoschRadionMultiSensor()) {
 				if (Integer.parseInt(descMap.value, 16) == IAS_ZONE_TYPE_CONTACT_SWITCH_ATTRIBUTE_VALUE) {
 					//multi-sensor is in contact or tilt detector mode - both act as contact sensor so no action is necessary
 				} else if (Integer.parseInt(descMap.value, 16) == IAS_ZONE_TYPE_WATER_SENSOR_ATTRIBUTE_VALUE) {
 					//multi-sensor is in water detector mode, DTH should be changed to water sensor DTH
-					log.debug "Changing DTH type to: SmartSense Moisture Sensor"
+					 if (logEnable) log.debug "Changing DTH type to: SmartSense Moisture Sensor"
 					setDeviceType("SmartSense Moisture Sensor")
 				}
 			}
@@ -105,12 +111,12 @@ def parse(String description) {
 		map.translatable = true
 	}
 
-	log.debug "Parse returned $map"
+	 if (logEnable) log.debug "Parse returned $map"
 	def result = map ? createEvent(map) : [:]
 
 	if (description?.startsWith('enroll request')) {
 		List cmds = zigbee.enrollResponse()
-		log.debug "enroll response: ${cmds}"
+		 if (logEnable) log.debug "enroll response: ${cmds}"
 		result = cmds?.collect { new hubitat.device.HubAction(it) }
 	}
 	return result
@@ -123,7 +129,7 @@ private Map parseIasMessage(String description) {
 }
 
 private Map getBatteryResult(rawValue) {
-	log.debug 'Battery'
+	 if (logEnable) log.debug 'Battery'
 	def linkText = getLinkText(device)
 
 	def result = [:]
@@ -145,7 +151,7 @@ private Map getBatteryResult(rawValue) {
 }
 
 private Map getContactResult(value) {
-	log.debug 'Contact Status'
+	 if (logEnable) log.debug 'Contact Status'
 	def linkText = getLinkText(device)
 	def descriptionText = "${linkText} was ${value == 'dry' ? 'dry' : 'wet'}"
 	return [
@@ -157,7 +163,7 @@ private Map getContactResult(value) {
 
 
 def refresh() {
-	log.debug "Refreshing Temperature and Battery"
+	 if (logEnable) log.debug "Refreshing Temperature and Battery"
 	def refreshCmds = zigbee.readAttribute(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, TEMPERATURE_MEASURED_VALUE_ATTRIBUTE) +
 		zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, BATTERY_VOLTAGE_VALUE_ATTRIBUTE) + zigbee.readAttribute(zigbee.IAS_ZONE_CLUSTER, zigbee.ATTRIBUTE_IAS_ZONE_STATUS) + zigbee.enrollResponse()
 
@@ -169,7 +175,7 @@ def configure() {
 	// enrolls with default periodic reporting until newer 5 min interval is confirmed
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID, offlinePingable: "1"])
 
-	log.debug "Configuring Reporting, IAS CIE, and Bindings."
+	 if (logEnable) log.debug "Configuring Reporting, IAS CIE, and Bindings."
 	def cmds = refresh() +
 		zigbee.configureReporting(zigbee.IAS_ZONE_CLUSTER, zigbee.ATTRIBUTE_IAS_ZONE_STATUS, DataType.BITMAP16, 30, 60 * 5, null) +
 		zigbee.batteryConfig() +
