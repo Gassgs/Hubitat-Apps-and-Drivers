@@ -47,6 +47,7 @@ metadata {
         input name: "stapp", type: "enum", title: "app opening,closing Change", options:["2": "Reverse", "0": "Forward"], required: true, displayDuringSetup: true
         input name: "remote", type: "enum", title: "RC opening,closing Change", options:["1": "Reverse", "0": "Forward"], required: true, displayDuringSetup: true
        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "logInfoEnable", type: "bool", title: "Enable text info logging", defaultValue: true
 	}
 }
 
@@ -77,7 +78,7 @@ def parse(String description) {
                         def remoteVal = remote as int
                         def data = Math.abs(parData - remoteVal)
 						sendEvent([name:"windowShade", value: (data == 0 ? "opening":"closing"), displayed: true])
-                        log.debug "Remote control=" + (data == 0 ? "opening":"closing")
+                        if(logEnable)log.debug "Remote control=" + (data == 0 ? "opening":"closing")
                     	break
 					case 514: // 0x02 0x02: Started moving to position (triggered from Zigbee)
                     	def setLevel = zigbee.convertHexToInt(descMap.data[9])
@@ -117,6 +118,7 @@ def installed() {
 
 def close() {
 	if(logEnable)log.info"close()"
+    if(logInfoEnable)log.info"close()"
     def cm = (OCcommand ?:"0") as int
     if(logEnable)log.debug "cm=${cm}"
     def val = Math.abs(2 - cm)
@@ -125,6 +127,7 @@ def close() {
 
 def open() {
 	if(logEnable)log.info "open()"
+    if(logInfoEnable)log.info "open()"
     def cm = (OCcommand ?:"0") as int
     def val = Math.abs(0 - cm)
 	sendTuyaCommand("0104", "00", "010" + val)
@@ -140,21 +143,24 @@ def off(){
 
 def pause() {
 	if(logEnable)log.info "pause()"
+    if(logInfoEnable)log.info "pause()"
 	sendTuyaCommand("0104", "00", "0101")
 }
 
 def setLevel(data, rate = null) {
-if(logEnable) log.info "setLevel("+data+")"
-def currentLevel = device.currentValue("level")
-if (currentLevel == data) {
-sendEvent(name: "level", value: currentLevel)
-  sendEvent(name: "position", value: currentLevel) 
+      if(logEnable) log.info "setLevel("+data+")"
+      if(logInfoEnable) log.info "setLevel("+data+")"
+     def currentLevel = device.currentValue("level")
+    if (currentLevel == data) {
+    sendEvent(name: "level", value: currentLevel)
+    sendEvent(name: "position", value: currentLevel) 
 }
 sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
 }
 
 def setPosition(position){ 
-if(logEnable) log.info "setPos to $position"
+    if(logEnable) log.info "setPos to $position"
+    if(logInfoEnable) log.info "setPos to $position"
 setLevel(position, null)
 }
 
@@ -183,12 +189,12 @@ def updated() {
 }	
 
 def DirectionSet(Dval) {
-	log.info "Dset(${Dval})"
+	if (logEnable) log.info "Dset(${Dval})"
    sendTuyaCommand("05040001", Dval, "")
 }
 
 private sendTuyaCommand(dp, fn, data) {
-	log.info "${zigbee.convertToHexString(rand(256), 2)}=${dp},${fn},${data}"
+	if (logEnable) log.info "${zigbee.convertToHexString(rand(256), 2)}=${dp},${fn},${data}"
 	zigbee.command(CLUSTER_TUYA, SETDATA, "00" + zigbee.convertToHexString(rand(256), 2) + dp + fn + data)
 }
 
