@@ -1,4 +1,4 @@
-/**
+	/**
  *  ****************  Multi Sensor Plus  Child App ****************
  *
  * Average: Temperature and Humidity    -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -   Plus  a Virtual Switch  -  All  In One Device
@@ -113,13 +113,39 @@ def initialize() {
     subscribe(soundSensors, "sound", soundSensorHandler)
     subscribe(locks, "lock", lockHandler)
     subscribe(temperatureSensors, "temperature", temperatureSensorsHandler)
-    settings.multiSensor.setTemperature(averageTemperature())
 	subscribe(humiditySensors, "humidity",humiditySensorsHandler)
-    settings.multiSensor.setHumidity(averageHumidity())
     if (logEnable)log.info "subscribed to sensor events"
 }
-    
-    
+   
+
+def averageTemperature() { 
+	def total = 0
+    def n = temperatureSensors.size()
+	temperatureSensors.each {total += it.currentTemperature}
+	return (total /n).toDouble().round(1) 
+
+}
+
+def temperatureSensorsHandler(evt) {
+	def avg = averageTemperature()
+	settings.multiSensor.setTemperature(avg)
+	if (logEnable)log.info "Current temperature average is ${averageTemperature()}"
+}
+
+   
+def averageHumidity() { 
+    def total = 0
+	def n=  humiditySensors.size()
+    humiditySensors.each {total += it.currentHumidity}
+	 return (total /n).toDouble().round(1)
+}
+
+def humiditySensorsHandler(evt) {
+	def avg = averageHumidity()
+	settings.multiSensor.setHumidity(avg)
+	if (logEnable)log.info"Current humidity average is ${averageHumidity()}%"
+}
+
 
 def contactSensorsHandler(evt){ 
 	def open = contactSensors.findAll { it?.latestValue("contact") == 'open' }
@@ -220,30 +246,3 @@ def presenceSensorHandler(evt){
     }
 }
 
-
-def averageHumidity() {
-	def total = 0
-	def n = humiditySensors.size()
-	humiditySensors.each {total += it.currentHumidity}
-	return (total / n).toDouble().round(1)
-}
-
-def humiditySensorsHandler(evt) {
-	def avg = averageHumidity()
-	settings.multiSensor.setHumidity(avg)
-	if (logEnable)log.info"Current humidity average is ${averageHumidity()}%"
-}
-
-
-def averageTemperature() {
-	def total = 0
-	def n = temperatureSensors.size()
-	temperatureSensors.each {total += it.currentTemperature}
-	return (total / n).toDouble().round(1)
-}
-
-def temperatureSensorsHandler(evt) {
-	def avg = averageTemperature()
-	settings.multiSensor.setTemperature(avg)
-	if (logEnable)log.info "Current temperature average is ${averageTemperature()}"
-}
