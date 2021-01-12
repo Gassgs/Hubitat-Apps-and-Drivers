@@ -26,7 +26,8 @@
  *  Changes:
  *
  *  V1.0.0 - First run
- *
+ *  V1.1.0 - Fixed "size" error 
+ *  V1.2.0 - Improved Motion Sensor Handler 
  */
 
 import groovy.transform.Field
@@ -51,37 +52,37 @@ preferences {
    
      paragraph title: "Multi Sensor Plus Child",
         required: false, 
-    	"<div style='text-align:center'><b>Average: Temperature and Humidity  - Group: Locks, Contact, Motion, Water, Presence, and Sound Sensors - Plus a Virtual Switch                                                                                       All  In One Device</b></div>"
+    	"<div style='text-align:center'><b>Average</b>: Temperature and Humidity  - <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors - <b>Plus</b>: a Virtual Switch                                                               <b>All In One Device</b></div>"
         
      	
          input "multiSensor", "capability.sensor", title: "<b>Virtual Multi Sensor Device</b>(Create device before adding rules)", required: true 
 }   
        section {
-           input "temperatureSensors", "capability.temperatureMeasurement", title: "Temperature Sensors to average (optional)", multiple: true
+           input "temperatureSensors", "capability.temperatureMeasurement", title: "<b>Temperature</b> Sensors to average (optional)", multiple: true
            if(temperatureSensors) paragraph "Current average is ${averageTemperature()}"
    }
        section {
-           input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Humidity Sensors to average (optional)", multiple: true
+           input "humiditySensors", "capability.relativeHumidityMeasurement", title: "<b>Humidity</b> Sensors to average (optional)", multiple: true
 			if(humiditySensors) paragraph "Current average is ${averageHumidity()}%"
    }
    section {
-           input "contactSensors", "capability.contactSensor", title: "Contact Sensors to group (optional)", multiple: true
+           input "contactSensors", "capability.contactSensor", title: "<b>Contact</b> Sensors to group (optional)", multiple: true
    }
        section {
-           input "locks", "capability.lock", title: "Locks to group (optional)", multiple: true
+           input "locks", "capability.lock", title: "<b>Locks</b> to group (optional)", multiple: true
    }
        section {
-           input "motionSensors", "capability.motionSensor", title: "Motion Sensors to group (optional)", multiple: true
+           input "motionSensors", "capability.motionSensor", title: "<b>Motion</b> Sensors to group (optional)", multiple: true
             input "timeout", "number" , title: "Activity Timeout (in seconds) started after all motion sensors become inactive", defaultValue: 0, required: true
    }
        section {
-           input "waterSensors", "capability.waterSensor", title: "Water Sensors to group (optional)", multiple: true
+           input "waterSensors", "capability.waterSensor", title: "<b>Water</b> Sensors to group (optional)", multiple: true
    }
            section {
-           input "presenceSensors", "capability.presenceSensor", title: "Presence Sensors to group (optional)", multiple: true
+           input "presenceSensors", "capability.presenceSensor", title: "<b>Presence</b> Sensors to group (optional)", multiple: true
    }
            section {
-           input "soundSensors", "capability.soundSensor", title: "Sound Sensors to group (optional)", multiple: true
+           input "soundSensors", "capability.soundSensor", title: "<b>Sound</b> Sensors to group (optional)", multiple: true
    }
     
     
@@ -151,12 +152,12 @@ def contactSensorsHandler(evt){
 	def open = contactSensors.findAll { it?.latestValue("contact") == 'open' }
 		if (open) { 
             state.contactList = "${open}"      
-            settings.multiSensor.setContact("open") 
+            settings.multiSensor.setContact("open")
             settings.multiSensor.setContacts(state.contactList)
             if (logEnable)log.info("contactOpen"+state.contactList)
         }
     else{
-    settings.multiSensor.setContact("closed") 
+    settings.multiSensor.setContact("closed")
     settings.multiSensor.setContacts("All Closed")
      if (logEnable)log.info("All Closed")
     }    
@@ -205,15 +206,17 @@ def motionSensorHandler(evt){
             if (logEnable)log.info("motionActive"+state.motionList)
         }
     else{
-       runIn(timeout,inactive)
+       runIn(timeout,checkz)
     }
 }
-def inactive(){
+def checkz(){
+     def inactive = motionSensors.findAll { it?.latestValue("motion") == 'inactive' }
+	 if (inactive) { 
       settings.multiSensor.setMotion("inactive")
       settings.multiSensor.setMotionSensors("All Inactive")
      if (logEnable)log.info("All Inactive")
     }
-
+}
 
 def soundSensorHandler(evt){ 
 	def detected = soundSensors.findAll { it?.latestValue("sound") == 'detected' }
@@ -245,4 +248,5 @@ def presenceSensorHandler(evt){
      if (logEnable)log.info("No One Present")
     }
 }
+
 
