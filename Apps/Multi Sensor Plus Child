@@ -1,7 +1,7 @@
-	/**
+  /**
  *  ****************  Multi Sensor Plus  Child App ****************
  *
- * Average: Temperature and Humidity    -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -   Plus  a Virtual Switch  -  All  In One Device
+ *   Average: Temperature, Humidity, and Illuminance   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch  -  All  In One Device
  *
  *
  *  Copyright 2021 Gassgs / Gary Gassmann
@@ -25,9 +25,11 @@
  *
  *  Changes:
  *
- *  V1.0.0 - First run
- *  V1.1.0 - Fixed "size" error 
- *  V1.2.0 - Improved Motion Sensor Handler 
+ *  V1.0.0 -     1-9-2021         First run    Gassgs
+ *  V1.1.0 -    1-10-2021     Fixed "size" error     Gassgs
+ *  V1.2.0 -    1-11-2021     Improved Motion Sensor Handler   Gassgs
+ *  V 1.3.0 -   1-12-2021      Improved event sending and revamped device driver    Gassgs
+ *  V  2.0     -     1-13-2021      Added timeouts for presence and sound sensors      Gassgs
  */
 
 import groovy.transform.Field
@@ -36,7 +38,7 @@ definition(
     name: "Multi Sensor Plus Child",
     namespace: "Gassgs",
     author: "Gary G",
-    description: "Average: Temperature and Humidity   -  Group: Locks, Contact, Motion, Water, Presence, and Sound Sensors   -  Plus  a Virtual Switch  -  All  In One Device",
+    description: "Average: Temperature, Humidity, and Illuminance   -  Group: Locks, Contact, Motion, Water, Presence, and Sound Sensors   -  Plus  a Virtual Switch  -  All  In One Device",
     parent: "Gassgs:Multi Sensor Plus",
     category: "Utilities",
     iconUrl: "",
@@ -52,7 +54,7 @@ preferences {
    
      paragraph title: "Multi Sensor Plus Child",
         required: false, 
-    	"<div style='text-align:center'><b>Average</b>: Temperature and Humidity  - <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors - <b>Plus</b>: a Virtual Switch                                                               <b>All In One Device</b></div>"
+    	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance  - <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors - <b>Plus</b>: a Virtual Switch                                                               <b>All In One Device</b></div>"
         
      	
          input "multiSensor", "capability.sensor", title: "<b>Virtual Multi Sensor Device</b>(Create device before adding rules)", required: true 
@@ -65,24 +67,30 @@ preferences {
            input "humiditySensors", "capability.relativeHumidityMeasurement", title: "<b>Humidity</b> Sensors to average (optional)", multiple: true
 			if(humiditySensors) paragraph "Current average is ${averageHumidity()}%"
    }
+           section {
+           input "illuminanceSensors", "capability.illuminanceMeasurement", title: "<b>Lux</b> Sensors to average (optional)", multiple: true
+			if(illuminanceSensors) paragraph "Current average is ${averageIlluminance()}"
+   }
    section {
            input "contactSensors", "capability.contactSensor", title: "<b>Contact</b> Sensors to group (optional)", multiple: true
    }
        section {
            input "locks", "capability.lock", title: "<b>Locks</b> to group (optional)", multiple: true
    }
-       section {
-           input "motionSensors", "capability.motionSensor", title: "<b>Motion</b> Sensors to group (optional)", multiple: true
-            input "timeout", "number" , title: "Activity Timeout (in seconds) started after all motion sensors become inactive", defaultValue: 0, required: true
+           section {
+           input "waterSensors", "capability.waterSensor", title: "<b>Water</b> Sensors to group (optional)", multiple: true
    }
        section {
-           input "waterSensors", "capability.waterSensor", title: "<b>Water</b> Sensors to group (optional)", multiple: true
+           input "motionSensors", "capability.motionSensor", title: "<b>Motion</b> Sensors to group (optional)", multiple: true
+              input "timeout", "number" , title: "Activity timeout (in seconds) started after all sensors become inactive", defaultValue: 0, required: true
    }
            section {
            input "presenceSensors", "capability.presenceSensor", title: "<b>Presence</b> Sensors to group (optional)", multiple: true
+              input "timeout1", "number" , title: "Presence timeout (in seconds) started after all sensors become not present", defaultValue: 0, required: true
    }
            section {
            input "soundSensors", "capability.soundSensor", title: "<b>Sound</b> Sensors to group (optional)", multiple: true
+                input "timeout2", "number" , title: "Sound timeout (in seconds) started after all sensors become not detected", defaultValue: 0, required: true
    }
     
     
@@ -115,6 +123,7 @@ def initialize() {
     subscribe(locks, "lock", lockHandler)
     subscribe(temperatureSensors, "temperature", temperatureSensorsHandler)
 	subscribe(humiditySensors, "humidity",humiditySensorsHandler)
+   subscribe( illuminanceSensors,"illuminance",illuminanceSensorsHandler)
     if (logEnable)log.info "subscribed to sensor events"
 }
    
@@ -129,7 +138,7 @@ def averageTemperature() {
 
 def temperatureSensorsHandler(evt) {
 	def avg = averageTemperature()
-	settings.multiSensor.setTemperature(avg)
+	multiSensor.setTemperature(avg)
 	if (logEnable)log.info "Current temperature average is ${averageTemperature()}"
 }
 
@@ -139,12 +148,28 @@ def averageHumidity() {
 	def n=  humiditySensors.size()
     humiditySensors.each {total += it.currentHumidity}
 	 return (total /n).toDouble().round(1)
+    
 }
 
 def humiditySensorsHandler(evt) {
 	def avg = averageHumidity()
-	settings.multiSensor.setHumidity(avg)
+	multiSensor.setHumidity(avg)
 	if (logEnable)log.info"Current humidity average is ${averageHumidity()}%"
+}
+
+
+def averageIlluminance() { 
+	def total = 0
+    def n = illuminanceSensors.size()
+	illuminanceSensors.each {total += it.currentIlluminance}
+	return (total /n).toDouble().round(1)
+
+}
+
+def illuminanceSensorsHandler(evt) {
+	def avg = averageIlluminance()
+	multiSensor.setIlluminance(avg)
+	if (logEnable)log.info "Current lux average is ${averageIlluminance()}"
 }
 
 
@@ -152,13 +177,13 @@ def contactSensorsHandler(evt){
 	def open = contactSensors.findAll { it?.latestValue("contact") == 'open' }
 		if (open) { 
             state.contactList = "${open}"      
-            settings.multiSensor.setContact("open")
-            settings.multiSensor.setContacts(state.contactList)
+            multiSensor.statusUpdate("contact","open")
+            multiSensor.statusUpdate("Contacts",state.contactList)
             if (logEnable)log.info("contactOpen"+state.contactList)
         }
     else{
-    settings.multiSensor.setContact("closed")
-    settings.multiSensor.setContacts("All Closed")
+    multiSensor.statusUpdate("contact","closed")
+    multiSensor.statusUpdate("Contacts","All Closed")
      if (logEnable)log.info("All Closed")
     }    
 }
@@ -168,13 +193,13 @@ def lockHandler(evt){
 	def unlocked = locks.findAll { it?.latestValue("lock") == 'unlocked' }
 		if (unlocked) { 
             state.lockList = "${unlocked}"      
-            settings.multiSensor.setLock("unlocked") 
-            settings.multiSensor.setLocks(state.lockList)
+            multiSensor.statusUpdate("lock","unlocked") 
+            multiSensor.statusUpdate("Locks",state.lockList)
             if (logEnable)log.info("Unlocked"+state.contactList)
         }
     else{
-    settings.multiSensor.setLock("locked") 
-    settings.multiSensor.setLocks("All Locked")
+    multiSensor.statusUpdate("lock","locked") 
+    multiSensor.statusUpdate("Locks","All Locked")
      if (logEnable)log.info("All Locked")
     }    
 }
@@ -184,25 +209,24 @@ def waterSensorHandler(evt){
 	def wet = waterSensors.findAll { it?.latestValue("water") == 'wet' }
 		if (wet) { 
             state.waterList = "${wet}"      
-            settings.multiSensor.setWater("wet") 
-            settings.multiSensor.setWaterSensors(state.waterList)
+            multiSensor.statusUpdate("water","wet") 
+            multiSensor.statusUpdate("Water_Sensors",state.waterList)
             if (logEnable)log.info("leakDetected"+state.waterList)
         }
     else{
-    settings.multiSensor.setWater("dry") 
-    settings.multiSensor.setWaterSensors("All Dry")
+    multiSensor.statusUpdate("water","dry") 
+    multiSensor.statusUpdate("Water_Sensors","All Dry")
      if (logEnable)log.info("All Dry")
     }
 }
-
 
 
 def motionSensorHandler(evt){ 
 	def active = motionSensors.findAll { it?.latestValue("motion") == 'active' }
 		if (active) { 
             state.motionList = "${active}"      
-            settings.multiSensor.setMotion("active") 
-            settings.multiSensor.setMotionSensors(state.motionList)
+            multiSensor.statusUpdate("motion","active") 
+            multiSensor.statusUpdate("Motion_Sensors",state.motionList)
             if (logEnable)log.info("motionActive"+state.motionList)
         }
     else{
@@ -212,40 +236,53 @@ def motionSensorHandler(evt){
 def checkz(){
      def inactive = motionSensors.findAll { it?.latestValue("motion") == 'inactive' }
 	 if (inactive) { 
-      settings.multiSensor.setMotion("inactive")
-      settings.multiSensor.setMotionSensors("All Inactive")
+      multiSensor.statusUpdate("motion","inactive")
+      multiSensor.statusUpdate("Motion_Sensors","All Inactive")
      if (logEnable)log.info("All Inactive")
     }
 }
 
-def soundSensorHandler(evt){ 
-	def detected = soundSensors.findAll { it?.latestValue("sound") == 'detected' }
-		if (detected) { 
-            state.soundList = "${detected}"      
-            settings.multiSensor.setSound("detected") 
-            settings.multiSensor.setSoundSensors(state.soundList)
-            if (logEnable)log.info("soundDetected"+state.soundList)
-        }
-    else{
-    settings.multiSensor.setSound("not detected") 
-    settings.multiSensor.setSoundSensors("No Sound Detected")
-     if (logEnable)log.info("No Sound Detected")
-    }
-}
-    
 
 def presenceSensorHandler(evt){ 
 	def present = presenceSensors.findAll { it?.latestValue("presence") == 'present' }
 		if (present) { 
             state.presenceList = "${present}"      
-            settings.multiSensor.setPresence("present") 
-            settings.multiSensor.setPresenceSensors(state.presenceList)
+            multiSensor.statusUpdate("presence","present") 
+            multiSensor.statusUpdate("Person_Detected",state.presenceList)
             if (logEnable)log.info("personDetected"+state.presenceList)
         }
     else{
-    settings.multiSensor.setPresence("not present") 
-    settings.multiSensor.setPresenceSensors("No One Present")
+        runIn(timeout1,checky)
+    }
+}
+def checky(){
+     def notPresent = presenceSensors.findAll { it?.latestValue("presence") == 'not present' }
+	 if (notPresent) { 
+     multiSensor.statusUpdate("presence","not present") 
+    multiSensor.statusUpdate("Person_Detected","No One Present")
      if (logEnable)log.info("No One Present")
+    }
+}
+
+
+def soundSensorHandler(evt){ 
+	def detected = soundSensors.findAll { it?.latestValue("sound") == 'detected' }
+		if (detected) { 
+            state.soundList = "${detected}"      
+            multiSensor.statusUpdate("sound","detected") 
+            multiSensor.statusUpdate("Sound_Heard",state.soundList)
+            if (logEnable)log.info("soundDetected"+state.soundList)
+        }
+    else{
+        runIn(timeout2,checkx)
+    }
+}
+def checkx(){
+    def notDetected = soundSensors.findAll { it?.latestValue("sound") == 'not detected' }
+	if (notDetected) { 
+    multiSensor.statusUpdate("sound","not detected") 
+    multiSensor.statusUpdate("Sound_Heard","No Sound Detected")
+     if (logEnable)log.info("No Sound Detected")
     }
 }
 
