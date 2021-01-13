@@ -1,7 +1,7 @@
 /**
 //**********Multi Sensor Plus********
 *
- * Average: Temperature and Humidity   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch  -  All  In One Device"
+ * Average: Temperature, Humidity, and Illuminance   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch  -  All  In One Device
  *
  *
  *  Copyright 2021 Gassgs / Gary Gassmann
@@ -25,7 +25,8 @@
  *
  *  Changes:
  *
- *  V1.0.0 - First run
+ *  V1.0.0 -   1-9-2021    First run      Gassgs
+ *  V 2.0 -       1-11-2021   Improvements      Gassgs
  *
  */
 
@@ -35,7 +36,7 @@ definition(
     name: "Multi Sensor Plus",
     namespace: "Gassgs",
     author: "Gary G",
-    description: "Average: Temperature  and Humidity   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -  Plus  a Virtual Switch  -  All  In One Device",
+    description: "Average: Temperature, Humidity, and Illuminance  -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -  Plus  a Virtual Switch  -  All  In One Device",
     category: "",
     iconUrl: "",
     iconX2Url: "",
