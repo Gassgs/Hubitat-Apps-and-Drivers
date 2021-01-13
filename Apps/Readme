@@ -4,4 +4,11 @@ Average: Temperature, Humidity, and Illuminace   -  Group:  Locks, Contact, Moti
 -  All  In One Device -
 
 This is a simple app that lets you combined multiple sensors into one device
+Group all sensors for a rooms to access all of the information in one device
+Average the Temperature, Humidity, and Illuminace of multiple sensors
+Group Locks, Contact, Motion, Water, Presence, and Sound Sensors and easyily see witch sensors are open,wet,active etc..
+Use the virtual switch to enable/disable motion lighting rules with Google home
+ -include contact,temperature, and humidity information within the virtual switch for the ability to retrive the infotmation from Google home
+
+ 
 When installing you must add the virtual device with the "Virtual Multi Sensor Plus" Driver first
