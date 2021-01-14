@@ -11,6 +11,10 @@ Use the virtual switch to enable/disable motion lighting rules with Google home
  *include contact,temperature, and humidity information within the virtual device for the ability to retrive the information from Google home
                    *(Community Maintained Google Home Integration required)
                    
+* Group your Nest Cameras to see if a person, sound, or motion is detected and which camera is active
+                   *(Google SDM API - Nest integration required)
+
+                   
  
 When installing you must add the virtual device(s) using the "Virtual Multi Sensor Plus" Driver first
 
