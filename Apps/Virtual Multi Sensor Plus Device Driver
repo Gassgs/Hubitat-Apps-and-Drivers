@@ -16,8 +16,9 @@
  *
  *  Change History:
  *
- *    V1.0  1-9-2021     -first try - Gassgs  
- *   V 2.0  1-12-2021   improved layout and standardized Hum,Temp,Lux events  Gassgs
+ *    V1.0  1-9-2021         -first run - Gassgs  
+ *   V 1.1   1-12-2021   -improved layout and standardized Hum,Temp,Lux events  Gassgs
+ *   V 2.0  1-12-2021    -improved presence sensor options to include nest cams and normal presence devices  Gassgs
  *    
  * 
  */
@@ -46,7 +47,8 @@ metadata {
         attribute"Contacts","string"
         attribute"Motion_Sensors","string"
         attribute"Water_Sensors","string" 
-        attribute"Person_Detected","string"    
+        attribute"Person_Detected","string"  
+        attribute"Home","string"   
         attribute"Sound_Heard","string"    
         attribute"lock","string" 
         attribute"Locks","string" 
