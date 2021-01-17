@@ -1,4 +1,4 @@
-Multi Sensor Plus
+<b>Multi Sensor Plus</b>
 
 Average: Temperature, Humidity, and Illuminace   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch
                                                         -  All In One Device  -
