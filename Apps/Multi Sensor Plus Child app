@@ -57,44 +57,43 @@ preferences {
     	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance  - <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors - <b>Plus</b>: a Virtual Switch                                                               <b>All In One Device</b></div>"
           	
          input "multiSensor", "capability.sensor", title: "<b>Virtual Multi Sensor Device</b>(Create device before adding rules)", required: true 
-   }   
-       section {
+    }
+    section {
            input "temperatureSensors", "capability.temperatureMeasurement", title: "<b>Temperature</b> Sensors to average (optional)", multiple: true,submitOnChange: true
            if(temperatureSensors) paragraph "Current average is ${averageTemperature()}"
    }
-       section {
+    section {
            input "humiditySensors", "capability.relativeHumidityMeasurement", title: "<b>Humidity</b> Sensors to average (optional)", multiple: true,submitOnChange: true
 			if(humiditySensors) paragraph "Current average is ${averageHumidity()}%"
    }
-           section {
+    section {
            input "illuminanceSensors", "capability.illuminanceMeasurement", title: "<b>Lux</b> Sensors to average (optional)", multiple: true,submitOnChange: true
 			if(illuminanceSensors) paragraph "Current average is ${averageIlluminance()}"
    }
-   section {
+    section {
            input "contactSensors", "capability.contactSensor", title: "<b>Contact</b> Sensors to group (optional)", multiple: true
    }
-       section {
+    section {
            input "locks", "capability.lock", title: "<b>Locks</b> to group (optional)", multiple: true
    }
-           section {
+    section {
            input "waterSensors", "capability.waterSensor", title: "<b>Water</b> Sensors to group (optional)", multiple: true
    }
-       section {
+    section {
            input "motionSensors", "capability.motionSensor", title: "<b>Motion</b> Sensors to group (optional)", multiple: true,submitOnChange: true
              if (motionSensors) input "timeout", "number" , title: "Activity timeout (in seconds) Started after all sensors become inactive", defaultValue: 0, required: true              
    }
-           section {
-           input "soundSensors", "capability.soundSensor", title: "<b>Sound</b> Sensors to group (optional)", multiple: true,submitOnChange: true
-               if (soundSensors) input "timeout2", "number" , title: "Sound timeout (in seconds) Started after all sensors become not detected", defaultValue: 0, required: true
+    section {
+        input "soundSensors", "capability.soundSensor", title: "<b>Sound</b> Sensors to group (optional)", multiple: true,submitOnChange: true
+        if (soundSensors) input "timeout2", "number" , title: "Sound timeout (in seconds) Started after all sensors become not detected", defaultValue: 0, required: true
    }
-           section {
-           input "presenceSensors", "capability.presenceSensor", title: "<b>Presence</b> Sensors to group (optional)", multiple: true
-              input "nestEnable", "bool", title: "Enable this option for use with Nest Cameras instead of typical presence devices", required: true, defaultValue: false,submitOnChange: true
-              if(nestEnable)input "timeout1", "number" , title: "Timeout (in seconds) Started after all cameras  do not detect a person", defaultValue: 0, required: true
+    section {
+        input "presenceSensors", "capability.presenceSensor", title: "<b>Presence</b> Sensors to group (optional)", multiple: true
+        input "nestEnable", "bool", title: "Enable this option for use with Nest Cameras instead of typical presence devices", required: true, defaultValue: false,submitOnChange: true
+        if(nestEnable)input "timeout1", "number" , title: "Timeout (in seconds) Started after all cameras  do not detect a person", defaultValue: 0, required: true
    }
-
- section("Logging"){
-            input "logEnable", "bool", title: "Enable Info logging", required: true, defaultValue: false
+    section("Logging"){
+        input "logEnable", "bool", title: "Enable Info logging", required: true, defaultValue: false
         }
 }
 
