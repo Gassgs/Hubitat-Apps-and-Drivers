@@ -50,15 +50,12 @@ definition(
 
 preferences {
     
-
 	section {
-    
-   
+       
      paragraph title: "Multi Sensor Plus Child",
         required: false, 
     	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance  - <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors - <b>Plus</b>: a Virtual Switch                                                               <b>All In One Device</b></div>"
-        
-     	
+          	
          input "multiSensor", "capability.sensor", title: "<b>Virtual Multi Sensor Device</b>(Create device before adding rules)", required: true 
 }   
        section {
@@ -96,8 +93,6 @@ preferences {
               if(nestEnable)input "timeout1", "number" , title: "Timeout (in seconds) Started after all cameras  do not detect a person", defaultValue: 0, required: true
    }
 
-    
-    
  section("Logging"){
             input "logEnable", "bool", title: "Enable Info logging", required: true, defaultValue: false
         }
@@ -131,15 +126,11 @@ def initialize() {
     if (logEnable)log.info "subscribed to sensor events"
 }
 
-
-
-
 def averageTemperature() { 
 	def total = 0
     def n = temperatureSensors.size()
 	temperatureSensors.each {total += it.currentTemperature}
-	return (total /n).toDouble().round(1) 
-
+	return (total /n).toDouble().round(1)
 }
 
 def temperatureSensorsHandler(evt) {
@@ -147,14 +138,12 @@ def temperatureSensorsHandler(evt) {
 	multiSensor.setTemperature(avg)
 	if (logEnable)log.info "Current temperature average is ${averageTemperature()}"
 }
-
-   
+  
 def averageHumidity() { 
     def total = 0
 	def n=  humiditySensors.size()
     humiditySensors.each {total += it.currentHumidity}
-	 return (total /n).toDouble().round(1)
-    
+	 return (total /n).toDouble().round(1)    
 }
 
 def humiditySensorsHandler(evt) {
@@ -163,13 +152,11 @@ def humiditySensorsHandler(evt) {
 	if (logEnable)log.info"Current humidity average is ${averageHumidity()}%"
 }
 
-
 def averageIlluminance() { 
 	def total = 0
     def n = illuminanceSensors.size()
 	illuminanceSensors.each {total += it.currentIlluminance}
-	return (total /n).toDouble().round(1)
-
+	return (total /n).toDouble().round()
 }
 
 def illuminanceSensorsHandler(evt) {
@@ -177,7 +164,6 @@ def illuminanceSensorsHandler(evt) {
 	multiSensor.setIlluminance(avg)
 	if (logEnable)log.info "Current lux average is ${averageIlluminance()}"
 }
-
 
 def contactSensorsHandler(evt){ 
 	def open = contactSensors.findAll { it?.latestValue("contact") == 'open' }
@@ -194,7 +180,6 @@ def contactSensorsHandler(evt){
     }    
 }
 
-
 def lockHandler(evt){ 
 	def unlocked = locks.findAll { it?.latestValue("lock") == 'unlocked' }
 		if (unlocked) { 
@@ -210,7 +195,6 @@ def lockHandler(evt){
     }    
 }
 
-
 def waterSensorHandler(evt){ 
 	def wet = waterSensors.findAll { it?.latestValue("water") == 'wet' }
 		if (wet) { 
@@ -225,7 +209,6 @@ def waterSensorHandler(evt){
      if (logEnable)log.info("All Dry")
     }
 }
-
 
 def motionSensorHandler(evt){ 
 	def active = motionSensors.findAll { it?.latestValue("motion") == 'active' }
@@ -254,7 +237,6 @@ def checkz(){
     }
 }
 
-
 def soundSensorHandler(evt){ 
 	def detected = soundSensors.findAll { it?.latestValue("sound") == 'detected' }
 		if (detected) { 
@@ -282,7 +264,6 @@ def checkx(){
     }
 }
 
-
 def presenceSensorHandler(evt){ 
     if (nestEnable){
         presenceHandler1()
@@ -291,8 +272,7 @@ def presenceSensorHandler(evt){
          presenceHandler2()
     }
 }
-    
-    
+   
 def presenceHandler1(){
 	def present = presenceSensors.findAll { it?.latestValue("presence") == 'present' }
 		if (present) { 
@@ -320,7 +300,6 @@ def checky(){
     }
 }
 
-
 def presenceHandler2(){
 	def present = presenceSensors.findAll { it?.latestValue("presence") == 'present' }
 		if (present) { 
@@ -335,5 +314,3 @@ def presenceHandler2(){
      if (logEnable)log.info("Everyone is  Away") 
     }
 }
-
-
