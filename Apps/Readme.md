@@ -3,7 +3,7 @@
 <b>Average: Temperature, Humidity, and Illuminace   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch
                                                         -  All In One Device  -</b>
 
-This is a simple app that lets you combined multiple sensors into one device.
+This is a simple app that lets you combine multiple sensors into one device.
 Group all sensors for rooms or zones to access all of the information in one device.
 Average the Temperature, Humidity, and Illuminace of multiple sensors.
 Group Locks, Contact, Motion, Water, Presence, and Sound Sensors to easily see witch sensors are open,wet,active etc..Make virtual switches more useful.
