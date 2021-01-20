@@ -6,7 +6,7 @@
 This is a simple app that lets you combine multiple sensors into one device.
 Group all sensors for rooms or zones to access all of the information in one device.
 Average the Temperature, Humidity, and Illuminace of multiple sensors.
-Group Locks, Contact, Motion, Water, Presence, and Sound Sensors to easily see witch sensors are open,wet,active etc..Make virtual switches more useful.
+Group Locks, Contact, Motion, Water, Presence, and Sound Sensors to easily see which sensors are open,wet,active etc..Make virtual switches more useful.
 * Use the virtual switch to enable/disable motion lighting rules with Google home - include contact,temperature, and humidity information within the virtual device for the ability to retrive the information from Google home.  
                       *(Community Maintained Google Home Integration required)
                    
