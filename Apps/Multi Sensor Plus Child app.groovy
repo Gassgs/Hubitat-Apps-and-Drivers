@@ -29,9 +29,10 @@
  *  V1.1.0 -    1-10-2021      Fixed "size" error     Gassgs
  *  V1.2.0 -    1-11-2021      Improved Motion Sensor Handler   Gassgs
  *  V 1.3.0 -   1-12-2021      Improved event sending and revamped device driver    Gassgs
- *  V  1.4.0  -  1-12-2021      Added timeouts for presence and sound sensors      Gassgs
- *  V   1.5.0   -1-13-2021       Improved Motion and sound  sensor Handlers   Gassgs
- *  V   2.0.0   -1-14-2021       Improvements,  Revamped Presence for normal sensors and Nest Cameras   Gassgs
+ *  V 1.4.0  -   1-12-2021      Added timeouts for presence and sound sensors      Gassgs
+ *  V 1.5.0  -   1-13-2021       Improved Motion and sound  sensor Handlers   Gassgs
+ *  V  2.0.0   - 1-14-2021       Improvements,  Revamped Presence for normal sensors and Nest Cameras   Gassgs
+ *  V  2.1.0 -   1-22-2021      automatically load attributes, and name child app as the virtual device selected
  */
 
 import groovy.transform.Field
@@ -56,7 +57,8 @@ preferences {
         required: false, 
     	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance  - <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors - <b>Plus</b>: a Virtual Switch                                                               <b>All In One Device</b></div>"
           	
-         input "multiSensor", "capability.sensor", title: "<b>Virtual Multi Sensor Device</b>(Create device before adding rules)", required: true 
+         input "multiSensor", "capability.sensor", title: "<b>Virtual Multi Sensor Device</b>(Create device before adding rules)", required: true,submitOnChange: true
+         if(multiSensor) app.updateLabel(multiSensor.name) 
     }
     section {
            input "temperatureSensors", "capability.temperatureMeasurement", title: "<b>Temperature</b> Sensors to average (optional)", multiple: true,submitOnChange: true
@@ -113,15 +115,24 @@ def updated() {
 }
 
 def initialize() {
-	subscribe(contactSensors, "contact", contactSensorsHandler)
-    subscribe(waterSensors, "water", waterSensorHandler)
-    subscribe(motionSensors, "motion", motionSensorHandler)
-    subscribe(soundSensors, "sound", soundSensorHandler)
-    subscribe(locks, "lock", lockHandler)
     subscribe(temperatureSensors, "temperature", temperatureSensorsHandler)
 	subscribe(humiditySensors, "humidity",humiditySensorsHandler)
    subscribe( illuminanceSensors,"illuminance",illuminanceSensorsHandler)
-   subscribe(presenceSensors, "presence", presenceSensorHandler)
+	subscribe(contactSensors, "contact", contactSensorsHandler)
+    subscribe(locks, "lock", lockHandler)
+    subscribe(waterSensors, "water", waterSensorHandler)
+    subscribe(motionSensors, "motion", motionSensorHandler)
+    subscribe(soundSensors, "sound", soundSensorHandler)
+    subscribe(presenceSensors, "presence", presenceSensorHandler)
+    getTemperature()
+    getHumidity()
+    getLux()
+    getContact()
+    getLocks()
+    getWater()
+    getMotion()
+    getSound()
+    getPresence()
     if (logEnable)log.info "subscribed to sensor events"
 }
 
@@ -313,3 +324,40 @@ def presenceHandler2(){
      if (logEnable)log.info("Everyone is  Away") 
     }
 }
+
+def getTemperature(){
+      if(temperatureSensors) temperatureSensorsHandler(evt) 
+}
+
+def getHumidity(){
+    if (humiditySensors) humiditySensorsHandler(evt)
+}
+
+def getLux(){
+     if(illuminanceSensors) illuminanceSensorsHandler(evt)
+}
+
+def getContact(){
+    if(contactSensors) contactSensorsHandler(evt)
+}
+
+def getLocks(){
+     if(locks) lockHandler(evt)
+}
+
+def getWater(){
+    if(waterSensors) waterSensorHandler(evt)
+}
+    
+def getMotion(){
+    if(motionSensors) motionSensorHandler(evt)
+}
+
+def getSound(){
+    if(soundSensors) soundSensorHandler(evt)
+}
+
+def getPresence(){
+     if(presenceSensors) presenceSensorHandler(evt)
+}
+    
