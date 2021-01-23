@@ -63,8 +63,7 @@ preferences {
         required: false, 
     	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance"+
          "- <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors"+
-         "- <b>Plus</b>: a Virtual Switch"+
-         "<b>All In One Device</b></div>"
+         "- <b>Plus</b>: a Virtual Switch                         <b>All In One Device</b></div>"
      	)
         
         input( 
