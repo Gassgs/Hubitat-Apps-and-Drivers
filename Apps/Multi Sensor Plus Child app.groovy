@@ -27,11 +27,11 @@
  *
  *  Changes:
  *
- *  V1.0.0 -    1-9-2021         First run    Gassgs
- *  V1.1.0 -    1-10-2021      Fixed "size" error     Gassgs
- *  V1.2.0 -    1-11-2021      Improved Motion Sensor Handler   Gassgs
- *  V1.3.0 -    1-12-2021      Improved event sending and revamped device driver    Gassgs
- *  V1.4.0 -    1-12-2021      Added timeouts for presence and sound sensors      Gassgs
+ *  V1.0.0 -    1-9-2021        First run    Gassgs
+ *  V1.1.0 -    1-10-2021      	Fixed "size" error     Gassgs
+ *  V1.2.0 -    1-11-2021      	Improved Motion Sensor Handler   Gassgs
+ *  V1.3.0 -    1-12-2021      	Improved event sending and revamped device driver    Gassgs
+ *  V1.4.0 -    1-12-2021      	Added timeouts for presence and sound sensors      Gassgs
  *  V1.5.0 -    1-13-2021       Improved Motion and sound  sensor Handlers   Gassgs
  *  V2.0.0 -    1-14-2021       Improvements,  Revamped Presence for normal sensors and Nest Cameras   Gassgs
  *  V2.1.0 -    1-22-2021       code clean up and improvements
@@ -221,16 +221,16 @@ def updated() {
 }
 
 def initialize() {
-    subscribe(temperatureSensors, "temperature", temperatureSensorsHandler)
+	subscribe(temperatureSensors, "temperature", temperatureSensorsHandler)
 	subscribe(humiditySensors, "humidity",humiditySensorsHandler)
-    subscribe( illuminanceSensors,"illuminance",illuminanceSensorsHandler)
+    	subscribe( illuminanceSensors,"illuminance",illuminanceSensorsHandler)
 	subscribe(contactSensors, "contact", contactSensorsHandler)
-    subscribe(locks, "lock", lockHandler)
-    subscribe(waterSensors, "water", waterSensorHandler)
-    subscribe(motionSensors, "motion",  motionSensorHandler)
-    subscribe(soundSensors, "sound", soundSensorHandler)
-    subscribe(presenceSensors, "presence", presenceSensorHandler)
-    if (logEnable)log.info "subscribed to sensor events"
+    	subscribe(locks, "lock", lockHandler)
+    	subscribe(waterSensors, "water", waterSensorHandler)
+    	subscribe(motionSensors, "motion",  motionSensorHandler)
+    	subscribe(soundSensors, "sound", soundSensorHandler)
+    	subscribe(presenceSensors, "presence", presenceSensorHandler)
+	if (logEnable)log.info "subscribed to sensor events"
 }
 
 def averageTemperature() { 
