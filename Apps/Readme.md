@@ -18,11 +18,11 @@ Group Locks, Contact, Motion, Water, Presence, and Sound Sensors to easily see w
 When installing you must add the virtual device(s) using the "Virtual Multi Sensor Plus" Driver first
 
 
-This app is also compatiable with the following built in virtual devices:
+This app is also compatible with the following built in virtual devices:
 
 -Virtual Temperature sensor    *temperature averaging only
 -Virtual Thermostat            *temperature averaging only
--Virtual Humidty sensor        *humidity averaging only
+-Virtual Humidity sensor       *humidity averaging only
 -Virtual Illuminance sensor    *Illuminance averaging only
 
 *-All other attributes will only work with the Virtual Multi Sensor Device Driver-
