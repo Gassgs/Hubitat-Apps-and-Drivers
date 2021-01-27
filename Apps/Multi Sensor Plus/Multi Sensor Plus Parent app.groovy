@@ -1,7 +1,9 @@
  /**
  //**********Multi Sensor Plus********
  *
- * Average: Temperature, Humidity, and Illuminance   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch  -  All  In One Device
+ * Average: Temperature, Humidity, and Illuminance   - 
+ * Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  -
+ * Plus  a Virtual Switch  -  All  In One Device
  *
  *
  *  Copyright 2021 Gassgs / Gary Gassmann
@@ -21,12 +23,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 1/09/2021
+ *  Last Update: 1/26/2021
  *
  *  Changes:
  *
- *  V1.0.0 -   1-9-2021    First run      Gassgs
- *  V 2.0 -       1-11-2021   Improvements      Gassgs
+ *  V1.0.0  -       1-09-2021       First run
+ *  V2.0.0  -       1-11-2021       Improvements
+ *  V2.1.0  -       1-26-2021       Code Cleanup
  *
  */
 
@@ -36,35 +39,46 @@ definition(
     name: "Multi Sensor Plus",
     namespace: "Gassgs",
     author: "Gary G",
-    description: "Average: Temperature, Humidity, and Illuminance  -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -  Plus  a Virtual Switch  -  All  In One Device",
+    description: "Average: Temperature, Humidity, and Illuminance  -"+
+    "Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -"+
+    "Plus  a Virtual Switch  -  All  In One Device",
     category: "",
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
 )
 
-preferences {
-    page(name: "mainPreferences", title: "<div style='text-align:center'><b>Multi Sensor Plus</b></div>", install: true, uninstall: true) {
-        section {
+preferences{
+    page(
+        name: "mainPreferences",
+        title: "<div style='text-align:center'><b>Multi Sensor Plus</b></div>",
+        install: true,
+        uninstall: true)
+        {
+        section{
             app(
                 name: "childApps",
                 appName: "Multi Sensor Plus Child",
                 namespace: "Gassgs",
                 title: "Add New Multi Sensor Plus Rule",
                 multiple: true
-            )
+                )
         }
         displayFooter()
     }
 }
 
 def displayFooter(){
-	section() {
-		paragraph "<div style='color:#1A77C9;text-align:center'>Multi Sensor Plus<br><a href='https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CUVJA2MQB5TCW&source=url' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations are not necessary but always appreciated! - Please click <b>Done</b> to install the parent app</div>"
-	}       
+	section(){
+		paragraph "<div style='color:#1A77C9;text-align:center'>Multi Sensor Plus"+
+        "<br><a href='https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CUVJA2MQB5TCW&source=url' target"+
+        "='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border="+
+        "'0' alt='PayPal Logo'></a><br><br>Donations are not necessary but always appreciated! -"+
+        "Please click <b>Done</b> to install the parent app</div>"
+	}
 }
-    
-def uninstalled() {
+
+def uninstalled(){
     getChildApps().each { childApp ->
         deleteChildApp(childApp.id)
     }
