@@ -16,15 +16,15 @@
  *
  *  Change History:
  *
- *    V1.0  1-9-2021         -first run - Gassgs  
- *   V 1.1   1-12-2021   -improved layout and standardized Hum,Temp,Lux events  Gassgs
- *   V 2.0  1-12-2021    -improved presence sensor options to include nest cams and normal presence devices  Gassgs
- *    
+ *  V1.0.0  1-09-2021       first run - Gassgs  
+ *  V1.1.0  1-12-2021       improved layout and standardized Hum,Temp,Lux events  Gassgs
+ *  V2.0.0  1-12-2021       improved presence sensor options to include nest cams and normal presence devices  Gassgs
+ *  V2.1.0  1-26-2021       code cleanup
  * 
  */
 
 metadata {
-    definition (name: "Virtual Multi Sensor Plus", namespace: "Gassgs", author: "Gary G") {
+    definition (name: "Virtual Multi Sensor Plus", namespace: "Gassgs", author: "Gary G"){
         capability"Actuator"
         capability "Switch"
         capability "Sensor"
@@ -36,39 +36,37 @@ metadata {
         capability "TemperatureMeasurement"
         capability "RelativeHumidityMeasurement"
         capability "IlluminanceMeasurement"
-        
 
-        command "setTemperature", ["number"]
-        command "setHumidity", ["number"]
-        command "setIlluminance", ["number"]
+        command "setTemperature",["number"]
+        command "setHumidity",["number"]
+        command "setIlluminance",["number"]
         command "statusUpdate",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
-       
-      
+
         attribute"Contacts","string"
         attribute"Motion_Sensors","string"
-        attribute"Water_Sensors","string" 
-        attribute"Person_Detected","string"  
-        attribute"Home","string"   
-        attribute"Sound_Heard","string"    
-        attribute"lock","string" 
-        attribute"Locks","string" 
-    } 
+        attribute"Water_Sensors","string"
+        attribute"Person_Detected","string"
+        attribute"Home","string"
+        attribute"Sound_Heard","string"
+        attribute"lock","string"
+        attribute"Locks","string"
+    }
 }
 
-def on() {
+def on(){
     log.info "Switch_On"
     sendEvent(name: "switch", value: "on")
 }
 
-def off() {
-     log.info "Switch_Off"
+def off(){
+    log.info "Switch_Off"
     sendEvent(name: "switch", value: "off")
-}    
-   
-def statusUpdate(String status,String value) {
+}
+
+def statusUpdate(String status,String value){
     textValue=value
     statusValue=status
-    sendEvent(name:statusValue, value: textValue) 
+    sendEvent(name:statusValue, value: textValue)
 }
 
 def setTemperature(avg){
@@ -83,5 +81,5 @@ def setIlluminance(avg){
     sendEvent(name: "illuminance", value: avg)
 }
 
-def installed() {
+def installed(){
 }
