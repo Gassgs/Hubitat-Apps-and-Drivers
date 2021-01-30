@@ -1,10 +1,12 @@
 /**
  *  ****************  HSM Controller and Monitor App ****************
  *
- * Virtual Washing Machine and Dryer
- * Monitor the status of the devices in Hubitat and Google Home.
- * Send notifications when cycles complete/ notifications turn off when
- * washer or dryer doors open or when turned off in google home..
+ * HSM Controller and Monitor 
+ * Monitor the status of HSM with a device in Hubitat and Google Home.
+ * Automatically arm correct arm rule depending on mode
+ * Arm and disarm Away mode with presence
+ * Custom Water leak handler to shut off valve after water timeout
+ * and close valve only in night and away modes
  *
  *
  *  Copyright 2021 Gassgs / Gary Gassmann
@@ -29,7 +31,8 @@
  *  Changes:
  *
  *  V1.0.0  -       1-27-2021       First run
- *  V2.0.0  -       1-28-2021       Major Improvements adding presence  
+ *  V2.0.0  -       1-28-2021       Major Improvements and added presence
+ *  V2.1.0  -       1-29-2021       Added custom Water Leak Handler 
  */
 
 import groovy.transform.Field
@@ -77,19 +80,33 @@ preferences {
         input(
             name:"chimeDevice",
             type:"capability.chime",
-            title: "Chime device for  notification for arming",
+            title: "Chime device notification for arming",
             multiple: true,
             required: false,
             submitOnChange: true
             )
         if (chimeDevice){
-             input(
-                 name:"chimeTimer",
-                 type:"number",
-                 title: "Chime notification timer, should match time to arm",
-                 required: true,
-                 submitOnChange: true
-             )
+            input(
+                name:"chimeTimer",
+                type:"number",
+                title: "Chime arming timer, should match time to arm",
+                required: true,
+                submitOnChange: true
+                )
+            input(
+                name:"delayChime",
+                type:"number",
+                title: "Chime home and night intrusion delay timer, should match intrusion delay",
+                required: true,
+                submitOnChange: true
+                )
+            input(
+                name:"delayAwayChime",
+                type:"number",
+                title: "Chime away intrusion delay timer, should match intrusion delay",
+                required: true,
+                submitOnChange: true
+                )
         }
     }
     section{
@@ -103,19 +120,19 @@ preferences {
             )
         if (lights){
             input(
-                 name:"hue",
-                 type:"number",
+                name:"hue",
+                type:"number",
                 title: "hue (1 -100)",
                 required: true,
                 submitOnChange: true
-             )
-                input(
-                    name:"sat",
-                     type:"number",
-                    title: "saturation  (1 -100)",
-                    required: true,
-                    submitOnChange: true
-                    )
+            )
+            input(
+                name:"sat",
+                type:"number",
+                title: "saturation  (1 -100)",
+                required: true,
+                submitOnChange: true
+                )
         }
         }
         section{
@@ -128,6 +145,32 @@ preferences {
                 submitOnChange: true
             )
         }
+    section{
+        input(
+            name:"waterSensors",
+            type:"capability.waterSensor",
+            title:"Water leak sensors to monitor",
+            multiple: true,
+            required: false,
+            submitOnChange: true,
+            )
+        if(waterSensors){
+            input(
+                name:"waterTimeout",
+                type:"number",
+                title:"Number of seconds water  needs to report wet before action",
+                required: true,
+                submitOnChange: true
+                )
+            input(
+                name:"valveDevice",
+                type:"capability.valve",
+                title:"Water valve to close if water detected -Night and Away Modes only",
+                required: false,
+                submitOnChange: true
+                )
+        }
+    }
         section{
             input(
                 name:"logInfo",
@@ -163,6 +206,7 @@ def initialize(){
     subscribe(location, "hsmAlert", alertHandler)
     subscribe(location, "mode", modeEventHandler)
     subscribe(settings.presenceSensors, "presence", presenceHandler)
+    subscribe(settings.waterSensors, "water", waterHandler)
     logInfo ("subscribed to Events")
 }
 
@@ -210,11 +254,42 @@ def hsmSwitchOnHandler(evt){
 def hsmSwitchOffHandler(evt){
     logInfo ("HSM Status Disarming")
     sendLocationEvent(name: "hsmSetArm", value: "disarm")
+    sendLocationEvent(name: "hsmSetArm", value: "cancelAlerts")
+    if (state.homeDelay){
+        logInfo ("Disarming while armed Home delayed intrusion")
+        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
+        settings.hsmDevice.hsmUpdate("alert","ok")
+    }
+    if (state.nightDelay){
+        logInfo ("Disarming while armed Night delayed intrusion")
+        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
+        settings.hsmDevice.hsmUpdate("alert","ok")
+    }
+    if (state.awayDelay){
+        logInfo ("Disarming while armed Away delayed intrusion")
+        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
+        settings.hsmDevice.hsmUpdate("alert","ok")
+    }
 }
 
 def hsmClearHandler(evt){
     logInfo ("HSM Status Clearing")
     sendLocationEvent(name: "hsmSetArm", value: "cancelAlerts")
+    if (state.homeDelay){
+        logInfo ("Clearing while armed Home delayed intrusion")
+        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
+        settings.hsmDevice.disarm()
+    }
+    if (state.nightDelay){
+        logInfo ("Clearing while armed Night delayed intrusion")
+        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
+        settings.hsmDevice.disarm()
+    }
+    if (state.awayDelay){
+        logInfo ("Clearing while armed Away delayed intrusion")
+        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
+        settings.hsmDevice.disarm()
+    }
 }
 
 def statusHandler(evt){
@@ -231,17 +306,21 @@ def statusHandler(evt){
     if (state.armedNight){
         settings.hsmDevice.hsmUpdate("status","armed")
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
+        settings.hsmDevice.arm()
     }
     if (state.armedAway){
         settings.hsmDevice.hsmUpdate("status","armed")
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
+        settings.hsmDevice.arm()
     }
     if (state.armedHome){
         settings.hsmDevice.hsmUpdate("status","armed")
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
+        settings.hsmDevice.arm()
     }
     if (state.disarmed){
         settings.hsmDevice.hsmUpdate("status","disarmed")
+        settings.hsmDevice.disarm()
         settings.lights.setColorTemperature("2702")
         settings.chimeDevice.playSound("2")
     }
@@ -263,17 +342,40 @@ def statusHandler(evt){
 }
 
 def stopChime(){
+    logInfo ("chime stopped")
     settings.chimeDevice.stop()
 }
 
 def alertHandler(evt){
-	logInfo ("HSM Alert: $evt.value")
+	logInfo ("HSM Alert: $evt.value" + (evt.value == "rule" ? ",  $evt.descriptionText" : ""))
     alertValue = evt.value
     state.cancelled = (alertValue == "cancel")
-    settings.hsmDevice.hsmUpdate("currentAlert","$evt.value")
+    state.failedToArm = (alertValue == "arming")
+    state.homeDelay = (alertValue == "intrusion-home-delay")
+    state.nightDelay = (alertValue == "intrusion-night-delay")
+    state.awayDelay = (alertValue == "intrusion-delay")
+    settings.hsmDevice.hsmUpdate("currentAlert","$evt.value" + (evt.value == "rule" ? ",  $evt.descriptionText" : ""))
     settings.hsmDevice.hsmUpdate("alert","active")
     if (state.cancelled){
+        logInfo ("Canceling Alerts")
         settings.chimeDevice.playSound("2")
+        settings.hsmDevice.hsmUpdate("alert","ok")
+    }
+    if (state.failedToArm){
+        logInfo ("Failed to Arm System")
+        settings.hsmDevice.off()
+    }
+    if (state.homeDelay){
+        settings.chimeDevice.playSound("4")
+        runIn(delayChime,stopChime)
+    }
+    if (state.nightDelay){
+        settings.chimeDevice.playSound("4")
+        runIn(delayChime,stopChime)
+    }
+    if (state.awayDelay){
+        settings.chimeDevice.playSound("4")
+        runIn(delayAwayChime,stopChime)
     }
 }
 
@@ -301,8 +403,61 @@ def armAway(){
 
 def disarmReturn(){
     if (state.armedAway){
+        settings.hsmDevice.clearAlert()
         settings.hsmDevice.disarm()
         logInfo (" Arrived Disarming System")
+    }
+}
+
+def waterHandler(evt){
+    wet = settings.waterSensors.findAll {it?.latestValue("water") == 'wet'}
+    if (wet){
+        waterList = "${wet}"
+        settings.hsmDevice.hsmUpdate("water","wet")
+        settings.hsmDevice.hsmUpdate("Leak",waterList)
+        logInfo("leakDetected"+waterList)
+        runIn(waterTimeout,waterLeakDetected)
+    }
+    else{
+        unschedule(waterLeakDetected)
+        settings.hsmDevice.hsmUpdate("water","dry")
+        settings.hsmDevice.hsmUpdate("Leak","All Dry")
+    }
+}
+def waterLeakDetected(){
+    if (state.earlyMorning){
+        settings.chimeDevice.playSound("3")
+        logInfo ("Leak Detected for longer than timeout limit")
+    }
+    if (state.day){
+        settings.chimeDevice.playSound("3")
+        logInfo ("Leak Detected for longer than timeout limit")
+    }
+    if (state.afternoon){
+        settings.chimeDevice.playSound("3")
+        logInfo ("Leak Detected for longer than timeout limit")
+    }
+    if (state.dinner){
+        settings.chimeDevice.playSound("3")
+        logInfo ("Leak Detected for longer than timeout limit")
+    }
+    if (state.evening){
+        settings.chimeDevice.playSound("3")
+        logInfo ("Leak Detected for longer than timeout limit")
+    }
+    if (state.lateEvening){
+        settings.chimeDevice.playSound("3")
+        logInfo ("Leak Detected for longer than timeout limit")
+    }
+    if (state.night){
+        settings.chimeDevice.playSound("3")
+        settings.valveDevice.close()
+        logInfo ("Leak Detected for longer than timeout limit Mode is Night Closing water Valve")
+    }
+    if (state.away){
+        settings.chimeDevice.playSound("3")
+        settings.valveDevice.close()
+        logInfo ("Leak Detected for longer than timeout limit Mode is Away Closing water Valve")
     }
 }
 
