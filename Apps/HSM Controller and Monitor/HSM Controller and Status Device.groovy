@@ -16,8 +16,9 @@
  *
  *  Change History:
  *
- *    V1.0  1-27-2021         -first run - Gassgs  
- *    
+ *  V1.0.0  1-27-2021   -       First run - Gassgs
+ *  V1.2.0  1-28-2021   -       Added arm and disarm away with presence       
+ *  V1.3.0  1-29-2021   -       Added Water sensor custom Handler    
  * 
  */
 
@@ -26,9 +27,9 @@ metadata {
         capability"Actuator"
         capability "Switch"
         capability "Presence Sensor"
+        capability "WaterSensor"
         
         command"hsmUpdate",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
-        command "clear", [[name:"Clear alert", type: "ENUM",description: "Clear alert", constraints: ["alert"]]]
         command"arm"
         command"disarm"
         command"clearAlert"
@@ -39,7 +40,7 @@ metadata {
         attribute"currentAlert","string"
         attribute"currentMode","string"
         attribute"Home","string"
-        attribute"presence","string"  
+        attribute"Leak","string" 
     }
 }
 
@@ -62,14 +63,7 @@ def disarm(){
 //current event will send :"alert","active" / when cancelled will send: "alert", "ok"
 def clearAlert(){
     sendEvent(name:"alert",value:"clearing")
-    runIn(2,resetAlert)
-}
-
-def clear(value){
-    if (value == "alert"){
-    sendEvent(name:"alert",value:"clearing")
-     runIn(2,resetAlert)
-    }
+    runIn(10,resetAlert)
 }
 
 def resetAlert(){
@@ -80,4 +74,8 @@ def hsmUpdate(String status,String value){
     textValue=value
     statusValue=status
     sendEvent(name:statusValue, value: textValue)
+}
+
+def refresh(){
+    //does nothing.used for google home
 }
