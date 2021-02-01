@@ -32,7 +32,8 @@
  *
  *  V1.0.0  -       1-27-2021       First run
  *  V2.0.0  -       1-28-2021       Major Improvements and added presence
- *  V2.1.0  -       1-29-2021       Added custom Water Leak Handler 
+ *  V2.1.0  -       1-29-2021       Added custom Water Leak Handler
+ *  V2.2.0  -       1-31-2021       Added additional Chime device options
  */
 
 import groovy.transform.Field
@@ -70,22 +71,82 @@ preferences {
         input(
             name:"lock",
             type:"capability.lock",
-            title: "Lock to lock when arming",
+            title: "<b>Lock</b> to lock when arming",
             multiple: true,
             required: false,
             submitOnChange: true
             )
     }
     section{
+        paragraph( "<div style='text-align:center'><b>Chime device 1 options</b></div>"
+                  )
         input(
-            name:"chimeDevice",
+            name:"chimeDevice1",
             type:"capability.chime",
-            title: "Chime device notification for arming",
+            title: "Chime device 1 for notifications",
             multiple: true,
             required: false,
             submitOnChange: true
             )
-        if (chimeDevice){
+        if (chimeDevice1){
+        input(
+            name:"delaySound1",
+            type:"number",
+            title:"Sound number to play for delays",
+            required: true,
+            submitOnChange: true
+            )
+        input(
+            name:"armSound1",
+            type:"number",
+            title:"Sound number to play for armed and disarmed",
+            required: true,
+            submitOnChange: true
+            )
+            input(
+            name:"waterSound1",
+            type:"number",
+            title:"Sound number to play for water leak detection",
+            required: true,
+            submitOnChange: true
+            )
+        }
+        paragraph( "<div style='text-align:center'><b>Chime device 2 options</b></div>"
+            )
+        input(
+            name:"chimeDevice2",
+            type:"capability.chime",
+            title: "Chime device 2 for notifications",
+            multiple: true,
+            required: false,
+            submitOnChange: true
+            )
+        if (chimeDevice2){
+        input(
+            name:"delaySound2",
+            type:"number",
+            title:"Sound number to play for delays",
+            required: true,
+            submitOnChange: true
+            )
+        input(
+            name:"armSound2",
+            type:"number",
+            title:"Sound number to play for armed and disarmed",
+            required: true,
+            submitOnChange: true
+            )
+            input(
+            name:"waterSound2",
+            type:"number",
+            title:"Sound number to play for water leak detection",
+            required: true,
+            submitOnChange: true
+            )
+        }
+        if (chimeDevice1){
+            paragraph( "<div style='text-align:center'><b>Chime delay options</b></div>"
+                  )
             input(
                 name:"chimeTimer",
                 type:"number",
@@ -110,6 +171,16 @@ preferences {
         }
     }
     section{
+           paragraph( "<div style='text-align:center'><b>Light Options</b></div>"
+            )
+           input(
+            name:"lightsFlash",
+            type:"capability.switchLevel",
+            title: "Lights to flash for delayed intrusion status",
+            multiple: true,
+            required: false,
+            submitOnChange: true
+            )
         input(
             name:"lights",
             type:"capability.colorTemperature",
@@ -305,45 +376,62 @@ def statusHandler(evt){
     state.armingHome = (hsmStatus == "armingHome")
     if (state.armedNight){
         settings.hsmDevice.hsmUpdate("status","armed")
+        settings.hsmDevice.hsmUpdate("switch","on")
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
-        settings.hsmDevice.arm()
+        settings.chimeDevice1.playSound(armSound1)
+        settings.chimeDevice2.playSound(armSound2)
+        
     }
     if (state.armedAway){
         settings.hsmDevice.hsmUpdate("status","armed")
+        settings.hsmDevice.hsmUpdate("switch","on")
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
-        settings.hsmDevice.arm()
+        settings.chimeDevice1.playSound(armSound1)
+        settings.chimeDevice2.playSound(armSound2)
     }
     if (state.armedHome){
         settings.hsmDevice.hsmUpdate("status","armed")
+        settings.hsmDevice.hsmUpdate("switch","on")
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
-        settings.hsmDevice.arm()
+        settings.chimeDevice1.playSound(armSound1)
+        settings.chimeDevice2.playSound(armSound2)
     }
     if (state.disarmed){
         settings.hsmDevice.hsmUpdate("status","disarmed")
-        settings.hsmDevice.disarm()
+        settings.hsmDevice.hsmUpdate("switch","off")
         settings.lights.setColorTemperature("2702")
-        settings.chimeDevice.playSound("2")
+        settings.chimeDevice1.playSound(armSound1)
+        settings.chimeDevice2.playSound(armSound2)
     }
     if (state.armingNight){
-        settings.lock.lock
-        settings.chimeDevice.playSound("4")
-        runIn(chimeTimer,stopChime)
+        settings.lock.lock()
+        settings.chimeDevice1.playSound(delaySound1)
+        settings.chimeDevice2.playSound(delaySound2)
+        runIn(chimeTimer-1,stopChime)
     }
     if (state.armingAway){
-        settings.lock.lock
-        settings.chimeDevice.playSound("4")
-        runIn(chimeTimer,stopChime)
+        settings.lock.lock()
+        settings.chimeDevice1.playSound(delaySound1)
+        settings.chimeDevice2.playSound(delaySound2)
+        runIn(chimeTimer-1,stopChime)
     }
     if (state.armingHome){
-        settings.lock.lock
-        settings.chimeDevice.playSound("4")
-        runIn(chimeTimer,stopChime)
+        settings.lock.lock()
+        settings.chimeDevice1.playSound(delaySound1)
+        settings.chimeDevice2.playSound(delaySound2)
+        runIn(chimeTimer-1,stopChime)
     }
 }
 
 def stopChime(){
     logInfo ("chime stopped")
-    settings.chimeDevice.stop()
+    settings.chimeDevice1.stop()
+    settings.chimeDevice2.stop()
+}
+
+def stopFlash(){
+    logInfo ("flashing lights stopped")
+    settings.lightsFlash.off()
 }
 
 def alertHandler(evt){
@@ -358,25 +446,38 @@ def alertHandler(evt){
     settings.hsmDevice.hsmUpdate("alert","active")
     if (state.cancelled){
         logInfo ("Canceling Alerts")
-        settings.chimeDevice.playSound("2")
+        settings.chimeDevice1.playSound(armSound1)
+        settings.chimeDevice2.playSound(armSound2)
         settings.hsmDevice.hsmUpdate("alert","ok")
     }
     if (state.failedToArm){
         logInfo ("Failed to Arm System")
-        settings.hsmDevice.off()
+        runIn(5,resetDisarmed)
     }
     if (state.homeDelay){
-        settings.chimeDevice.playSound("4")
-        runIn(delayChime,stopChime)
+        settings.chimeDevice1.playSound(delaySound1)
+        settings.chimeDevice2.playSound(delaySound2)
+        settings.lightsFlash.flash()
+        runIn(delayChime-1,stopChime)
+        runIn(delayChime,stopFlash)
     }
     if (state.nightDelay){
-        settings.chimeDevice.playSound("4")
-        runIn(delayChime,stopChime)
+        settings.chimeDevice1.playSound(delaySound1)
+        settings.chimeDevice2.playSound(delaySound2)
+        settings.lightsFlash.flash()
+        runIn(delayChime-1,stopChime)
+        runIn(delayChime,stopFlash)
     }
     if (state.awayDelay){
-        settings.chimeDevice.playSound("4")
-        runIn(delayAwayChime,stopChime)
+        settings.chimeDevice1.playSound(delaySound1)
+        settings.chimeDevice2.playSound(delaySound2)
+        settings.lightsFlash.flash()
+        runIn(delayAwayChime-2,stopChime)
+        runIn(delayChime,stopFlash)
     }
+}
+def resetDisarmed(){
+    settings.hsmDevice.off()
 }
 
 def presenceHandler(evt){
@@ -426,36 +527,44 @@ def waterHandler(evt){
 }
 def waterLeakDetected(){
     if (state.earlyMorning){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         logInfo ("Leak Detected for longer than timeout limit")
     }
     if (state.day){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         logInfo ("Leak Detected for longer than timeout limit")
     }
     if (state.afternoon){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         logInfo ("Leak Detected for longer than timeout limit")
     }
     if (state.dinner){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         logInfo ("Leak Detected for longer than timeout limit")
     }
     if (state.evening){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         logInfo ("Leak Detected for longer than timeout limit")
     }
     if (state.lateEvening){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         logInfo ("Leak Detected for longer than timeout limit")
     }
     if (state.night){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         settings.valveDevice.close()
         logInfo ("Leak Detected for longer than timeout limit Mode is Night Closing water Valve")
     }
     if (state.away){
-        settings.chimeDevice.playSound("3")
+        settings.chimeDevice1.playSound(waterSound1)
+        settings.chimeDevice2.playSound(waterSound2)
         settings.valveDevice.close()
         logInfo ("Leak Detected for longer than timeout limit Mode is Away Closing water Valve")
     }
