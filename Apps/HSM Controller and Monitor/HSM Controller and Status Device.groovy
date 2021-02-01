@@ -18,7 +18,8 @@
  *
  *  V1.0.0  1-27-2021   -       First run - Gassgs
  *  V1.2.0  1-28-2021   -       Added arm and disarm away with presence       
- *  V1.3.0  1-29-2021   -       Added Water sensor custom Handler    
+ *  V1.3.0  1-29-2021   -       Added Water sensor custom Handler
+ *  V2.0.0  1-31-2021   -       Cleanup and improvements    
  * 
  */
 
@@ -30,12 +31,9 @@ metadata {
         capability "WaterSensor"
         
         command"hsmUpdate",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
-        command"arm"
-        command"disarm"
         command"clearAlert"
       
         attribute"status","string"
-        attribute"hsmStatus","string"
         attribute"alert","string"
         attribute"currentAlert","string"
         attribute"currentMode","string"
@@ -45,19 +43,13 @@ metadata {
 }
 
 def on(){
-     sendEvent(name:"switch",value:"on")
+    sendEvent(name:"alert",value:"arm")
+    runIn(1,resetAlert)
 }
 
 def off(){
-    sendEvent(name:"switch",value:"off")
-}
-
-def arm(){
-    on()
-}
-
-def disarm(){
-    off()
+    sendEvent(name:"alert",value:"disarm")
+    runIn(1,resetAlert)
 }
 
 //current event will send :"alert","active" / when cancelled will send: "alert", "ok"
