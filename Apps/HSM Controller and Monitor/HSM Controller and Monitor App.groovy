@@ -68,10 +68,12 @@ preferences {
             )
     }
     section{
+         paragraph( "<div style='text-align:center'><b>Lock options</b></div>"
+            )
         input(
             name:"lock",
             type:"capability.lock",
-            title: "<b>Lock</b> to lock when arming",
+            title: "<b>Locks</b> to lock when arming",
             multiple: true,
             required: false,
             submitOnChange: true
@@ -83,7 +85,7 @@ preferences {
         input(
             name:"chimeDevice1",
             type:"capability.chime",
-            title: "Chime device 1 for notifications",
+            title: "Chime device option 1 for notifications",
             multiple: true,
             required: false,
             submitOnChange: true
@@ -116,7 +118,7 @@ preferences {
         input(
             name:"chimeDevice2",
             type:"capability.chime",
-            title: "Chime device 2 for notifications",
+            title: "Chime device option 2 for notifications",
             multiple: true,
             required: false,
             submitOnChange: true
@@ -207,6 +209,8 @@ preferences {
         }
         }
         section{
+             paragraph( "<div style='text-align:center'><b>Presence options</b></div>"
+            )
             input(
                 name:"presenceSensors",
                 type:"capability.presenceSensor",
@@ -217,6 +221,8 @@ preferences {
             )
         }
     section{
+         paragraph( "<div style='text-align:center'><b>Leak sensor options</b></div>"
+            )
         input(
             name:"waterSensors",
             type:"capability.waterSensor",
@@ -243,6 +249,8 @@ preferences {
         }
     }
         section{
+             paragraph( "<div style='text-align:center'><b>Logging</b></div>"
+            )
             input(
                 name:"logInfo",
                 type:"bool",
