@@ -106,7 +106,7 @@ preferences{
         input(
             name:"humiditySensors",
             type:"capability.relativeHumidityMeasurement",
-            title: "Humidity senor(s) to compare to -target humidity-",
+            title: "Humidity sensor(s) to compare to -target humidity-",
             required: true,
             multiple: true,
             submitOnChange: true
