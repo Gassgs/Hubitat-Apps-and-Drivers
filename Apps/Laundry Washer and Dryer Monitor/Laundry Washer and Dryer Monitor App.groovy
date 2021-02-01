@@ -243,7 +243,7 @@ def washerLidOpenHandler(evt){
     washerLidOpenStatus = evt.value
     logInfo ("Washer lid $washerLidOpenStatus")
     state.washerLidOpen = (washerLidOpenStatus == "off")
-    settings.washer.update ("switch","off")
+    settings.washer.off()
 }
 
 def washerLidClosedHandler(evt){
@@ -258,23 +258,23 @@ def powerHandler(evt){
         if  (meterValue > thresholdValue&&state.washerLidClosed){
         unschedule(washerDone)
         settings.washer.update ("status","running")
-        settings.washer.update ("switch","on")
+        settings.washer.update("switch","on")
         logInfo ("Washer Power above threshold = Running")
         }
         else{
-      logInfo ("Washer Power below threshold = checking")
-      runIn(washerTimeout * 60,washerDone)
-        }
+            logInfo ("Washer Power below threshold = checking")
+            runIn(washerTimeout * 60,washerDone)
+            }
 }
 def washerDone(){
-    if  (meterValue < thresholdValue&&state.washerSwitchOn){
-      logInfo ("Washer load done, changing to idle")
-      settings.washer.update ("status","idle")
-      washerNotifications()
+    settings.washer.update ("status","idle")
+    if  (state.washerSwitchOn){
+        logInfo ("Washer load done, changing to idle")
+        washerNotifications()
     }
 }
 
-def washerNotification(){
+def washerNotifications(){
     logInfo ("Sending washer done message in 10 seconds")
     runIn(10,sendWasherMsg)
 }
@@ -284,7 +284,7 @@ def sendWasherMsg(){
         logInfo ("sending washer done message")
         settings.washerNotificationDevices.deviceNotification("The washer is done, please move the wet laundry to the dryer to stop these messages")
         settings.washerTtsDevices.speak("The Washer is done please move to the dryer")
-        runIn(15*60,washerNotification)
+        runIn(15*60,washerNotifications)
     }
 }
 
@@ -292,7 +292,7 @@ def dryerDoorOpenHandler(evt){
     dryerDoorOpenStatus = evt.value
     logInfo ("Dryer door $dryerDoorOpenStatus")
     state.dryerDoorOpen = (dryerDoorOpenStatus == "open")
-    settings.dryer.update ("switch","off")
+    settings.dryer.off()
 }
 
 def dryerDoorClosedHandler(evt){
@@ -312,14 +312,14 @@ def dryerStartedHandler(evt){
 }
 def dryerStarted(){
     settings.dryer.update ("status","running")
-    settings.dryer.update ("switch","on")
+    settings.dryer.update("switch","on")
     logInfo ("Dryer is Started")
 }
 
 def vibrationActiveHandler(evt){
     def active = settings.vibrationSensors.findAll{ it?.latestValue("acceleration")=='active'}
     if (active&&state.dryerSwitchOn){
-        unschedule(vibrationInactive)
+        unschedule(dryerDone)
         logInfo ("vibration detected")
     }
     else{
@@ -333,7 +333,6 @@ def dryerDone(){
 }
 
 def dryerNotifications(){
-         logInfo ("sending msg in 10 seconds")
          runIn(10,sendDryerMsg)
 }
 
