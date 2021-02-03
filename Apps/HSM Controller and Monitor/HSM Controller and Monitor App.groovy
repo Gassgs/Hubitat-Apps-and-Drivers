@@ -101,7 +101,14 @@ preferences {
         input(
             name:"armSound1",
             type:"number",
-            title:"Sound number to play for armed and disarmed",
+            title:"Sound number to play for armed",
+            required: true,
+            submitOnChange: true
+            )
+         input(
+            name:"disarmSound1",
+            type:"number",
+            title:"Sound number to play for disarmed",
             required: true,
             submitOnChange: true
             )
@@ -134,7 +141,14 @@ preferences {
         input(
             name:"armSound2",
             type:"number",
-            title:"Sound number to play for armed and disarmed",
+            title:"Sound number to play for armed",
+            required: true,
+            submitOnChange: true
+            )
+          input(
+            name:"disarmSound2",
+            type:"number",
+            title:"Sound number to play for disarmed",
             required: true,
             submitOnChange: true
             )
@@ -403,25 +417,22 @@ def statusHandler(evt){
     if (state.disarmed){
         settings.hsmDevice.hsmUpdate("switch","off")
         settings.lights.setColorTemperature("2702")
-        settings.chimeDevice1.playSound(armSound1)
-        settings.chimeDevice2.playSound(armSound2)
+        settings.chimeDevice1.playSound(disarmSound1)
+        settings.chimeDevice2.playSound(disarmSound2)
     }
     if (state.armingNight){
-        settings.hsmDevice.hsmUpdate("switch","on")
         settings.lock.lock()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         runIn(chimeTimer-1,stopChime)
     }
     if (state.armingAway){
-        settings.hsmDevice.hsmUpdate("switch","on")
         settings.lock.lock()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         runIn(chimeTimer-1,stopChime)
     }
     if (state.armingHome){
-        settings.hsmDevice.hsmUpdate("switch","on")
         settings.lock.lock()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
@@ -452,8 +463,6 @@ def alertHandler(evt){
     settings.hsmDevice.hsmUpdate("alert","active")
     if (state.cancelled){
         logInfo ("Canceling Alerts")
-        settings.chimeDevice1.playSound(armSound1)
-        settings.chimeDevice2.playSound(armSound2)
         settings.hsmDevice.hsmUpdate("alert","ok")
     }
     if (state.failedToArm){
@@ -461,6 +470,7 @@ def alertHandler(evt){
         runIn(5,resetDisarmed)
     }
     if (state.homeDelay){
+         logInfo ("Home delayed intrusion alerts")
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
@@ -468,6 +478,7 @@ def alertHandler(evt){
         runIn(delayChime,stopFlash)
     }
     if (state.nightDelay){
+        logInfo ("Night  delayed intrusion alerts")
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
@@ -475,14 +486,16 @@ def alertHandler(evt){
         runIn(delayChime,stopFlash)
     }
     if (state.awayDelay){
+        logInfo ("Away delayed intrusion alerts")
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
         runIn(delayAwayChime-2,stopChime)
-        runIn(delayChime,stopFlash)
+        runIn(delayAwayChime,stopFlash)
     }
 }
 def resetDisarmed(){
+    logInfo ("resetting to disarmed after failed to arm")
     settings.hsmDevice.off()
 }
 
