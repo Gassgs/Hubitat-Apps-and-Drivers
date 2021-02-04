@@ -40,7 +40,7 @@ definition(
     author: "Gary G",
     description: "Calculates target humidity based on an outdoor temperature sensor"+
     " Control a switch or relay when humidity sensors report lower than tartget in the home."+
-    " optional motion activity restriction and option to turn ceiling fans on low when high humidity",
+    " Optional motion activity restriction and option to turn ceiling fans on low when high humidity",
     parent: "Gassgs:Winter Humidistat Control",
     category: "Utilities",
     iconUrl: "",
@@ -78,7 +78,7 @@ preferences{
             submitOnChange: true
               )
         if(temperatureSensors){
-            paragraph "<b>Current target humidity is ${calculateTarget()}%</b>"
+            paragraph "<b>Current target humidity is ${calculateTarget()}% with an outdoor temperature of ${averageTemperature()}</b>"
         }
         input(
             name:"minRh",
@@ -209,7 +209,7 @@ def getTemperature(){
 def calculateTarget() {
 	def double outdoorTemp = averageTemperature()
 	def target = Math.max(Math.min((double)frostCorrection+27.7+0.535*outdoorTemp - 0.00409 * Math.pow(outdoorTemp, 2), (double)maxRh), (double)minRh)
-    logInfo ( "Calculated a target humidity of ${target.round(1)}% with an outdoor temperature of ${outdoorTemp}")
+    logInfo ( "Calculated a target humidity of ${target}% with an outdoor temperature of ${outdoorTemp}")
     return Math.round(target*10)/10
 }
 
