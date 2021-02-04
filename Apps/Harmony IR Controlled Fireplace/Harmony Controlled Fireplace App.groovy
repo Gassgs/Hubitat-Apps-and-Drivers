@@ -27,12 +27,13 @@
  *
  *  V1.0.0 -        1-24-2021       First run
  *  V2.0.0 -        1-26-2021       Fixed all logic to sync attributes
+ *  V2.1.0 -        2-04-2021       added outdoor temperature
  */
 
 import groovy.transform.Field
 
 definition(
-    name: "Harmony Controlled Fireplace",
+    name: "Harmony Controlled Fireplace ",
     namespace: "Gassgs",
     author: "Gary G",
     description: "Harmony Controlled Fireplace app",
@@ -78,6 +79,35 @@ preferences {
             submitOnChange: true
             )
     }
+    section{
+        input(
+            name:"temperatureSensors",
+            type:"capability.temperatureMeasurement",
+            title:"Outdoor temperature sensor to determine if heat should turn on",
+            multiple: true,
+            submitOnChange: true
+            )
+        if(temperatureSensors){
+            paragraph "<b>Current temperature  is ${averageTemperature()}</b>"
+        input(
+            name:"tempThreshold",
+            type:"number",
+            title:"Temperature threshold to turn heat on",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+            )
+        }
+    }
+    section{
+        input(
+            name:"logEnable",
+            type:"bool",
+            title: "Enable Info logging",
+            required: true,
+            defaultValue: false
+            )
+    }
 }
     
 def installed(){
@@ -112,6 +142,23 @@ def fireplaceSwitchOnHandler(evt){
     logInfo ("fireplace switch $fireplaceSwitch")
     state.fireplaceSwitchOn = (fireplaceSwitch == "on")
     turnFireplaceOn()
+    getTemperature()
+}
+
+def averageTemperature(){
+	def total = 0
+    def n = settings.temperatureSensors.size()
+	settings.temperatureSensors.each {total += it.currentTemperature}
+	return (total /n).toDouble().round(1)
+}
+
+def getTemperature(){
+	def avg = averageTemperature()
+	logInfo ("Current temperature average is ${averageTemperature()}")
+        if (tempThreshold>avg){
+            logInfo ("outdoor Temp below threshold turning heat on low")
+            setHeatLow()
+    }
 }
 
 def fireplaceSwitchOffHandler(evt){
