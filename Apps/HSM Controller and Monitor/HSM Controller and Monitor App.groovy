@@ -497,6 +497,8 @@ def alertHandler(evt){
 def resetDisarmed(){
     logInfo ("resetting to disarmed after failed to arm")
     settings.hsmDevice.off()
+    settings.chimeDevice1.playSound(disarmSound1)
+    settings.chimeDevice2.playSound(disarmSound2)
 }
 
 def presenceHandler(evt){
