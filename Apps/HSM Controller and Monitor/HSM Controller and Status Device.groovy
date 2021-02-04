@@ -32,6 +32,10 @@ metadata {
         
         command"hsmUpdate",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
         command"clearAlert"
+        command"armHome"
+        command"armNight"
+        command"armAway"
+        command"disarm"
       
         attribute"status","string"
         attribute"alert","string"
@@ -55,7 +59,7 @@ def off(){
 //current event will send :"alert","active" / when cancelled will send: "alert", "ok"
 def clearAlert(){
     sendEvent(name:"alert",value:"clearing")
-    runIn(10,resetAlert)
+    runIn(5,resetAlert)
 }
 
 def resetAlert(){
@@ -66,6 +70,22 @@ def hsmUpdate(String status,String value){
     textValue=value
     statusValue=status
     sendEvent(name:statusValue, value: textValue)
+}
+
+def armAway(){
+    sendLocationEvent(name: "hsmSetArm", value: "armAway")
+}
+
+def armNight(){
+    sendLocationEvent(name: "hsmSetArm", value: "armNight")
+}
+
+def armHome(){
+    sendLocationEvent(name: "hsmSetArm", value: "armHome")
+}
+
+def disarm(){
+     sendLocationEvent(name: "hsmSetArm", value: "disarm")
 }
 
 def refresh(){
