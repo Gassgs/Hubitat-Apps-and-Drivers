@@ -134,6 +134,7 @@ preferences{
             required: false,
             submitOnChange: true
         )
+         if (fans){
         input(
             name:"fanThreshold",
             type:"number",
@@ -152,6 +153,7 @@ preferences{
             required: true,
             submitOnChange: true
         )
+        }
         }
     }
     section{
@@ -209,7 +211,7 @@ def getTemperature(){
 def calculateTarget() {
 	def double outdoorTemp = averageTemperature()
 	def target = Math.max(Math.min((double)frostCorrection+27.7+0.535*outdoorTemp - 0.00409 * Math.pow(outdoorTemp, 2), (double)maxRh), (double)minRh)
-    logInfo ( "Calculated a target humidity of ${target}% with an outdoor temperature of ${outdoorTemp}")
+    logInfo ( "Calculated a target humidity of ${target.round(1)}% with an outdoor temperature of ${outdoorTemp}")
     return Math.round(target*10)/10
 }
 
