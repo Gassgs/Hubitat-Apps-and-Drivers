@@ -135,7 +135,6 @@ preferences{
             required: false,
             submitOnChange: true
         )
-        if (fans){
         input(
             name:"fanThresholdLow",
             type:"number",
@@ -145,7 +144,6 @@ preferences{
             required: true,
             submitOnChange: true
         )
-        if (fans){
         input(
             name:"fanThresholdMed",
             type:"number",
@@ -164,8 +162,6 @@ preferences{
             required: true,
             submitOnChange: true
         )
-        }
-        }
         }
     }
     section{
