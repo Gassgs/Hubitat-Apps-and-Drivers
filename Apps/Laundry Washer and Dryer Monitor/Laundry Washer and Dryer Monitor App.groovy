@@ -231,12 +231,21 @@ def washerSwitchHandler(evt){
     washerSwitch = evt.value
     logInfo ("Washer switch $washerSwitch")
     state.washerSwitchOn = (washerSwitch == "on")
+    state.washerSwitchOff = (washerSwitch == "off")
+    if (state.washerSwitchOff){
+        unschedule(washerNotifications)
+    }
 }
 
 def dryerSwitchHandler(evt){
     dryerSwitch = evt.value
     logInfo ("Dryer switch $dryerSwitch")
     state.dryerSwitchOn = (dryerSwitch == "on")
+    state.dryerSwitchOff = (dryerSwitch == "off")
+    if (state.dryerSwitchOff){
+        unschedule(sendDryerMsg)
+        unschedule(sendDryerMsg2)
+    }
 }
 
 def washerLidOpenHandler(evt){
@@ -322,7 +331,7 @@ def vibrationActiveHandler(evt){
         unschedule(dryerDone)
         logInfo ("vibration detected")
     }
-    else{
+    else if (state.dryerSwitchOn){
         runIn(dryerTimeout *60,dryerDone)
     }
 }
