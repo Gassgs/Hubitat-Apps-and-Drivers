@@ -30,6 +30,7 @@
  *
  *  V1.0.0  -        1-29-2021      First run
  *  V1.2.0  -        1-31-2021      Improvements
+ *  V1.3.0  -        2-06-2021      added low and medium low options for fans
  */
 
 import groovy.transform.Field
@@ -129,18 +130,28 @@ preferences{
         input(
             name:"fans",
             type:"capability.fanControl",
-            title:"Ceiling fans to set to low when humidity is higher than -target humidity- (optional)",
+            title:"Ceiling fans to control when humidity is higher than -target humidity- (optional)",
             multiple: true,
             required: false,
             submitOnChange: true
         )
-         if (fans){
+        if (fans){
         input(
-            name:"fanThreshold",
+            name:"fanThresholdLow",
             type:"number",
-            title:"Fan on threshold -  % above target humidity to turn on fans",
+            title:"Fan low threshold -  % above target humidity to turn fans on low",
             multiple: false,
-            defaultValue:"2",
+            defaultValue:"1",
+            required: true,
+            submitOnChange: true
+        )
+        if (fans){
+        input(
+            name:"fanThresholdMed",
+            type:"number",
+            title:"Fan medium threshold -  % above target humidity to turn fans on medium-low",
+            multiple: false,
+            defaultValue:"3",
             required: true,
             submitOnChange: true
         )
@@ -153,6 +164,7 @@ preferences{
             required: true,
             submitOnChange: true
         )
+        }
         }
         }
     }
@@ -251,11 +263,13 @@ def fanSwitchHandler(evt){
 def humidistatHandler(){
     humidityAvg = averageHumidity()
     target = calculateTarget()
-    threshold = (target + fanThreshold)
+    thresholdLow = (target + fanThresholdLow)
+    thresholdMed = (target + fanThresholdMed)
     state.lowHumidity = (humidityAvg < target)
     state.goodHumidity = (humidityAvg >= target)
-    state.fanOnHumidity = (humidityAvg >= threshold)
-    state.fanOffHumidity = (humidityAvg < threshold)
+    state.fanLowHumidity = (humidityAvg >= thresholdLow)
+    state.fanMedHumidity = (humidityAvg >= thresholdMed)
+    state.fanOffHumidity = (humidityAvg < thresholdLow)
     if (settings.motionSensor&&settings.fans){
         humidistatMotionPlusFans()
     }
@@ -288,22 +302,27 @@ def humidistatMotion(){
 }
 def humidistatFans(){
     if (state.lowHumidity){
-        logInfo ("Humidity is lower than target - turning ON")
+        logInfo ("Humidity is lower than target - turning humidistat ON")
         settings.humidistat.on()
     }
     if (state.goodHumidity){
-        logInfo ("Humidity is on target - turning OFF")
+        logInfo ("Humidity is on target - turning humidistat OFF")
         settings.humidistat.off()
-    }
-    if (state.fanOnHumidity&&state.fanSwitchOn){
-        logInfo ("Humidity is above target plus threshold - turning Fans ON")
-        settings.fans.setSpeed("low")
     }
     if (state.fanOffHumidity&&state.fanSwitchOn){
         logInfo ("Humidity is below target plus threshold - turning Fans OFF")
         settings.fans.setSpeed("off")
     }
+    if (state.fanMedHumidity&&state.fanSwitchOn){
+        logInfo ("Humidity is above target plus medium-low threshold - turning Fans ON medium-low")
+        settings.fans.setSpeed("medium-low")
+    }
+    else if (state.fanLowHumidity&&state.fanSwitchOn){
+        logInfo ("Humidity is above target plus low threshold - turning Fans ON low")
+        settings.fans.setSpeed("low")
+    }
 }
+
 def humidistatMotionPlusFans(){
     if (state.motionInactive){
         humidistatFans()
