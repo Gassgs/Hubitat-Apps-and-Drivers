@@ -31,6 +31,7 @@
  *  V1.0.0  -        1-29-2021      First run
  *  V1.2.0  -        1-31-2021      Improvements
  *  V1.3.0  -        2-06-2021      added low and medium low options for fans
+ *  V1.4.0  -        2-07-2021      added timeout
  */
 
 import groovy.transform.Field
@@ -41,7 +42,7 @@ definition(
     author: "Gary G",
     description: "Calculates target humidity based on an outdoor temperature sensor"+
     " Control a switch or relay when humidity sensors report lower than tartget in the home."+
-    " Optional motion activity restriction and option to turn ceiling fans on low when high humidity",
+    " Optional motion activity restriction and option to turn ceiling fans on when humidity is high humidity",
     parent: "Gassgs:Winter Humidistat Control",
     category: "Utilities",
     iconUrl: "",
@@ -115,6 +116,16 @@ preferences{
         if(humiditySensors){
             paragraph "<b>Current humidity average is ${averageHumidity()}%</b>"
         }
+    }
+    section{
+        input(
+            name:"timeout",
+            type:"number",
+            title:"Number of minutes humidity must report below target before turning on humidistat",
+            defaultValue: 15,
+            required: true,
+            submitOnChange: true
+        )  
     }
     section{
         input(
@@ -263,13 +274,13 @@ def humidistatHandler(){
     thresholdMed = (target + fanThresholdMed)
     state.lowHumidity = (humidityAvg < target)
     state.goodHumidity = (humidityAvg >= target)
+    state.fanOffHumidity = (humidityAvg < thresholdLow)
     state.fanLowHumidity = (humidityAvg >= thresholdLow)
     state.fanMedHumidity = (humidityAvg >= thresholdMed)
-    state.fanOffHumidity = (humidityAvg < thresholdLow)
     if (settings.motionSensor&&settings.fans){
         humidistatMotionPlusFans()
     }
-   else  if (settings.motionSensor){
+   else if (settings.motionSensor){
         humidistatMotion()
     }
    else if (settings.fans){
@@ -277,10 +288,11 @@ def humidistatHandler(){
     }
     else{
         if (state.lowHumidity){
-        logInfo ("Humidity is lower than target - turning ON")
-        settings.humidistat.on()
+        logInfo ("Humidity is lower than target - checking")
+        runIn(timeout*60,humidistatOn)
         }
         if (state.goodHumidity){
+        unschedule(humidistatOn)
         logInfo ("Humidity is on target - turning OFF")
         settings.humidistat.off()
         }
@@ -288,20 +300,22 @@ def humidistatHandler(){
 }
 def humidistatMotion(){
     if (state.lowHumidity&&state.motionInactive){
-        logInfo ("Humidity is lower than target and motion inactive - turning ON")
-        settings.humidistat.on()
+        logInfo ("Humidity is lower than target and motion inactive - checking")
+        runIn(timeout*60,humidistatOn)
     }
     else{
+        unschedule(humidistatOn)
         logInfo ("Humidity is on target or motion is active - turning OFF")
         settings.humidistat.off()
     }
 }
 def humidistatFans(){
     if (state.lowHumidity){
-        logInfo ("Humidity is lower than target - turning humidistat ON")
-        settings.humidistat.on()
+        logInfo ("Humidity is lower than target - checking")
+        runIn(timeout*60,humidistatOn)
     }
     if (state.goodHumidity){
+        unschedule(humidistatOn)
         logInfo ("Humidity is on target - turning humidistat OFF")
         settings.humidistat.off()
     }
@@ -328,6 +342,11 @@ def humidistatMotionPlusFans(){
         settings.humidistat.off()
         settings.fans.setSpeed("off")
     }
+}
+
+def humidistatOn(){
+    logInfo ("conditions are met turning humidistat ON")
+    settings.humidistat.on()
 }
 
 void logInfo(String msg){
