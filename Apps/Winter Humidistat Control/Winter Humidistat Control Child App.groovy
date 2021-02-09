@@ -121,8 +121,8 @@ preferences{
         input(
             name:"timeout",
             type:"number",
-            title:"Number of minutes humidity must report below target before turning on humidistat",
-            defaultValue: 15,
+            title:"Number of seconds humidity must report below target before turning on humidistat",
+            defaultValue: 30,
             required: true,
             submitOnChange: true
         )  
@@ -272,7 +272,7 @@ def humidistatHandler(){
     target = calculateTarget()
     thresholdLow = (target + fanThresholdLow)
     thresholdMed = (target + fanThresholdMed)
-    state.lowHumidity = (humidityAvg < target)
+    state.lowHumidity = (humidityAvg < target-1)
     state.goodHumidity = (humidityAvg >= target)
     state.fanOffHumidity = (humidityAvg < thresholdLow)
     state.fanLowHumidity = (humidityAvg >= thresholdLow)
@@ -289,7 +289,7 @@ def humidistatHandler(){
     else{
         if (state.lowHumidity){
         logInfo ("Humidity is lower than target - checking")
-        runIn(timeout*60,humidistatOn)
+        runIn(timeout,humidistatOn)
         }
         if (state.goodHumidity){
         unschedule(humidistatOn)
@@ -301,7 +301,7 @@ def humidistatHandler(){
 def humidistatMotion(){
     if (state.lowHumidity&&state.motionInactive){
         logInfo ("Humidity is lower than target and motion inactive - checking")
-        runIn(timeout*60,humidistatOn)
+        runIn(timeout,humidistatOn)
     }
     else{
         unschedule(humidistatOn)
@@ -312,7 +312,7 @@ def humidistatMotion(){
 def humidistatFans(){
     if (state.lowHumidity){
         logInfo ("Humidity is lower than target - checking")
-        runIn(timeout*60,humidistatOn)
+        runIn(timeout,humidistatOn)
     }
     if (state.goodHumidity){
         unschedule(humidistatOn)
