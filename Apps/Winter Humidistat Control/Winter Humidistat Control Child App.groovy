@@ -31,7 +31,7 @@
  *  V1.0.0  -        1-29-2021      First run
  *  V1.2.0  -        1-31-2021      Improvements
  *  V1.3.0  -        2-06-2021      added low and medium low options for fans
- *  V1.4.0  -        2-07-2021      added timeout
+ *  V1.4.0  -        2-08-2021      handler improvements
  */
 
 import groovy.transform.Field
@@ -116,16 +116,6 @@ preferences{
         if(humiditySensors){
             paragraph "<b>Current humidity average is ${averageHumidity()}%</b>"
         }
-    }
-    section{
-        input(
-            name:"timeout",
-            type:"number",
-            title:"Number of seconds humidity must report below target before turning on humidistat",
-            defaultValue: 30,
-            required: true,
-            submitOnChange: true
-        )  
     }
     section{
         input(
@@ -288,11 +278,10 @@ def humidistatHandler(){
     }
     else{
         if (state.lowHumidity){
-        logInfo ("Humidity is lower than target - checking")
-        runIn(timeout,humidistatOn)
+        logInfo ("conditions are met turning humidistat ON")
+        settings.humidistat.on()
         }
         if (state.goodHumidity){
-        unschedule(humidistatOn)
         logInfo ("Humidity is on target - turning OFF")
         settings.humidistat.off()
         }
@@ -300,8 +289,8 @@ def humidistatHandler(){
 }
 def humidistatMotion(){
     if (state.lowHumidity&&state.motionInactive){
-        logInfo ("Humidity is lower than target and motion inactive - checking")
-        runIn(timeout,humidistatOn)
+        logInfo ("conditions are met turning humidistat ON")
+        settings.humidistat.on()
     }
     else{
         unschedule(humidistatOn)
@@ -311,11 +300,10 @@ def humidistatMotion(){
 }
 def humidistatFans(){
     if (state.lowHumidity){
-        logInfo ("Humidity is lower than target - checking")
-        runIn(timeout,humidistatOn)
+        logInfo ("conditions are met turning humidistat ON")
+        settings.humidistat.on()
     }
     if (state.goodHumidity){
-        unschedule(humidistatOn)
         logInfo ("Humidity is on target - turning humidistat OFF")
         settings.humidistat.off()
     }
@@ -342,11 +330,6 @@ def humidistatMotionPlusFans(){
         settings.humidistat.off()
         settings.fans.setSpeed("off")
     }
-}
-
-def humidistatOn(){
-    logInfo ("conditions are met turning humidistat ON")
-    settings.humidistat.on()
 }
 
 void logInfo(String msg){
