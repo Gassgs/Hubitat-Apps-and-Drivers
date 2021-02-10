@@ -27,7 +27,8 @@
  *
  *  Changes:
  *
- *  V1.0.0 -        2-08-2021       First attempt GG
+ *  V1.0.0  -       2-08-2021       First attempt GG
+ *  V1.1.0  -       2-09-2021       visual improvement, complete GG       
  */
 
 import groovy.transform.Field
@@ -55,7 +56,7 @@ preferences{
                 name: "childApps",
                 appName: "Motion Lighting Child",
                 namespace: "Gassgs",
-                title: "Add Motion Lighting Rule",
+                title: "<b>Add New Motion Lighting Rule</b>",
                 multiple: true
                 )
         }
@@ -64,7 +65,7 @@ preferences{
                 name: "childApps",
                 appName: "Motion Lighting Simple Child",
                 namespace: "Gassgs",
-                title: "Add Motion Lighting Simple Rule",
+                title: "<b>Add New Motion Lighting Simple Rule</b>",
                 multiple: true
                 )
         }
