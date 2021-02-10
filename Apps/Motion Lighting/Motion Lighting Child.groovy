@@ -27,8 +27,8 @@
  *
  *  Changes:
  *
- *  V1.0.0  -        2-08-2021      First run
- *  
+ *  V1.0.0  -       2-08-2021       First run
+ *  V1.1.0  -       2-09-2021       added all modes GG             
  */
 
 import groovy.transform.Field
