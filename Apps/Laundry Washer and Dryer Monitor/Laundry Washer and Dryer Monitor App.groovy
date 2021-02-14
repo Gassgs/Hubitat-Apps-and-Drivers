@@ -32,6 +32,7 @@
  *  V1.1.0 -        1-23-2021       Rewrite
  *  V1.2.0 -        1-24-2021       rewrite ,again
  *  V1.3.0 -        1-25-2021       Complete logic redo improvements
+ *  V1.4.0 -        2-11-2021       Improved door/lid event handlers
  */
 
 import groovy.transform.Field
@@ -217,11 +218,9 @@ def initialize(){
     logInfo ("Settings: ${settings}")
     subscribe(settings.washer, "switch", washerSwitchHandler)
     subscribe(settings.dryer, "switch", dryerSwitchHandler)
-    subscribe(settings.washerLidSwitch, "switch.off", washerLidOpenHandler)
-    subscribe(settings.washerLidSwitch, "switch.on", washerLidClosedHandler)
+    subscribe(settings.washerLidSwitch, "switch", washerLidHandler)
     subscribe(settings.powerMeter,"power", powerHandler)
-    subscribe(settings.dryerDoorSensor, "contact.open", dryerDoorOpenHandler)
-    subscribe(settings.dryerDoorSensor, "contact.closed", dryerDoorClosedHandler)
+    subscribe(settings.dryerDoorSensor, "contact", dryerDoorHandler)
     subscribe(settings.vibrationSensors, "acceleration", vibrationActiveHandler)
     subscribe(settings.vibrationSensors, "acceleration", dryerStartedHandler)
     logInfo ("subscribed to Events")
@@ -248,17 +247,14 @@ def dryerSwitchHandler(evt){
     }
 }
 
-def washerLidOpenHandler(evt){
-    washerLidOpenStatus = evt.value
-    logInfo ("Washer lid $washerLidOpenStatus")
-    state.washerLidOpen = (washerLidOpenStatus == "off")
-    settings.washer.off()
-}
-
-def washerLidClosedHandler(evt){
-    washerLidClosedStatus = evt.value
-    logInfo ("Washer lid $washerLidClosedStatus")
-    state.washerLidClosed = (washerLidClosedStatus == "on")
+def washerLidHandler(evt){
+    washerLidStatus = evt.value
+    logInfo ("Washer lid $washerLidStatus")
+    state.washerLidClosed = (washerLidStatus == "on")
+    state.washerLidOpen = (washerLidStatus == "off")
+    if (state.washerLidOpen){
+        settings.washer.off()
+    }
 }
 
 def powerHandler(evt){
@@ -297,22 +293,19 @@ def sendWasherMsg(){
     }
 }
 
-def dryerDoorOpenHandler(evt){
-    dryerDoorOpenStatus = evt.value
-    logInfo ("Dryer door $dryerDoorOpenStatus")
-    state.dryerDoorOpen = (dryerDoorOpenStatus == "open")
-    settings.dryer.off()
-}
-
-def dryerDoorClosedHandler(evt){
-    dryerDoorClosedStatus = evt.value
-    logInfo ("Dryer door $dryerDoorClosedStatus")
-    state.dryerDoorClosed = (dryerDoorClosedStatus == "closed")
+def dryerDoorHandler(evt){
+    dryerDoorStatus = evt.value
+    logInfo ("Dryer door $dryerDoorStatus")
+    state.dryerDoorClosed = (dryerDoorStatus == "closed")
+    state.dryerDoorOpen = (dryerDoorStatus == "open")
+    if (state.dryerDoorOpen){
+        settings.dryer.off()
+    }
 }
 
 def dryerStartedHandler(evt){
-    state.started = settings.vibrationSensors.findAll {it?.latestValue("acceleration") == 'active'}
-    if (state.started){
+    def started = settings.vibrationSensors.findAll {it?.latestValue("acceleration") == 'active'}
+    if (started){
         runIn(vibrationThreshold,dryerStarted)
     }
     else{
