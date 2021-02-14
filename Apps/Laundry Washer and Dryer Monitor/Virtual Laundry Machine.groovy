@@ -16,9 +16,8 @@
  *
  *  Change History:
  *
- *    V1.0  1-20-2021         -first run - Gassgs  
- *    
- * 
+ *    V1.0  1-20-2021   -       first run - Gassgs  
+ *    V1.1  2-13-2021   -       removed acceleration cap, nt needed
  */
 
 metadata {
@@ -26,15 +25,11 @@ metadata {
         capability"Actuator"
         capability "Switch"
         capability "Sensor"
-        capability "AccelerationSensor"
 
-        
         command "update",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
         command"start"
         command"stop"
 
-       
-      
         attribute"status","string"
         attribute"notification","string"
         attribute"acceleration","string"
@@ -45,7 +40,7 @@ metadata {
 //doesn't function, device is for monitoring only
 def on(){
 }
-//used to turn off notifications and reset to "off" and "idle"
+//used to turn off notifications and reset to "off"
 def off(){
     sendEvent(name:"switch",value:"off")
 }
