@@ -26,8 +26,9 @@
  *
  *  Changes:
  *
- *  V1.0.0  -        2-1-2021         First run
- * V1.2.0    -        2-1-2021        Fixed errors improvements
+ *  V1.0.0      -       2-01-2021       First run
+ *  V1.2.0      -       2-08-2021       Fixed errors improvements
+ *  V1.3.0      -       2-15-2021       Added auto off
  *
  */
 
@@ -98,6 +99,17 @@ preferences{
     }
     section{
         input(
+            name:"autoOff",
+            type:"number",
+            title:"Number of minutes to run fan if turned on manually",
+            multiple: false,
+            required: true,
+            defaultValue: 5,
+            submitOnChange: true
+        )
+    }
+    section{
+        input(
             name:"motionSensor",
             type:"capability.motionSensor",
             title:"Motion sensor to activate fan when humidity above threshold (optional)",
@@ -147,6 +159,7 @@ def updated(){
 def initialize(){
 	subscribe(settings.bathroomSensors, "humidity", bathroomSensorsHandler)
     subscribe(settings.baselineSensors, "humidity", baselineSensorsHandler)
+    subscribe(settings.fanSwitch, "switch",  fanSwitchHandler)
     subscribe(settings.motionSensor, "motion",  motionHandler)
     humidityFanHandler()
     logInfo ("subscribed to sensor events")
@@ -187,6 +200,16 @@ def getBaseline(){
     humidityFanHandler()
 }
 
+def fanSwitchHandler(evt){
+    switchStatus = evt.value
+    logInfo ("Fan Switch $evt.value")
+    state.fanSwitchOn = (evt.value == "on")
+    state.fanSwitchOff = (evt.value == "off")
+    if (state.fanSwitchOn&&state.goodHumidity){
+        runIn(autoOff*60,autoFanOff)
+    }
+}
+
 def motionHandler(evt){
     motionStatus = evt.value
     state.motionActive = (motionStatus == "active")
@@ -207,29 +230,39 @@ def humidityFanHandler(){
         humidityPlusMotion()
     }
     else{
-        if (state.highHumidity){
+        if (state.highHumidity&&state.fanSwitchOff){
         logInfo ("Humidity is higher than baseline plus threshold - turning ON")
         settings.fanSwitch.on()
+        state.humidityActivatedFan = true
         }
-        if (state.goodHumidity){
+        if (state.goodHumidity&&state.humidityActivatedFan){
         logInfo ("Humidity is OK - turning OFF")
         settings.fanSwitch.off()
+        state.humidityActivatedFan = false
         }
     }
 }
 def humidityPlusMotion(){
-    if (state.highHumidity&&state.motionActive){
+    state.humidityActive = (state.highHumidity&&state.motionActive)
+        if (state.humidityActive&&state.fanSwitchOff){
         logInfo ("Humidity is higher than baseline plus threshold and motion active - turning ON delayed")
         runIn(motionDelay,delayedFanOn)
-    }
-    if (state.goodHumidity){
+        state.humidityActivatedFan = true
+        }
+        if (state.goodHumidity&&state.humidityActivatedFan){
         logInfo ("Humidity is OK - turning OFF")
         settings.fanSwitch.off()
-        }
+        state.humidityActivatedFan = false
     }
+}
 def delayedFanOn(){
     logInfo ("Motion active delay over - turning ON")
     settings.fanSwitch.on()
+}
+
+def autoFanOff(){
+    logInfo ("auto off timer expired, turning fan Off")
+    settings.fanSwitch.off()
 }
     
 
