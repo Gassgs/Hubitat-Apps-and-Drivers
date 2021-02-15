@@ -26,7 +26,8 @@
  *
  *  Changes:
  *
- *  V1.0.0 -        2-1-2021       First run
+ *  V1.0.0  -       2-01-2021       First run
+ *  V1.1.0  -       2-15-2021       Added auto off,improved logic
  */
 
 import groovy.transform.Field
