@@ -400,7 +400,7 @@ def hoodTemperature(){
     return roundedAverage(settings.hoodSensor, {it.currentTemperature}, 1)
 }
 def getHoodTemperature(){
-	logInfo ("Current temperature average is ${hoodTemperature()}")
+    logInfo ("Current temperature average is ${hoodTemperature()}")
     tempHumidityFanHandler()
 }
 
@@ -411,7 +411,7 @@ def baselineTemperature(){
     return roundedAverage(settings.baselineSensors, {it.currentTemperature}, 1)
 }
 def getBaselineTemperature(){
-	logInfo ("Current baseline temperature is ${baselineTemperature()}")
+    logInfo ("Current baseline temperature is ${baselineTemperature()}")
     tempHumidityFanHandler()
 }
 
@@ -422,7 +422,7 @@ def hoodHumidity(){
     return roundedAverage(settings.hoodSensor, {it.currentHumidity}, 1)
 }
 def getHoodHumidity(){
-	logInfo("Current hood humidity is ${hoodHumidity()}%")
+    logInfo("Current hood humidity is ${hoodHumidity()}%")
     tempHumidityFanHandler()
 }
 
