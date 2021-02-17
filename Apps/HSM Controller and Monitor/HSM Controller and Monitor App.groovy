@@ -33,7 +33,8 @@
  *  V1.0.0  -       1-27-2021       First run
  *  V2.0.0  -       1-28-2021       Major Improvements and added presence
  *  V2.1.0  -       1-29-2021       Added custom Water Leak Handler
- *  V2.2.0  -       1-31-2021       Added additional Chime device options and improvements       
+ *  V2.2.0  -       1-31-2021       Added additional Chime device options and improvements
+ *  V2.3.0  -       2-17-2021       Integration Improvements      
  */
 
 import groovy.transform.Field
@@ -347,42 +348,11 @@ def hsmSwitchOnHandler(evt){
 def hsmSwitchOffHandler(evt){
     logInfo ("HSM Status Disarming")
     sendLocationEvent(name: "hsmSetArm", value: "disarm")
-    sendLocationEvent(name: "hsmSetArm", value: "cancelAlerts")
-    if (state.homeDelay){
-        logInfo ("Disarming while armed Home delayed intrusion")
-        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
-        settings.hsmDevice.hsmUpdate("alert","ok")
-    }
-    if (state.nightDelay){
-        logInfo ("Disarming while armed Night delayed intrusion")
-        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
-        settings.hsmDevice.hsmUpdate("alert","ok")
-    }
-    if (state.awayDelay){
-        logInfo ("Disarming while armed Away delayed intrusion")
-        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
-        settings.hsmDevice.hsmUpdate("alert","ok")
-    }
 }
 
 def hsmClearHandler(evt){
     logInfo ("HSM Status Clearing")
     sendLocationEvent(name: "hsmSetArm", value: "cancelAlerts")
-    if (state.homeDelay){
-        logInfo ("Clearing while armed Home delayed intrusion")
-        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
-        settings.hsmDevice.off()
-    }
-    if (state.nightDelay){
-        logInfo ("Clearing while armed Night delayed intrusion")
-        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
-        settings.hsmDevice.off()
-    }
-    if (state.awayDelay){
-        logInfo ("Clearing while armed Away delayed intrusion")
-        settings.hsmDevice.hsmUpdate("currentAlert","cancel")
-        settings.hsmDevice.off()
-    }
 }
 
 def statusHandler(evt){
@@ -519,15 +489,14 @@ def presenceHandler(evt){
 }
 
 def armAway(){
-    settings.hsmDevice.on()
     logInfo ("Everyone Away Arming System")
+    settings.hsmDevice.on() 
 }
 
 def disarmReturn(){
     if (state.armedAway){
-        settings.hsmDevice.clearAlert()
-        settings.hsmDevice.off()
         logInfo (" Arrived Disarming System")
+        settings.hsmDevice.off()  
     }
 }
 
