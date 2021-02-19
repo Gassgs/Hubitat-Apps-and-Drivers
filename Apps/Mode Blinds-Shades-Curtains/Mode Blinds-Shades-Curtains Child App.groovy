@@ -321,7 +321,7 @@ def activeMotionHandler(evt){
 def motionActive(){
     if (state.luxOk&&state.earlyMorning){
         logInfo ("setting position")
-        settings.shade.setPosition(earlyMorningPos)
+        settings.shade.setLevel(earlyMorningPos,duration)
     }
 }
 
