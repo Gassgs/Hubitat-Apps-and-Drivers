@@ -30,7 +30,7 @@
  *
  *  V1.0.0  -       2-12-2021       First run
  *  V1.1.0  -       2-13-2021       Logic improvements
- *            
+ *  V1.2.0  -       2-19-2021       Handler improvements            
  */
 
 import groovy.transform.Field
@@ -320,7 +320,7 @@ def activeMotionHandler(evt){
 }
 def motionActive(){
     if (state.luxOk&&state.earlyMorning){
-        logInfo ("setting position")
+        logInfo ("motion active setting position $earlyMorningPos for early morning")
         settings.shade.setLevel(earlyMorningPos,duration)
     }
 }
@@ -331,20 +331,20 @@ def setModePosition(){
             logInfo ("waiting for motion to open shade")
         }
         else if (state.luxOk){
-        logInfo ("setting position for early morning mode")
+        logInfo ("setting position $earlyMorningPos for early morning mode")
         settings.shade.setLevel(earlyMorningPos,duration)
         }
     }
     if (state.day){
-        logInfo ("setting position for day mode")
+        logInfo ("setting position $dayPos for day mode")
         settings.shade.setLevel(dayPos,duration)
     }
     if (state.afternoon){
-        logInfo ("setting position for afternoon mode")
+        logInfo ("setting position $afternoonPos for afternoon mode")
         settings.shade.setLevel(afternoonPos,duration)
     }
     if (state.dinner){
-        logInfo ("setting position for dinner mode")
+        logInfo ("setting position $dinnerPos for dinner mode")
         settings.shade.setLevel(dinnerPos,duration)
     }
     if (state.evening){
@@ -354,7 +354,7 @@ def setModePosition(){
             shadesCloseCheck()
         }
         else{
-            logInfo ("setting position for evening mode")
+            logInfo ("setting position $eveningPos for evening mode")
             settings.shade.setLevel(eveningPos,duration)
         }
     }
@@ -365,7 +365,7 @@ def setModePosition(){
             shadesCloseCheck()
         }
         else{
-            logInfo ("setting position for late evening mode")
+            logInfo ("setting position $lateEveningPos for late evening mode")
             settings.shade.setLevel(lateEveningPos,duration)
         }
     }
@@ -376,13 +376,13 @@ def setModePosition(){
             shadesCloseCheck()
         }
         else{
-            logInfo ("setting position for night mode")
+            logInfo ("setting position $nightPos for night mode")
             settings.shade.setLevel(nightPos,duration)
         }
     }
     if (state.away){
         if (state.luxOk){
-            logInfo ("setting position for day mode")
+            logInfo ("setting position $dayPos for day mode- Away")
             settings.shade.setlevel(dayPos,duration)
         }
         if (state.luxLow){
@@ -408,11 +408,15 @@ def getLux(){
     state.luxOk = avg >= luxThreshold
     state.luxLow = avg < luxLowThreshold
     if (state.luxOk&&state.shadeClosed){
-        logInfo (" lux above threshold setting mode position")
-        setModePosition()
+        if (state.earlyMoring){
+            logInfo (" lux above threshold setting mode position only early morning")
+            setModePosition()
+        }
+        else
+        logInfo (" lux above threshold mode position should already be set")
     }
     if (state.luxLow&&state.shadeOpen){
-        logInfo (" lux below threshold setting mode position")
+        logInfo (" lux below threshold setting mode position ")
         setModePosition()
     }
 }
