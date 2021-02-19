@@ -27,6 +27,7 @@
  *
  *  V1.0.0      -       2-16-2021       First run
  *  V1.1.0      -       2-17-2021       Logic improvements
+ *  V1.2.0      -       2-19-2021       added notifications
  */
 
 import groovy.transform.Field
@@ -321,8 +322,8 @@ def countdownTimer(){
 def lockDoor(){
     logInfo ("locking door if closed")
     if (state.doorClosed){
-        logInfo ("door closed and locked")
         settings.lock.lock()
+        runIn(5,checkLock)
     }
     else if (state.doorOpen){
         unschedule (lockDoor)
@@ -330,17 +331,29 @@ def lockDoor(){
         countdownTimer()  
     }
 }
+def checkLock(){
+    if (state.locked)
+    logInfo ("door closed and locked")
+    else {
+        logInfo ("lock did not lock, sending error Msg")
+        checkLockError()
+    }
+}
 
 def unlockedCheck(){
-    logInfo ("Lock has been unlocked longer than timeout threshold sending Msg")
-    settings.textDevices.deviceNotification("Front Door Lock has been unlocked for $unlockedTimeout minutes please check front door")
-    settings.ttsDevices.speak("Front Door lock has been unlocked for $unlockedTimeout minutes please check front door")
+    if (state.unlocked){
+        logInfo ("Lock has been unlocked longer than timeout threshold sending Msg")
+        settings.textDevices.deviceNotification("Front Door Lock has been unlocked for $unlockedTimeout minutes please check front door")
+        settings.ttsDevices.speak("Front Door lock has been unlocked for $unlockedTimeout minutes please check front door")
+    }
 }
 
 def doorOpenCheck(){
-    logInfo ("Door has been open longer than timeout threshold sending Msg")
-    settings.textDevices.deviceNotification("Front Door has been open for $doorOpenTimeout minutes please check door")
-    settings.ttsDevices.speak("Front Door has been open for $doorOpenTimeout minutes please check door")
+    if (state.doorOpen ){
+        logInfo ("Door has been open longer than timeout threshold sending Msg")
+        settings.textDevices.deviceNotification("Front Door has been open for $doorOpenTimeout minutes please check door")
+        settings.ttsDevices.speak("Front Door has been open for $doorOpenTimeout minutes please check door")
+    }
 }
 
 def lockError(){
@@ -348,6 +361,14 @@ def lockError(){
         logInfo ("Lock is locked but the door is still open sending Msg")
         settings.textDevices.deviceNotification("Lock ERROR! the Lock is locked but the front door is still open")
         settings.ttsDevices.speak("Lock ERROR! the Lock is locked but the front door is still open, please check the front door")
+    }
+}
+
+def checkLockError(){
+    if (state.unlocked){
+        logInfo ("Lock was not able to lock - the lock could be jammed-  sending Msg")
+        settings.textDevices.deviceNotification("Lock ERROR! the Lock was not able to lock - the lock could be jammed-")
+        settings.ttsDevices.speak("Lock ERROR! the Lock was not able to lock - the lock could be jammed-, please check the front door")
     }
 }
 
