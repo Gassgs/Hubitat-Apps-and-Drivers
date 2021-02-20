@@ -30,7 +30,8 @@
  *
  *  V1.0.0  -       2-12-2021       First run
  *  V1.1.0  -       2-13-2021       Logic improvements
- *  V1.2.0  -       2-19-2021       Handler improvements            
+ *  V1.2.0  -       2-18-2021       Handler improvements
+ *  V1.3.0  -       2-19-2021       Logic redo           
  */
 
 import groovy.transform.Field
@@ -53,17 +54,17 @@ preferences{
         paragraph(
         title: "Mode Blinds-Shades-Curtains Child",
         required: true,
-    	"<div style='text-align:center'><b>Mode Blinds-Shades-Curtains</b></div>"
+    	"<div style='text-align:center'><b><big>Mode Blinds-Shades-Curtains</big></b></div>"
      	)
      paragraph(
         title: "Mode Blinds-Shades-Curtains Child",
         required: true,
-    	"<div style='text-align:center'>Mode Blinds-Shades-Curtains Options</div>"
+    	"<div style='text-align:center'><b>Mode Blinds-Shades-Curtains Options</b></div>"
      	)
         input(
             name:"shade",
             type:"capability.switchLevel",
-            title: "Blinds, Shades or Curtains to control",
+            title: "<b>Blinds, Shades or Curtains to control</b>",
             multiple: true,
             required: true,
             submitOnChange: true
@@ -78,7 +79,7 @@ preferences{
         input(
             name:"earlyMorningPos",
             type:"number",
-            title:"<b>Early Morning</b> open position",
+            title:"<b>Early Morning</b> position",
             defaultValue:"50",
             required: true,
             submitOnChange: true
@@ -86,51 +87,133 @@ preferences{
         input(
             name:"dayPos",
             type:"number",
-            title:"<b>Day</b> open position",
+            title:"<b>Day</b> position",
             defaultValue:"50",
             required: true,
             submitOnChange: true
         )
+        paragraph("<b>Afternoon Mode</b>")
+        input(
+            name:"afternoonChange",
+            type:"bool",
+            title: "Enable to change position at afternoon mode",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        if (afternoonChange){
         input(
             name:"afternoonPos",
             type:"number",
-            title:"<b>Afternoon</b> open position",
+            title:"<b>Afternoon</b> position",
             defaultValue:"50",
             required: true,
             submitOnChange: true
         )
+        }
+        paragraph("<b>Dinner Mode</b>")
+        input(
+            name:"dinnerChange",
+            type:"bool",
+            title: "Enable to change position at dinner mode",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        if (dinnerChange){
         input(
             name:"dinnerPos",
             type:"number",
-            title:"<b>Dinner</b> open position",
+            title:"<b>Dinner</b> position",
             defaultValue:"50",
             required: true,
             submitOnChange: true
         )
+        }
+        paragraph("<b>Evening Mode</b>")
+        input(
+            name:"eveningChange",
+            type:"bool",
+            title: "Enable to change position at evening mode",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        if (eveningChange){
         input(
             name:"eveningPos",
             type:"number",
-            title:"<b>Evening</b> open position (set to -0- for close)",
-            defaultValue:"0",
+            title:"<b>Evening</b> position",
+            defaultValue:"40",
             required: true,
             submitOnChange: true
         )
+        }else{
+        input(
+            name:"eveningOff",
+            type:"bool",
+            title: "Enable closing at evening mode when Lux below threshold",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        }
+        paragraph("<b>Late Evening Mode</b>")
+        input(
+            name:"lateEveningChange",
+            type:"bool",
+            title: "Enable to change position at late evening mode",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        if (lateEveningChange){
         input(
             name:"lateEveningPos",
             type:"number",
-            title:"<b>Late Evening</b> open position (set to -0- for close)",
-            defaultValue:"0",
+            title:"<b>Late Evening</b> position",
+            defaultValue:"30",
             required: true,
             submitOnChange: true
         )
+        }else{
+        input(
+            name:"lateEveningOff",
+            type:"bool",
+            title: "Enable closing at late evening mode when Lux below threshold",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        }
+        paragraph("<b>Night Mode</b>")
+        input(
+            name:"nightChange",
+            type:"bool",
+            title: "Enable to change position at night mode",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        if (nightChange){
         input(
             name:"nightPos",
             type:"number",
-            title:"<b>Night</b> open position (set to -0- for close)",
-            defaultValue:"0",
+            title:"<b>Night</b> position",
+            defaultValue:"20",
             required: true,
             submitOnChange: true
         )
+        }else{
+        input(
+            name:"nightOff",
+            type:"bool",
+            title: "Enable closing at night mode when Lux below threshold",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        }
     }
     section{
         input(
@@ -156,7 +239,7 @@ preferences{
         input(
             name:"motionSensor",
             type:"capability.motionSensor",
-            title: "Motion sensor will activate early morning position",
+            title: "<b>Motion sensor</b> will activate early morning position",
             multiple: false,
             required: false,
             submitOnChange: true
@@ -164,31 +247,21 @@ preferences{
     }
     section{
         input(
-            name:"contact",
-            type:"capability.contactSensor",
-            title:"Contact sensor to prevent blinds, shades or Curtains from closing if open",
-            multiple: true,
-            required: false,
-            submitOnChange: true
-        )
-    }
-    section{
-        input(
             name:"luxSensors",
             type:"capability.illuminanceMeasurement",
-            title:"Lux sensor(s) to disable automatic setting position",
+            title:"<b>Lux sensors</b>",
             multiple: true,
             required: false,
             submitOnChange: true
         )
         if(luxSensors){
-            paragraph "Current Lux average is ${averageIlluminance()}"
+            paragraph "<b>Current Lux average is ${averageIlluminance()}</b>"
         }
         if (luxSensors){ 
         input(
             name:"luxThreshold",
             type:"number",
-            title:"Lux needs to be above this to open",
+            title:"Lux needs to be above this level to open",
             required: false,
             defaultValue:"500",
             submitOnChange: true
@@ -207,15 +280,25 @@ preferences{
     }
     section{
         input(
+            name:"contact",
+            type:"capability.contactSensor",
+            title:"<b>Contact sensor</b> to prevent Blinds, Shades or Curtains from closing if open",
+            multiple: true,
+            required: false,
+            submitOnChange: true
+        )
+    }
+    section{
+        input(
             name:"temperatureSensors",
             type:"capability.temperatureMeasurement",
-            title:"Outdoor temperature sensors to disable automatic closing",
+            title:"<b>Outdoor temperature sensors</b> to disable closing when cold outside",
             multiple: true,
             required: false,
             submitOnChange: true
         )
         if(temperatureSensors){
-            paragraph "Current temperature average is ${averageTemperature()}"
+            paragraph "<b>Current temperature average is ${averageTemperature()}</b>"
         }
         if (temperatureSensors){ 
         input(
@@ -234,7 +317,8 @@ preferences{
             type:"bool",
             title: "Enable Info logging",
             required: true,
-            defaultValue: false
+            defaultValue: false,
+            submitOnChange: true
             )
     }
 }
@@ -340,44 +424,60 @@ def setModePosition(){
         settings.shade.setLevel(dayPos,duration)
     }
     if (state.afternoon){
-        logInfo ("setting position $afternoonPos for afternoon mode")
-        settings.shade.setLevel(afternoonPos,duration)
-    }
-    if (state.dinner){
-        logInfo ("setting position $dinnerPos for dinner mode")
-        settings.shade.setLevel(dinnerPos,duration)
-    }
-    if (state.evening){
-        state.closeEvening = (eveningPos == 0)
-        if (state.closeEvening){
-            logInfo ("Pos is set to 0 checking to close")
-            shadesCloseCheck()
+        if (settings.afternoonChange){
+            logInfo ("setting position $afternoonPos for afternoon mode")
+            settings.shade.setLevel(afternoonPos,duration)
         }
         else{
+            logInfo ("no position change set for afternoon mode")
+        }
+    }
+    if (state.dinner){
+        if (settings.dinnerChange){
+            logInfo ("setting position $dinnerPos for dinner mode")
+            settings.shade.setLevel(dinnerPos,duration)
+        }
+        else{
+            logInfo ("no position change set for dinner mode")
+        }
+    }
+    if (state.evening){
+        if (settings.eveningOff){
+            logInfo ("Set to close at evening mode, checking")
+            shadesCloseCheck()
+        }
+        if (settings.eveningChange){
             logInfo ("setting position $eveningPos for evening mode")
             settings.shade.setLevel(eveningPos,duration)
         }
+        else{
+            logInfo ("no position change set for evening mode")
+        }
     }
     if (state.lateEvening){
-        state.closeLateEvening = (lateEveningPos == 0)
-        if (state.closeLateEvening){
-            logInfo ("Pos is set to 0 checking to close")
+        if (settings.lateEveningOff){
+            logInfo ("Set to close at late evening mode, checking")
             shadesCloseCheck()
         }
-        else{
+        if (settings.lateEveningChange){
             logInfo ("setting position $lateEveningPos for late evening mode")
             settings.shade.setLevel(lateEveningPos,duration)
         }
+        else{
+            logInfo ("no position change set for late evening mode")
+        }
     }
     if (state.night){
-        state.closeNight = (nightPos == 0)
-        if (state.closeNight){
-            logInfo ("Pos is set to 0 checking to close")
+        if (settings.nightOff){
+            logInfo ("Set to close at night mode, checking")
             shadesCloseCheck()
         }
-        else{
+        if (settings.nightChange){
             logInfo ("setting position $nightPos for night mode")
             settings.shade.setLevel(nightPos,duration)
+        }
+        else{
+            logInfo ("no position change set for night mode")
         }
     }
     if (state.away){
@@ -386,6 +486,7 @@ def setModePosition(){
             settings.shade.setlevel(dayPos,duration)
         }
         if (state.luxLow){
+            logInfo ("Lux below threshold checking to close for day Away mode")
             shadesCloseCheck()
         }
     }
@@ -412,12 +513,24 @@ def getLux(){
             logInfo (" lux above threshold setting mode position only early morning")
             setModePosition()
         }
-        else
+        else{
         logInfo (" lux above threshold mode position should already be set")
+        }
     }
     if (state.luxLow&&state.shadeOpen){
-        logInfo (" lux below threshold setting mode position ")
-        setModePosition()
+        logInfo (" lux below threshold and shade is still open ")
+        if (state.evening&&settings.eveningOff){
+            logInfo (" lux below threshold and set to close at evening, checking ")
+            shadesCloseCheck()
+        }
+        if (state.lateEvening&&settings.lateEveningOff){
+            logInfo (" lux below threshold and set to close at late evening, checking ")
+            shadesCloseCheck()
+        }
+        if (state.night&&settings.nightOff){
+            logInfo (" lux below threshold and set to close at night, checking ")
+            shadesCloseCheck()
+        }  
     }
 }
 
