@@ -433,33 +433,33 @@ def statusHandler(evt){
     state.armingHome = (hsmStatus == "armingHome")
     if (state.armedNight){
         settings.hsmDevice.hsmUpdate("switch","on")
+        settings.keypads.armNight() 
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
-        settings.chimeDevice2.playSound(armSound2)
-        settings.keypads.armNight()      
+        settings.chimeDevice2.playSound(armSound2)    
     }
     if (state.armedAway){
         settings.hsmDevice.hsmUpdate("switch","on")
+        settings.keypads.armAway()
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)
-        settings.keypads.armAway() 
     }
     if (state.armedHome){
         settings.hsmDevice.hsmUpdate("switch","on")
+        settings.keypads.armHome()
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)
-        settings.keypads.armHome() 
     }
     if (state.disarmed){
         settings.hsmDevice.hsmUpdate("switch","off")
+        settings.keypads.disarm()
         settings.hsmDevice.clearAlert()
         settings.lights.setColorTemperature("2702")
         settings.chimeDevice1.playSound(disarmSound1)
         settings.chimeDevice2.playSound(disarmSound2)
-        settings.keypads.disarm()
-        runIn(4,keypadBeepStop)// needed for the xfinity UE's in case they don't stop beeping
+        runIn(3,keypadBeepStop)// needed for the xfinity UE's in case they don't stop beeping
 
     }
     if (state.armingNight){
@@ -554,9 +554,10 @@ def alertHandler(evt){
 def resetDisarmed(){
     logInfo ("resetting to disarmed after failed to arm")
     settings.hsmDevice.off()
+    settings.keypads.disarm()
     settings.chimeDevice1.playSound(disarmSound1)
     settings.chimeDevice2.playSound(disarmSound2)
-    settings.keypads.disarm()
+    runIn(3,keypadBeepStop)
 }
 
 def presenceHandler(evt){
