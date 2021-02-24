@@ -20,12 +20,12 @@
  *  V1.2.0  1-28-2021   -       Added arm and disarm away with presence       
  *  V1.3.0  1-29-2021   -       Added Water sensor custom Handler
  *  V2.0.0  1-31-2021   -       Cleanup and improvements    
- * 
+ *  V2.1.0  2-19-2021   -       Cleanup
  */
 
 metadata {
     definition (name: "HSM Controller and Status Device", namespace: "Gassgs", author: "Gary G") {
-        capability"Actuator"
+        capability "Actuator"
         capability "Switch"
         capability "Presence Sensor"
         capability "WaterSensor"
@@ -88,6 +88,4 @@ def disarm(){
      sendLocationEvent(name: "hsmSetArm", value: "disarm")
 }
 
-def refresh(){
-    //does nothing.used for google home
-}
+
