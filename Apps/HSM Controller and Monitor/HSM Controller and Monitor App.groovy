@@ -7,7 +7,7 @@
  * Arm and disarm Away mode with presence
  * Custom Water leak handler to shut off valve after water timeout
  * and close valve only in night and away modes
- * Plus Keypad integration
+ * Plus Keypad integration with Panic option
  *
  *  Copyright 2021 Gassgs / Gary Gassmann
  *
@@ -36,7 +36,8 @@
  *  V2.2.0  -       1-31-2021       Added additional Chime device options and improvements
  *  V2.3.0  -       2-17-2021       Google integration Improvements
  *  V2.4.0  -       2-20-2021       Improvements add keypad integration
- *  V2.5.0  -       2-23-2021       Added panic mode option & cleanup 
+ *  V2.5.0  -       2-23-2021       Added panic option & cleanup
+ *  V2.6.0  -       2-25-2021       Improved Keypad integration/HSM
  */
 
 import groovy.transform.Field
@@ -76,17 +77,25 @@ preferences {
         input(
             name:"keypads",
             type:"capability.securityKeypad",
-            title: "<b>Keypads</b> to sync",
+            title: "<b>Keypads</b> to use for Panic Mode",
             multiple: true,
             required: false,
             submitOnChange: true
             )
         input(
-            name:"panicEnable",
-            type:"bool",
-            title: "Enable PANIC Mode option - code 0911",
-            defaultValue: false,
-            required: true,
+            name:"panicCode",
+            type:"string",
+            title: "<b>PANIC Mode</b> code # default - 0911",
+            defaultValue: "0911",
+            required: false,
+            submitOnChange: true
+            )
+        input(
+            name:"userCode",
+            type:"string",
+            title: "<b>Clear Panic</b> - valid user code name",
+            defaultValue: "Keypads",
+            required: false,
             submitOnChange: true
             )
     }
@@ -119,6 +128,7 @@ preferences {
             type:"number",
             title:"Sound number to play for delays",
             required: true,
+            defaultValue: 30,
             submitOnChange: true
             )
         input(
@@ -126,6 +136,7 @@ preferences {
             type:"number",
             title:"Sound number to play for armed",
             required: true,
+            defaultValue: 29,
             submitOnChange: true
             )
          input(
@@ -133,6 +144,7 @@ preferences {
             type:"number",
             title:"Sound number to play for disarmed",
             required: true,
+            defaultValue: 29,
             submitOnChange: true
             )
             input(
@@ -140,6 +152,7 @@ preferences {
             type:"number",
             title:"Sound number to play for water leak detection",
             required: true,
+            defaultValue: 14,
             submitOnChange: true
             )
         }
@@ -159,6 +172,7 @@ preferences {
             type:"number",
             title:"Sound number to play for delays",
             required: true,
+            defaultValue: 4,
             submitOnChange: true
             )
         input(
@@ -166,6 +180,7 @@ preferences {
             type:"number",
             title:"Sound number to play for armed",
             required: true,
+            defaultValue: 2,
             submitOnChange: true
             )
           input(
@@ -173,11 +188,13 @@ preferences {
             type:"number",
             title:"Sound number to play for disarmed",
             required: true,
+            defaultValue: 2,
             submitOnChange: true
             )
             input(
             name:"waterSound2",
             type:"number",
+            defaultValue: 3,
             title:"Sound number to play for water leak detection",
             required: true,
             submitOnChange: true
@@ -191,6 +208,7 @@ preferences {
                 type:"number",
                 title: "Arming timer for Home and Night, should match time to arm",
                 required: true,
+                defaultValue: 5,
                 submitOnChange: true
                 )
             input(
@@ -198,6 +216,7 @@ preferences {
                 type:"number",
                 title: "Arming timer for Away, should match time to arm",
                 required: true,
+                defaultValue: 10,
                 submitOnChange: true
                 )
             input(
@@ -205,6 +224,7 @@ preferences {
                 type:"number",
                 title: "Home and Night intrusion delay timer, should match intrusion delay",
                 required: true,
+                defaultValue: 10,
                 submitOnChange: true
                 )
             input(
@@ -212,6 +232,7 @@ preferences {
                 type:"number",
                 title: "Away intrusion delay timer, should match intrusion delay",
                 required: true,
+                defaultValue: 10,
                 submitOnChange: true
                 )
         }
@@ -241,6 +262,7 @@ preferences {
                 type:"number",
                 title: "hue (1 -100)",
                 required: true,
+                defaultValue: 97,
                 submitOnChange: true
             )
             input(
@@ -248,6 +270,7 @@ preferences {
                 type:"number",
                 title: "saturation  (1 -100)",
                 required: true,
+                defaultValue: 90,
                 submitOnChange: true
                 )
         }
@@ -325,13 +348,12 @@ def initialize(){
     subscribe(settings.hsmDevice, "alert.arm", hsmSwitchOnHandler)
     subscribe(settings.hsmDevice, "alert.disarm", hsmSwitchOffHandler)
     subscribe(settings.hsmDevice, "alert.clearing", hsmClearHandler)
-    subscribe(settings.keypads, "securityKeypad", keypadHandler)
     subscribe(location, "hsmStatus", statusHandler)
     subscribe(location, "hsmAlert", alertHandler)
     subscribe(location, "mode", modeEventHandler)
     subscribe(settings.presenceSensors, "presence", presenceHandler)
     subscribe(settings.waterSensors, "water", waterHandler)
-    if(panicEnable){
+    if(keypads){
         subscribe(settings.keypads, "lastCodeName", lastCodeHandler)
     }
     logInfo ("subscribed to Events")
@@ -353,8 +375,8 @@ def modeEventHandler(evt){
 def lastCodeHandler(evt){
     code = evt.value
     logInfo ("** $evt.value **")
-    state.panicMode = (code == "pin entered 0911")
-    state.panicClear = (code == "Keypads") // user name for code must be "Keypads" to clear
+    state.panicMode = (code == panicCode)
+    state.panicClear = (code == userCode)
     if (state.panicMode){
         logInfo ("PANIC Mode started")
         settings.hsmDevice.hsmUpdate("alert","active")
@@ -364,36 +386,6 @@ def lastCodeHandler(evt){
         logInfo ("PANIC Mode Cleared")
         settings.hsmDevice.clearAlert()
     }
-}
-
-def keypadHandler(evt){
-    keypadStatus = evt.value
-    logInfo ("Keypad Status: $evt.value")
-    state.keypadArmedHome = (keypadStatus == "armed home")
-    state.keypadArmedNight = (keypadStatus == "armed night")
-    state.keypadArmedAway = (keypadStatus == "armed away")
-    state.keypadDisarmed = (keypadStatus == "disarmed")
-    if (state.keypadArmedHome){
-        if (state.disarmed||state.armedAway||state.armedNight){
-            sendLocationEvent(name: "hsmSetArm", value: "armHome")
-        }
-    }
-    if (state.keypadArmedNight){
-        if (state.disarmed||state.armedAway||state.armedHome){
-            sendLocationEvent(name: "hsmSetArm", value: "armNight")
-        }
-    }
-    if (state.keypadArmedAway){
-        if (state.disarmed||state.armedNight||state.armedHome){
-            sendLocationEvent(name: "hsmSetArm", value: "armAway")
-        }
-    }
-    if (state.keypadDisarmed){
-        if (state.armedAway||state.armedNight||state.armedHome){
-            sendLocationEvent(name: "hsmSetArm", value: "disarm")
-        }     
-    }
-
 }
 
 def hsmSwitchOnHandler(evt){
@@ -433,28 +425,24 @@ def statusHandler(evt){
     state.armingHome = (hsmStatus == "armingHome")
     if (state.armedNight){
         settings.hsmDevice.hsmUpdate("switch","on")
-        settings.keypads.armNight() 
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)  
     }
     if (state.armedAway){
         settings.hsmDevice.hsmUpdate("switch","on")
-        settings.keypads.armAway()
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)
     }
     if (state.armedHome){
         settings.hsmDevice.hsmUpdate("switch","on")
-        settings.keypads.armHome()
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)
     }
     if (state.disarmed){
         settings.hsmDevice.hsmUpdate("switch","off")
-        settings.keypads.disarm()
         settings.hsmDevice.clearAlert()
         settings.lights.setColorTemperature("2702")
         settings.chimeDevice1.playSound(disarmSound1)
@@ -495,11 +483,6 @@ def stopFlash(){
     settings.lightsFlash.off()
 }
 
-def keypadBeepStop(){
-    logInfo ("telling keypads to stop beeping")
-    settings.keypads.stop()
-}
-
 def alertHandler(evt){
 	logInfo ("HSM Alert: $evt.value" + (evt.value == "rule" ? ",  $evt.descriptionText" : ""))
     alertValue = evt.value
@@ -520,33 +503,27 @@ def alertHandler(evt){
     }
     if (state.homeDelay){
         logInfo ("Home delayed intrusion alerts")
-        settings.keypads.beep()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
         runIn(delayChime-1,stopChime)
         runIn(delayChime,stopFlash)
-        runIn(delayChime,keypadBeepStop)
     }
     if (state.nightDelay){
         logInfo ("Night  delayed intrusion alerts")
-        settings.keypads.beep()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
         runIn(delayChime-1,stopChime)
         runIn(delayChime,stopFlash)
-        runIn(delayChime,keypadBeepStop)
     }
     if (state.awayDelay){
         logInfo ("Away delayed intrusion alerts")
-        settings.keypads.beep()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
         runIn(delayAwayChime-1,stopChime)
         runIn(delayAwayChime,stopFlash)
-        runIn(delayAwayChime,keypadBeepStop)
     }
 }
 
