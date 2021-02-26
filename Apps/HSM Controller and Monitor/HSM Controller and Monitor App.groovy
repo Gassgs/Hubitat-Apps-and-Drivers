@@ -36,7 +36,7 @@
  *  V2.2.0  -       1-31-2021       Added additional Chime device options and improvements
  *  V2.3.0  -       2-17-2021       Google integration Improvements
  *  V2.4.0  -       2-20-2021       Improvements add keypad integration
- *  V2.5.0  -       2-23-2021       Added panic mode option     
+ *  V2.5.0  -       2-23-2021       Added panic mode option & cleanup 
  */
 
 import groovy.transform.Field
@@ -436,7 +436,7 @@ def statusHandler(evt){
         settings.keypads.armNight() 
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
-        settings.chimeDevice2.playSound(armSound2)    
+        settings.chimeDevice2.playSound(armSound2)  
     }
     if (state.armedAway){
         settings.hsmDevice.hsmUpdate("switch","on")
@@ -459,7 +459,6 @@ def statusHandler(evt){
         settings.lights.setColorTemperature("2702")
         settings.chimeDevice1.playSound(disarmSound1)
         settings.chimeDevice2.playSound(disarmSound2)
-        runIn(3,keypadBeepStop)// needed for the xfinity UE's in case they don't stop beeping
 
     }
     if (state.armingNight){
@@ -497,7 +496,7 @@ def stopFlash(){
 }
 
 def keypadBeepStop(){
-    logInfo ("telling keypads to stop beeping, just in case")
+    logInfo ("telling keypads to stop beeping")
     settings.keypads.stop()
 }
 
@@ -517,11 +516,11 @@ def alertHandler(evt){
     }
     if (state.failedToArm){
         logInfo ("Failed to Arm System")
-        runIn(4,resetDisarmed)
+        runIn(3,resetDisarmed)
     }
     if (state.homeDelay){
         logInfo ("Home delayed intrusion alerts")
-        settings.keypads.entry()
+        settings.keypads.beep()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
@@ -531,7 +530,7 @@ def alertHandler(evt){
     }
     if (state.nightDelay){
         logInfo ("Night  delayed intrusion alerts")
-        settings.keypads.entry()
+        settings.keypads.beep()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
@@ -541,7 +540,7 @@ def alertHandler(evt){
     }
     if (state.awayDelay){
         logInfo ("Away delayed intrusion alerts")
-        settings.keypads.entry()
+        settings.keypads.beep()
         settings.chimeDevice1.playSound(delaySound1)
         settings.chimeDevice2.playSound(delaySound2)
         settings.lightsFlash.flash()
@@ -557,7 +556,6 @@ def resetDisarmed(){
     settings.keypads.disarm()
     settings.chimeDevice1.playSound(disarmSound1)
     settings.chimeDevice2.playSound(disarmSound2)
-    runIn(3,keypadBeepStop)
 }
 
 def presenceHandler(evt){
@@ -605,47 +603,16 @@ def waterHandler(evt){
     }
 }
 def waterLeakDetected(){
-    if (state.earlyMorning){
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
-        logInfo ("Leak Detected for longer than timeout limit")
-    }
-    if (state.day){
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
-        logInfo ("Leak Detected for longer than timeout limit")
-    }
-    if (state.afternoon){
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
-        logInfo ("Leak Detected for longer than timeout limit")
-    }
-    if (state.dinner){
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
-        logInfo ("Leak Detected for longer than timeout limit")
-    }
-    if (state.evening){
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
-        logInfo ("Leak Detected for longer than timeout limit")
-    }
-    if (state.lateEvening){
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
-        logInfo ("Leak Detected for longer than timeout limit")
-    }
-    if (state.night){
+    if (state.night||state.away){
         settings.chimeDevice1.playSound(waterSound1)
         settings.chimeDevice2.playSound(waterSound2)
         settings.valveDevice.close()
-        logInfo ("Leak Detected for longer than timeout limit Mode is Night Closing water Valve")
+        logInfo ("Leak Detected for longer than timeout limit, Mode is Away or Night, Closing water Valve")
     }
-    if (state.away){
+    else{
         settings.chimeDevice1.playSound(waterSound1)
         settings.chimeDevice2.playSound(waterSound2)
-        settings.valveDevice.close()
-        logInfo ("Leak Detected for longer than timeout limit Mode is Away Closing water Valve")
+        logInfo ("Leak Detected for longer than timeout limit")
     }
 }
 
