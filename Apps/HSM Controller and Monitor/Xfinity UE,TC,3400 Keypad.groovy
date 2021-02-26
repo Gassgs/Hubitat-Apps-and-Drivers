@@ -17,7 +17,7 @@
     2021-02-20 Modding for Xfinity keypads GG
     2021-02-23 Added shock cap for panic mode [0911] and stop GG
     2021-02-24 Added fingerprints for xfinity UE,TC,3400  GG
-    2021-02-25 Added tone cap GG
+    2021-02-25 Added tone cap and show code options  GG
 
 */
 
@@ -56,6 +56,7 @@ metadata {
 
     preferences{
         input name: "optEncrypt", type: "bool", title: "Enable lockCode encryption", defaultValue: false, description: ""
+        input name: "codeEnable", type: "bool", title: "Enable showing entered code #", defaultValue: false, description: ""
         input "refTemp", "decimal", title: "Reference temperature", description: "Enter current reference temperature reading", range: "*..*"
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true, description: ""
         input name: "txtEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true, description: ""
@@ -399,7 +400,7 @@ private isValidPin(code, armRequest){
         } else {
             data.isValid = false
             if (txtEnable) log.warn "Invalid pin entered [${code}] for arm command [${getArmCmd(armRequest)}]"
-            sendEvent(name: "lastCodeName", value: "pin entered ${code}")
+            if (codeEnable)sendEvent(name: "lastCodeName", value: "${code}")
             runIn(2,clearLastCode)
         }
     }
