@@ -212,7 +212,7 @@ def beep(){
     def value = "beep"
     def descriptionText = "${device.displayName} beep ${value}"
     if (txtEnable) log.info "${descriptionText}"
-    return ["he raw 0x${device.deviceNetworkId} 1 1 0x0501 {19 01 04 05 ${hexVal} 01 01}"]
+    return ["he raw 0x${device.deviceNetworkId} 1 1 0x0501 {09 01 04 05 01 01 01}"]
 }
 
 def stop(){
@@ -289,6 +289,7 @@ def armHome(exitDelay = null) {
     state.bin = 1
     if (exitDelay == null) sendArmResponse("01",getDefaultLCdata())
     else sendArmResponse("01",getDefaultLCdata(),exitDelay.toInteger())
+    runIn(1,stop)
 }
 
 def armNight(exitDelay = null) {
@@ -301,6 +302,7 @@ def armNight(exitDelay = null) {
     state.bin = 1
     if (exitDelay == null) sendArmResponse("02",getDefaultLCdata())
     else sendArmResponse("02",getDefaultLCdata(),exitDelay.toInteger())
+    runIn(1,stop)
 }
 
 def armAway(exitDelay = null) {
@@ -313,7 +315,7 @@ def armAway(exitDelay = null) {
     state.bin = 1
     if (exitDelay == null) sendArmResponse("03",getDefaultLCdata())
     else sendArmResponse("03",getDefaultLCdata(),exitDelay.toInteger())
-    runIn(12,refresh)
+    runIn(1,stop)
 }
 //private
 private changeIsValid(codeMap,codeNumber,code,name){
