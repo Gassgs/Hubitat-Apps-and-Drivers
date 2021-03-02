@@ -33,6 +33,7 @@
  *  V1.2.0 -        1-24-2021       rewrite ,again
  *  V1.3.0 -        1-25-2021       Complete logic redo improvements
  *  V1.4.0 -        2-11-2021       Improved door/lid event handlers
+ *  V1.5.0 -        2-18-2021       Redo -removed vibration sensors not reliable
  */
 
 import groovy.transform.Field
@@ -55,20 +56,20 @@ preferences {
      paragraph(
          title: "Laundry Washer and Dryer Monitor",
          required: false,
-    	"<div style='text-align:center'><b>: Laundry Washer and Dryer Monitor :</b></div>"
+    	"<div style='text-align:center'><b><big>: Laundry Washer and Dryer Monitor :</big></b></div>"
     	)
         paragraph( "<div style='text-align:center'><b>Washing Machine options</b></div>"
         )
         input(
             name:"washer",
             type:"capability.switch",
-            title: " Virtual Laundry Machine device   <b>-Washer-</b>",
+            title: "Virtual Laundry Machine device <b>-Washer-</b>",
             required: true
             )
     }
     section{
         input(
-            name:"powerMeter",
+            name:"washerMeter",
             type:"capability.powerMeter",
             title: "Power reporting device conected to washer",
             multiple: false,
@@ -86,9 +87,16 @@ preferences {
     }
     section{
         input(
-            name:"threshold",
+            name:"washerOnThreshold",
             type:"number",
             title:"Power level that indicates the washer is running",
+            required:true,
+            submitOnChange: true
+            )
+        input(
+            name:"washerOffThreshold",
+            type:"number",
+            title:"Power level that indicates the washer is idle",
             required:true,
             submitOnChange: true
             )
@@ -128,15 +136,15 @@ preferences {
         input(
             name:"dryer",
             type:"capability.switch",
-            title:"Virtual Laundry Machine device   <b>-Dryer-</b> ",
+            title:"Virtual Laundry Machine device <b>-Dryer-</b> ",
             required: true
             )
     }
     section{
         input(
-            name:"vibrationSensors",
-            type:"capability.accelerationSensor",
-            title: "Vibration sensors attached to the dryer",
+            name:"dryerMeter",
+            type:"capability.powerMeter",
+            title: "Power reporting device conected to dryer",
             multiple: true,
             submitOnChange: true
             )
@@ -152,9 +160,16 @@ preferences {
     }
     section{
         input(
-            name:"vibrationThreshold",
+            name:"dryerOnThreshold",
             type:"number",
-            title:"How many seconds of constant vibration is needed to indicate the dryer is running",
+            title:"Power level that indicates the dryer is running",
+            required:true,
+            submitOnChange: true
+            )
+        input(
+            name:"dryerOffThreshold",
+            type:"number",
+            title:"Power level that indicates the dryer is idle",
             required:true,
             submitOnChange: true
             )
@@ -163,13 +178,13 @@ preferences {
         input(
             name:"dryerTimeout",
             type:"number",
-            title:"Minutes to wait after vibration stops confirming load is done",
+            title:"Minutes to wait after power level is below threshold confirming load is dry",
             required:true,
             submitOnChange:true
             )
     }
     section{
-        paragraph("<div style='text-align:center'><b>Dryer complete options</b></div>"
+        paragraph("<div style='text-align:center'><b>Dryer complete notification options</b></div>"
         )
         input(
             name:"dryerNotificationDevices",
@@ -219,10 +234,11 @@ def initialize(){
     subscribe(settings.washer, "switch", washerSwitchHandler)
     subscribe(settings.dryer, "switch", dryerSwitchHandler)
     subscribe(settings.washerLidSwitch, "switch", washerLidHandler)
-    subscribe(settings.powerMeter,"power", powerHandler)
     subscribe(settings.dryerDoorSensor, "contact", dryerDoorHandler)
-    subscribe(settings.vibrationSensors, "acceleration", vibrationActiveHandler)
-    subscribe(settings.vibrationSensors, "acceleration", dryerStartedHandler)
+    subscribe(settings.washerMeter,"power", washerPowerHandler)
+    subscribe(settings.dryerMeter,"power", dryerPowerHandler)
+    subscribe(settings.washer, "status", washerStatusHandler)
+    subscribe(settings.dryer, "status", dryerStatusHandler)
     logInfo ("subscribed to Events")
 }
 
@@ -233,6 +249,70 @@ def washerSwitchHandler(evt){
     state.washerSwitchOff = (washerSwitch == "off")
     if (state.washerSwitchOff){
         unschedule(washerNotifications)
+    }
+}
+
+def washerLidHandler(evt){
+    washerLidStatus = evt.value
+    logInfo ("Washer lid $washerLidStatus")
+    state.washerLidClosed = (washerLidStatus == "on")
+    state.washerLidOpen = (washerLidStatus == "off")
+    if (state.washerLidOpen){
+        settings.washer.off()
+    }
+}
+
+def washerStatusHandler(evt){
+    washerStatus = evt.value
+    logInfo ("Washer $washerStatus")
+    state.washerRunning = (washerStatus == "running")
+    state.washerIdle = (washerStatus == "idle")
+}
+
+def washerPowerHandler(evt){
+    meterValue = evt.value.toDouble()
+    onThreshold = washerOnThreshold.toInteger()
+    offThreshold = washerOffThreshold.toInteger()
+    state.washerOn = (meterValue > onThreshold)
+    state.washerOff = (meterValue < offThreshold)
+    if  (state.washerOn&&state.washerIdle){
+        logInfo ("Washer Power above threshold, setting to Running")
+        settings.washer.update ("status","running")
+        settings.washer.update("switch","on")
+    }
+    else if (state.washerOn&&state.washerRunning){
+        logInfo ("Washer Power above threshold, already Running")
+        unschedule(washerDone)
+    }
+    else if (state.washerOff&&state.washerRunning){
+        logInfo ("Washer Power below threshold, checking if Done")
+        runIn(washerTimeout * 60,washerDone)
+    }
+    else if (state.washerOff&&state.washerIdle){
+        logInfo ("Washer Power below threshold, Washer already complete")
+    }
+}
+
+def washerDone(){
+    logInfo ("Washer load done, changing to idle")
+    settings.washer.update ("status","idle")
+    washerNotifications()
+}
+
+def washerNotifications(){
+    logInfo ("Sending washer done message in 10 seconds")
+    runIn(10,sendWasherMsg)
+}
+
+def sendWasherMsg(){
+    if (state.washerSwitchOn&&state.washerIdle){
+        logInfo ("sending washer done message")
+        settings.washerNotificationDevices.deviceNotification("The washer is done, please move the wet laundry to the dryer to stop these messages")
+        settings.washerTtsDevices.speak("The Washer is done please move the wet laundry to the dryer")
+        runIn(15*60,washerNotifications)
+    }
+    else{
+        logInfo ("Washer load complete, message will not be sent")
     }
 }
 
@@ -247,52 +327,6 @@ def dryerSwitchHandler(evt){
     }
 }
 
-def washerLidHandler(evt){
-    washerLidStatus = evt.value
-    logInfo ("Washer lid $washerLidStatus")
-    state.washerLidClosed = (washerLidStatus == "on")
-    state.washerLidOpen = (washerLidStatus == "off")
-    if (state.washerLidOpen){
-        settings.washer.off()
-    }
-}
-
-def powerHandler(evt){
-    meterValue = evt.value.toDouble()
-    thresholdValue = threshold.toInteger()
-        if  (meterValue > thresholdValue&&state.washerLidClosed){
-        unschedule(washerDone)
-        settings.washer.update ("status","running")
-        settings.washer.update("switch","on")
-        logInfo ("Washer Power above threshold = Running")
-        }
-        else{
-            logInfo ("Washer Power below threshold = checking")
-            runIn(washerTimeout * 60,washerDone)
-            }
-}
-def washerDone(){
-    settings.washer.update ("status","idle")
-    if  (state.washerSwitchOn){
-        logInfo ("Washer load done, changing to idle")
-        washerNotifications()
-    }
-}
-
-def washerNotifications(){
-    logInfo ("Sending washer done message in 10 seconds")
-    runIn(10,sendWasherMsg)
-}
-
-def sendWasherMsg(){
-    if (state.washerSwitchOn){
-        logInfo ("sending washer done message")
-        settings.washerNotificationDevices.deviceNotification("The washer is done, please move the wet laundry to the dryer to stop these messages")
-        settings.washerTtsDevices.speak("The Washer is done please move to the dryer")
-        runIn(15*60,washerNotifications)
-    }
-}
-
 def dryerDoorHandler(evt){
     dryerDoorStatus = evt.value
     logInfo ("Dryer door $dryerDoorStatus")
@@ -303,58 +337,76 @@ def dryerDoorHandler(evt){
     }
 }
 
-def dryerStartedHandler(evt){
-    def started = settings.vibrationSensors.findAll {it?.latestValue("acceleration") == 'active'}
-    if (started){
-        runIn(vibrationThreshold,dryerStarted)
-    }
-    else{
-        unschedule(dryerStarted)
-    }
-}
-def dryerStarted(){
-    settings.dryer.update ("status","running")
-    settings.dryer.update("switch","on")
-    logInfo ("Dryer is Started")
+def dryerStatusHandler(evt){
+    dryerStatus = evt.value
+    logInfo ("Dryer $dryerStatus")
+    state.dryerRunning = (dryerStatus == "running")
+    state.dryerIdle = (dryerStatus == "idle")
 }
 
-def vibrationActiveHandler(evt){
-    def active = settings.vibrationSensors.findAll{ it?.latestValue("acceleration")=='active'}
-    if (active&&state.dryerSwitchOn){
-        unschedule(dryerDone)
-        logInfo ("vibration detected")
+def dryerPowerHandler(evt){
+    meterValue = evt.value.toDouble()
+    onThreshold = dryerOnThreshold.toInteger()
+    offThreshold = dryerOffThreshold.toInteger()
+    state.dryerOn = (meterValue > onThreshold)
+    state.dryerOff = (meterValue < offThreshold)
+    if  (state.dryerOn&&state.dryerIdle){
+        logInfo ("Dryer Power above threshold setting to Running")
+        settings.dryer.update ("status","running")
+        settings.dryer.update("switch","on")
     }
-    else if (state.dryerSwitchOn){
-        runIn(dryerTimeout *60,dryerDone)
+    else if (state.dryerOn&&state.dryerRunning){
+        logInfo ("Dryer Power above threshold, already Running")
+        unschedule(dryerDone)
+    }
+    else if (state.dryerOn&&state.dryerSwitchOff){
+        logInfo ("Dryer Power above threshold, dryer door must have opened,turning switch back on")
+        unschedule(dryerDone)
+        settings.dryer.update("switch","on")
+    }
+    else if (state.dryerOff&&state.dryerRunning){
+        logInfo ("Dryer Power below threshold, checking if Done")
+        runIn(dryerTimeout * 60,dryerDone)
+    }
+    else if (state.washerOff&&state.dryerIdle){
+        logInfo ("Dryer Power below threshold, Dryer already complete")
     }
 }
+
 def dryerDone(){
-        settings.dryer.update ("status","idle")
-        logInfo ("Dryer Done")
-        dryerNotifications()      
+    logInfo ("Dryer Done, changing to Idle")
+    settings.dryer.update ("status","idle")
+    dryerNotifications()      
 }
 
 def dryerNotifications(){
-         runIn(10,sendDryerMsg)
+    logInfo ("Sending dryer done message in 10 seconds")
+    runIn(10,sendDryerMsg)
 }
 
 def sendDryerMsg(){
-    if (state.dryerSwitchOn){
+    if (state.dryerSwitchOn&&state.dryerIdle){
         logInfo ("sending dryer notifications")
         settings.dryerNotificationDevices.deviceNotification("The laundry in the dryer is now dry")
         settings.dryerTtsDevices.speak("The laundry in the dryer is now dry")
         logInfo ("sending again in 30 minutes")
         runIn(30 *60,sendDryerMsg2)
     }
+    else{
+        logInfo ("Dryer load complete, message will not be sent")
+    }
 }
 
 def sendDryerMsg2(){
-    if (state.dryerSwitchOn){
+    if (state.dryerSwitchOn&&state.dryerIdle){
         logInfo ("sending dryer notifications 2")
         settings.dryerNotificationDevices.deviceNotification("The laundry in the dryer can be put away now")
-        settings.dryerTtsDevices.speak("The laundry in the dryer can be put away")
+        settings.dryerTtsDevices.speak("The laundry in the dryer is dry and can be put away")
         settings.dryer.update("switch","off")
         logInfo ("dryer cycle complete")
+    }
+    else{
+        logInfo ("Dryer load complete, 2nd message will not be sent")
     }
 }
 
