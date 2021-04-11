@@ -30,7 +30,8 @@
  *  V1.0.0  -       2-08-2021       First run
  *  V1.1.0  -       2-09-2021       added all modes
  *  V1.2.0  -       2-10-2021       improvements
- *  V1.3.0  -       2-11-2021       Added off/dim options and handler improvements          
+ *  V1.3.0  -       2-11-2021       Added off/dim options and handler improvements
+ *  V1.4.0  -       4-11-2021       Fixed level off duration when light already off        
  */
 
 import groovy.transform.Field
@@ -461,7 +462,7 @@ def lightsOffLevel(){
     if (dimEnable){
         lightsDimLevel()
     }
-    else{
+    else if (state.lightsSwitchOn){
     logInfo ("Turning lights Off")
     settings.light.setLevel("0",duration)
     settings.light.off()
