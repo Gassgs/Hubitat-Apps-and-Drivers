@@ -22,12 +22,12 @@ def driverVer() { return "2.0" }
 
 metadata {
 	definition(name: "Zemismart Zigbee/Tuya Window Shade", namespace: "ShinJjang,GG", author: "ShinJjang-iquix-Gassgs", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
-	capability "Actuator"
-	capability "Window Shade"
-	capability "Switch Level"
-        capability "ChangeLevel"
-	capability "Sensor"
-        capability "Switch"
+		capability "Actuator"
+		capability "Window Shade"
+		capability "Switch Level"
+        capability"ChangeLevel"
+		capability "Sensor"
+        capability"Switch"
 
 
         attribute "OCcommand", "enum", ["Replace","Original"]
@@ -35,7 +35,7 @@ metadata {
         attribute "remote", "enum", ["Reverse","Forward"]
 
 	
-	fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Blind"
+		fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Blind"
         fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_cowvfni3",model:"owvfni3\u0000",deviceJoinName: "Zemismart Zigbee Blind"
         fingerprint  profileId:"0104",inClusters:"0000,000A,0004,0005,EF00",outClusters:"0019",manufacturer:"_TZE200_cowvfni3",model:"TS0601",deviceJoinName: "Zemismart Zigbee Blind"
 	
@@ -148,9 +148,9 @@ def pause() {
 }
 
 def setLevel(data, rate = null) {
-      if(logEnable) log.info "setLevel("+data+")"
-      if(logInfoEnable) log.info "setLevel("+data+")"
-     def currentLevel = device.currentValue("level")
+    if(logEnable) log.info "setLevel("+data+")"
+    if(logInfoEnable) log.info "setLevel("+data+")"
+    def currentLevel = device.currentValue("level")
     if (currentLevel == data) {
     sendEvent(name: "level", value: currentLevel)
     sendEvent(name: "position", value: currentLevel) 
@@ -161,14 +161,27 @@ sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intVal
 def setPosition(position){ 
     if(logEnable) log.info "setPos to $position"
     if(logInfoEnable) log.info "setPos to $position"
-setLevel(position, null)
+    setLevel(position, null)
 }
 
 def stopLevelChange(){
-             pause()
+    pause()
 }
+
 def startLevelChange(direction) {
     if (direction == "up") {
+        open()
+    } else {
+       close()
+    }
+}
+
+def stopPositionChange(){
+    pause()
+}
+
+def startPositionChange(direction) {
+    if (direction == "open") {
         open()
     } else {
        close()
