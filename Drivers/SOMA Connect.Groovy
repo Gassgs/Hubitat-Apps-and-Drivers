@@ -48,7 +48,7 @@ metadata {
     }
 }
     preferences {
-	    input "connectIp", "text", title: "Soma Connect IP Address", required: true
+        input "connectIp", "text", title: "Soma Connect IP Address", required: true
         input "mac", "text", title: "Mac address of Shade or Tilt device", required: true
         input "morningPos", "number", title: "Postion to set for Morning command", required: true, defaultValue: 50
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
@@ -235,11 +235,14 @@ def getPosition() {
         sendEvent(name: "level", value: shadePos)
         if (logEnable) log.debug  "Shade Position set to ${shadePos}"
         if (shadePos == 100){
-				sendEvent(name: "windowShade", value: "open")
-			} else if (shadePos == 0) {
-				sendEvent(name: "windowShade", value: "closed")
+            sendEvent(name: "windowShade", value: "open",isStateChange: true)
+            sendEvent(name: "switch", value: "on", isStateChange: true)
+            } else if (shadePos == 0) {
+                sendEvent(name: "windowShade", value: "closed",isStateChange: true)
+                sendEvent(name: "switch", value: "off", isStateChange: true)
 			} else {
-				sendEvent(name: "windowShade", value: "partially open")
+                sendEvent(name: "windowShade", value: "partially open",isStateChange: true)
+                sendEvent(name: "switch", value: "on", isStateChange: true)
 			}
 		}
     } catch (Exception e) {
