@@ -33,7 +33,7 @@ def driverVer() { return "1.1" }
 
 
 metadata {
-    definition (name: "Soma Connect", namespace: "Gassgs", author: "Gary G", importUrl: "https://raw.githubusercontent.com/Gassgs/--") {
+    definition (name: "Soma Connect", namespace: "Gassgs", author: "Gary G", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/SOMA%20Connect.Groovy") {
         capability "WindowShade"
         capability "Switch"
         capability "Switch Level"
