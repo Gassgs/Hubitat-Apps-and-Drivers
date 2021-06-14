@@ -17,12 +17,11 @@ import groovy.json.JsonOutput
 metadata {
     definition (name: "Zemismart Z-Wave Window Shade Curtain", namespace: "smartthings/Gassgs", author: "SmartThings", ocfDeviceType: "oic.d.blind") {
         capability "Window Shade"
-       // capability "Refresh"
         capability "Actuator"
         capability "Sensor"
         capability "Switch Level" 
-         capability "Switch "   
-         capability "Change Level"   
+        capability "Switch "   
+        capability "Change Level"   
 
 preferences {
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
@@ -30,11 +29,8 @@ preferences {
     }
 }
 
-      
         fingerprint type: "0x1107", cc: "0x5E,0x26", deviceJoinName: "Window Shade"
         fingerprint type: "0x9A00", cc: "0x5E,0x26", deviceJoinName: "Window Shade"
-//        fingerprint mfr:"026E", prod:"4353", model:"5A31", deviceJoinName: "Window Blinds"
-//        fingerprint mfr:"026E", prod:"5253", model:"5A31", deviceJoinName: "Roller Shade"
     }
 
     simulator {
@@ -51,7 +47,6 @@ preferences {
         reply "200100,delay 1000,2602": "command: 2603, payload: 60 00 FE"
         reply "200142,delay 1000,2602": "command: 2603, payload: 10 42 FE"
         reply "200163,delay 1000,2602": "command: 2603, payload: 10 63 FE"
-
 }
 
 def logsOff() {
@@ -211,6 +206,18 @@ def startLevelChange(direction) {
 def setPosition(value) {
     setLevel(value)
     
+}
+
+def stopPositionChange(){
+    stop()
+}
+
+def startPositionChange(direction) {
+    if (direction == "open") {
+        open()
+    } else {
+       close()
+    }
 }
 
 def refresh() {
