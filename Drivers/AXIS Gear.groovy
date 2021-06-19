@@ -175,6 +175,7 @@ def levelEventHandler(currentLevel) {
         }
 	} else {
 		sendEvent(name: "level", value: currentLevel)
+        sendEvent(name: "position", value: currentLevel)
         state.level = currentLevel
 		if (currentLevel == 0 || currentLevel == 100) {
 			sendEvent(name: "windowShade", value: currentLevel == 0 ? "closed" : "open")
@@ -286,7 +287,7 @@ def pause() {
 }
 // AXIS does not repond fast enough to use stop 
 def stop() {
-	if(logEnable) log.info "stop()"
+	if(logEnable) log.debug "stop()"
     if(logInfoEnable) log.info "stop()"
 	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_PAUSE)
 }
