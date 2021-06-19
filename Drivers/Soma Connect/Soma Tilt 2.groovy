@@ -32,7 +32,7 @@ def driverVer() { return "1.2" }
 
 
 metadata {
-    definition (name: "Soma Connect Tilt 2", namespace: "Gassgs", author: "Gary G", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/SOMA%20Connect.Groovy") {
+    definition (name: "Soma Connect Tilt 2", namespace: "Gassgs", author: "Gary G", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/Soma%20Connect/Soma%20Tilt%202.groovy") {
         capability "WindowShade"
         capability "Switch"
         capability "Switch Level"
