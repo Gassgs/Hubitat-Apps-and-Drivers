@@ -521,8 +521,8 @@ def logResponse(response) {
             settings.botvac?.statusUpdate("battery",batteryLevel)      
         }
         if (result.find{ it.key == "action" }){
-        	logDebug ("action key looking for 9 or 4" )
-            if (result.action == 4 || result.action == 9){
+        	logDebug ("action key looking for a4" )
+            if (result.action == 4){
             state.returningToDock = true
                 logDebug ("returningToDock = true" )
             }else{
