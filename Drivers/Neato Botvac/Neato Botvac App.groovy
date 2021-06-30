@@ -517,12 +517,18 @@ def logResponse(response) {
     else { 
         if (result.find{ it.key == "cleaning" }){
             batteryLevel = result.details.charge as String
+            batteryPercent = result.details.charge as Integer
             logDebug ("Battery level ${batteryLevel}")
-            settings.botvac?.statusUpdate("battery",batteryLevel)      
+            settings.botvac?.statusUpdate("battery",batteryLevel)
+            if (batteryPercent >= 95){
+                state.full = true
+            }else{
+                state.full = false 
+            }
         }
         if (result.find{ it.key == "action" }){
-        	logDebug ("action key looking for a4" )
-            if (result.action == 4){
+        	logDebug ("action key looking for a 4" )
+            if (result.action == 4) {
             state.returningToDock = true
                 logDebug ("returningToDock = true" )
             }else{
@@ -584,7 +590,18 @@ def logResponse(response) {
             } else {
                 logDebug ("Botvac Not Docked") 
             }
-            settings.botvac.statusUpdate("charging",result.details.isCharging as String)
+            charge = result.details.isCharging as String
+            logDebug ("charge status $charge")
+            if (charge == "false"){
+                state.notCharging = true
+            }else{
+                state.notCharging = false
+            }
+            if (state.notCharging && state.full){
+                settings.botvac.statusUpdate("charging","fully charged")    
+            }else{
+                settings.botvac.statusUpdate("charging",result.details.isCharging as String) 
+            }        
         }
         //need to see how to handle this
         /*if (binFullFlag) {
