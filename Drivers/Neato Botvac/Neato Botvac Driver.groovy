@@ -15,19 +15,21 @@
  *  VERSION HISTORY
  *
  *  V1.0 Hubitat
+ *  V1.1 Hubitat 
  *
  */
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 
-preferences 
+preferences
 {
     input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
     input( "prefNavigationMode", "enum", options: ["standard", "extraCare", "deep"], title: "Navigation Mode", description: "Only supported on certain models", required: true, defaultValue: "standard" )
-    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map", description: "Only supported on certain models", required: false, defaultValue: on )
+    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
     input("dockRefresh", "number", title: "How often to 'Refresh' while docked, in Minutes", defaultValue: 15, required: true )
     input("runRefresh", "number", title: "How often to 'Refresh' while running, in Seconds", defaultValue: 60, required: true )
+    input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
     input(name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: true)
 }
 
@@ -37,14 +39,13 @@ metadata {
 	capability "Refresh"
 	capability "Switch"
         capability "Actuator"
-        
+
 	command "refresh"
         command "returnToDock"
         command "findMe"  //(Not working on my D4)
         command "start"
         command "pause"
-        command "statusUpdate",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
-        
+
         attribute "status","string"
         attribute "network","string"
         attribute "charging","string"
@@ -52,7 +53,6 @@ metadata {
         attribute "error","string"
 	}
 }
-
 
 def installed() {
 	if (debugEnable) log.debug "Installed with settings: ${settings}"
@@ -122,7 +122,7 @@ def on() {
     runIn(2, refresh)
 }
 
-def start(){
+def start() {
     on()
 }
 
@@ -132,17 +132,20 @@ def pause() {
     runIn(2, refresh)
 }
 
-def off(){
+def off() {
+    if (offEnable) {
     returnToDock()
+    }else{
+        pause()
+    }
 }
 
 def returnToDock() {
 	if (debugEnable) log.debug "Executing 'return to dock'"
     nucleoPOST("/messages", '{"reqId":"1", "cmd":"sendToBase"}')
     sendEvent(name:"status",value:"returning to dock")
-    runIn(20, refresh)
+    runIn(25, refresh)
 }
-
 
 def findMe() {
     //not working on D4 model
@@ -266,11 +269,4 @@ Map nucleoRequestHeaders(date, HMACsignature) {
 }
 
 def nucleoURL(path = '/') 			 { return "https://nucleo.neatocloud.com:4443/vendors/neato/robots/${device.deviceNetworkId.tokenize("|")[0]}${path}" }
-
-
-def statusUpdate(String status,String value){
-    textValue=value
-    statusValue=status
-    sendEvent(name:statusValue, value: textValue)
-}
 
