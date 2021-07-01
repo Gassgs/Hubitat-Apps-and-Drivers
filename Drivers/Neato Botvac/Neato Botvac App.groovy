@@ -38,7 +38,7 @@ definition(
 
 preferences {
 	page(name: "auth", title: "Neato", nextPage:"", content:"authPage", uninstall: true, install:true)
-    page(name: "selectDevicePAGE")
+	page(name: "selectDevicePAGE")
 }
 
 mappings {
@@ -542,9 +542,11 @@ def logResponse(response) {
        		//state 4 - Error
             switch (result.state) {
         		case "1":
-                sendEvent(robot,[name:"status",value:"stopped"])
-                sendEvent(robot,[name:"switch",value:"off"])
+                    sendEvent(robot,[name:"switch",value:"off"])
                     logDebug ("switch status should be off - Stopped")
+                    if (! state.isDocked) {
+                    sendEvent(robot,[name:"status",value:"stopped"])
+                    }
 				break;
 				case "2":
                 if (state.returningToDock){
@@ -582,11 +584,14 @@ def logResponse(response) {
              }
         }
         if (result.find{ it.key == "details" }){
-        	if (result.details.isDocked) {
+            docked = result.details.isDocked as String
+        	if (docked == "true") {
                 logDebug ("Vacuum now Docked")
                 sendEvent(robot,[name:"status",value:"docked"])
+                state.isDocked = true
             } else {
-                logDebug ("Botvac Not Docked") 
+                logDebug ("Botvac Not Docked")
+                state.isDocked = false
             }
             charge = result.details.isCharging as String
             logDebug ("charge status $charge")
