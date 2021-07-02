@@ -17,22 +17,20 @@
  *  Change History:
  *
  *    V1.0  1-20-2021   -       first run - Gassgs  
- *    V1.1  2-13-2021   -       removed acceleration cap, nt needed
+ *    V1.1  2-13-2021   -       removed acceleration cap, not needed
+ *    V1.2  7-1-2021    -       improved update method
  */
 
 metadata {
     definition (name: "Virtual Laundry Machine", namespace: "Gassgs", author: "Gary G") {
-        capability"Actuator"
+        capability "Actuator"
         capability "Switch"
         capability "Sensor"
 
-        command "update",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
         command"start"
         command"stop"
 
         attribute"status","string"
-        attribute"notification","string"
-        attribute"acceleration","string"
     }
 }
         
@@ -44,18 +42,13 @@ def on(){
 def off(){
     sendEvent(name:"switch",value:"off")
 }
-
-def update(String status,String value) {
-    textValue=value
-    statusValue=status
-    sendEvent(name:statusValue, value: textValue) 
-}
-//no functions below. device is for monitoring only
+//no function. device is for monitoring only
 def start(){
     log.info "start pushed, doesn't do anything"
 }
-
+//use only to reset the machine to idle if needed
 def stop(){
-     log.info "stop pushed, doesn't do anything"
+    sendEvent(name:"status",value:"idle")
+    log.info "stop pushed, status changed to idle"
 }
 
