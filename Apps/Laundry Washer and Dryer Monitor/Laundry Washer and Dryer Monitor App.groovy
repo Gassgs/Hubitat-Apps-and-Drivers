@@ -24,7 +24,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 1/24/2021
+ *  Last Update: 7/1/2021
  *
  *  Changes:
  *
@@ -34,6 +34,7 @@
  *  V1.3.0 -        1-25-2021       Complete logic redo improvements
  *  V1.4.0 -        2-11-2021       Improved door/lid event handlers
  *  V1.5.0 -        2-18-2021       Redo -removed vibration sensors not reliable
+ *  V1.6.0 -        7-1-2021        Changed update method and device driver
  */
 
 import groovy.transform.Field
@@ -277,8 +278,8 @@ def washerPowerHandler(evt){
     state.washerOff = (meterValue < offThreshold)
     if  (state.washerOn&&state.washerIdle){
         logInfo ("Washer Power above threshold, setting to Running")
-        settings.washer.update ("status","running")
-        settings.washer.update("switch","on")
+        sendEvent(settings.washer,[name:"status",value:"running"])
+        sendEvent(settings.washer,[name:"switch",value:"on"])
     }
     else if (state.washerOn&&state.washerRunning){
         logInfo ("Washer Power above threshold, already Running")
@@ -295,7 +296,7 @@ def washerPowerHandler(evt){
 
 def washerDone(){
     logInfo ("Washer load done, changing to idle")
-    settings.washer.update ("status","idle")
+    sendEvent(settings.washer,[name:"status",value:"idle"])
     washerNotifications()
 }
 
@@ -352,8 +353,8 @@ def dryerPowerHandler(evt){
     state.dryerOff = (meterValue < offThreshold)
     if  (state.dryerOn&&state.dryerIdle){
         logInfo ("Dryer Power above threshold setting to Running")
-        settings.dryer.update ("status","running")
-        settings.dryer.update("switch","on")
+        sendEvent(settings.dryer,[name:"status",value:"running"])
+        sendEvent(settings.dryer,[name:"switch",value:"on"])
     }
     else if (state.dryerOn&&state.dryerRunning){
         logInfo ("Dryer Power above threshold, already Running")
@@ -362,7 +363,7 @@ def dryerPowerHandler(evt){
     else if (state.dryerOn&&state.dryerSwitchOff){
         logInfo ("Dryer Power above threshold, dryer door must have opened,turning switch back on")
         unschedule(dryerDone)
-        settings.dryer.update("switch","on")
+        sendEvent(settings.dryer,[name:"switch",value:"on"])
     }
     else if (state.dryerOff&&state.dryerRunning){
         logInfo ("Dryer Power below threshold, checking if Done")
@@ -375,7 +376,7 @@ def dryerPowerHandler(evt){
 
 def dryerDone(){
     logInfo ("Dryer Done, changing to Idle")
-    settings.dryer.update ("status","idle")
+    sendEvent(settings.dryer,[name:"status",value:"idle"])
     dryerNotifications()      
 }
 
@@ -402,7 +403,7 @@ def sendDryerMsg2(){
         logInfo ("sending dryer notifications 2")
         settings.dryerNotificationDevices.deviceNotification("The laundry in the dryer can be put away now")
         settings.dryerTtsDevices.speak("The laundry in the dryer is dry and can be put away")
-        settings.dryer.update("switch","off")
+        sendEvent(settings.dryer,[name:"switch",value:"off"])
         logInfo ("dryer cycle complete")
     }
     else{
