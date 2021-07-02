@@ -26,7 +26,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 1/27/2021
+ *  Last Update: 6/30/2021
  *
  *  Changes:
  *
@@ -38,6 +38,7 @@
  *  V2.4.0  -       2-20-2021       Improvements add keypad integration
  *  V2.5.0  -       2-23-2021       Added panic option & cleanup
  *  V2.6.0  -       2-25-2021       Improved Keypad integration/HSM
+ *  V2.7.0  -       6-30-2021       Improved update handling
  */
 
 import groovy.transform.Field
@@ -369,7 +370,7 @@ def modeEventHandler(evt){
     state.lateEvening = (mode == "Late_evening")
     state.night = (mode == "Night")
     state.away = (mode == "Away")
-    settings.hsmDevice.hsmUpdate("currentMode","$evt.value")
+    sendEvent(settings.hsmDevice,[name:"currentMode",value:"$evt.value"])
 }
 
 def lastCodeHandler(evt){
@@ -379,7 +380,7 @@ def lastCodeHandler(evt){
     state.panicClear = (code == userCode)
     if (state.panicMode){
         logInfo ("PANIC Mode started")
-        settings.hsmDevice.hsmUpdate("alert","active")
+        sendEvent(settings.hsmDevice,[name:"alert",value:"active"])
         settings.keypads.panic() // a custom panic rule must be set up in HSM. trigger is shock sensor of keypads
     }
     else if (state.disarmed&&state.panicClear){
@@ -409,13 +410,13 @@ def hsmSwitchOffHandler(evt){
 def hsmClearHandler(evt){
     logInfo ("HSM Status Clearing")
     sendLocationEvent(name: "hsmSetArm", value: "cancelAlerts")
-    settings.hsmDevice.hsmUpdate("currentAlert","cancel")
+    sendEvent(settings.hsmDevice,[name:"currentAlert",value:"cancel"])
 }
 
 def statusHandler(evt){
     logInfo ("HSM Status: $evt.value")
     hsmStatus = evt.value
-    settings.hsmDevice.hsmUpdate("status","$evt.value")
+    sendEvent(settings.hsmDevice,[name:"status",value:"$evt.value"])
     state.armedNight = (hsmStatus == "armedNight")
     state.armedAway = (hsmStatus == "armedAway")
     state.armedHome = (hsmStatus == "armedHome")
@@ -424,25 +425,25 @@ def statusHandler(evt){
     state.armingAway = (hsmStatus == "armingAway")
     state.armingHome = (hsmStatus == "armingHome")
     if (state.armedNight){
-        settings.hsmDevice.hsmUpdate("switch","on")
+        sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)  
     }
     if (state.armedAway){
-        settings.hsmDevice.hsmUpdate("switch","on")
+        sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)
     }
     if (state.armedHome){
-        settings.hsmDevice.hsmUpdate("switch","on")
+        sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
         settings.chimeDevice1.playSound(armSound1)
         settings.chimeDevice2.playSound(armSound2)
     }
     if (state.disarmed){
-        settings.hsmDevice.hsmUpdate("switch","off")
+        sendEvent(settings.hsmDevice,[name:"switch",value:"off"])
         settings.hsmDevice.clearAlert()
         settings.lights.setColorTemperature("2702")
         settings.chimeDevice1.playSound(disarmSound1)
@@ -452,23 +453,38 @@ def statusHandler(evt){
     if (state.armingNight){
         logInfo ("arming security system, locking locks")
         settings.lock.lock()
-        settings.chimeDevice1.playSound(delaySound1)
-        settings.chimeDevice2.playSound(delaySound2)
-        runIn(chimeTimer-1,stopChime)
+        if (settings.chimeTimer != 0){
+            logInfo ("playing arming delay sound")
+            settings.chimeDevice1.playSound(delaySound1)
+            settings.chimeDevice2.playSound(delaySound2)
+            runIn(chimeTimer-1,stopChime)
+        }else{
+            logInfo ("no arming delay for night mode set")
+        }
     }
     if (state.armingAway){
         logInfo ("arming security system, locking locks")
         settings.lock.lock()
-        settings.chimeDevice1.playSound(delaySound1)
-        settings.chimeDevice2.playSound(delaySound2)
-        runIn(chimeAwayTimer-1,stopChime)
+        if (settings.chimeAwayTimer != 0){
+            logInfo ("playing arming delay sound")
+            settings.chimeDevice1.playSound(delaySound1)
+            settings.chimeDevice2.playSound(delaySound2)
+            runIn(chimeAwayTimer-1,stopChime)
+        }else{
+            logInfo ("no arming delay for away mode set")
+       }         
     }
     if (state.armingHome){
         logInfo ("arming security system, locking locks")
         settings.lock.lock()
-        settings.chimeDevice1.playSound(delaySound1)
-        settings.chimeDevice2.playSound(delaySound2)
-        runIn(chimeTimer-1,stopChime)
+        if (settings.chimeTimer != 0){
+            logInfo ("playing arming delay sound")
+            settings.chimeDevice1.playSound(delaySound1)
+            settings.chimeDevice2.playSound(delaySound2)
+            runIn(chimeTimer-1,stopChime)
+        }else{
+            logInfo ("no arming delay for home mode set")
+        }
     }
 }
 
@@ -480,6 +496,7 @@ def stopChime(){
 
 def stopFlash(){
     logInfo ("flashing lights stopped")
+    settings.lightsFlash.flash()
     settings.lightsFlash.off()
 }
 
@@ -491,11 +508,12 @@ def alertHandler(evt){
     state.homeDelay = (alertValue == "intrusion-home-delay")
     state.nightDelay = (alertValue == "intrusion-night-delay")
     state.awayDelay = (alertValue == "intrusion-delay")
-    settings.hsmDevice.hsmUpdate("currentAlert","$evt.value" + (evt.value == "rule" ? ",  $evt.descriptionText" : ""))
-    settings.hsmDevice.hsmUpdate("alert","active")
+    sendEvent(settings.hsmDevice,[name:"currentAlert",value:"$evt.value" + (evt.value == "rule" ? ",  $evt.descriptionText" : "")])
+    sendEvent(settings.hsmDevice,[name:"alert",value:"active"])
     if (state.cancelled){
         logInfo ("Canceling Alerts")
-        settings.hsmDevice.hsmUpdate("alert","ok")
+        sendEvent(settings.hsmDevice,[name:"alert",value:"ok"])
+        
     }
     if (state.failedToArm){
         logInfo ("Failed to Arm System")
@@ -539,14 +557,14 @@ def presenceHandler(evt){
     def present = settings.presenceSensors.findAll { it?.latestValue("presence") == 'present' }
 		if (present){
             presenceList = "${present}"
-            hsmDevice.hsmUpdate("presence","present")
-            hsmDevice.hsmUpdate("Home",presenceList)
+            sendEvent(settings.hsmDevice,[name:"presence",value:"present"])
+            sendEvent(settings.hsmDevice,[name:"Home",value:presenceList])
             logInfo("Home"+presenceList)
             disarmReturn()
         }
     else{
-        hsmDevice.hsmUpdate("presence","not present")
-        hsmDevice.hsmUpdate("Home","Everyone is  Away")
+        sendEvent(settings.hsmDevice,[name:"presence",value:"not present"])
+        sendEvent(settings.hsmDevice,[name:"Home",value:"Everyone is Away"])
         runIn(2,armAway)
         logInfo("Everyone is Away")
     }
@@ -568,15 +586,15 @@ def waterHandler(evt){
     wet = settings.waterSensors.findAll {it?.latestValue("water") == 'wet'}
     if (wet){
         waterList = "${wet}"
-        settings.hsmDevice.hsmUpdate("water","wet")
-        settings.hsmDevice.hsmUpdate("Leak",waterList)
+        sendEvent(settings.hsmDevice,[name:"water",value:"wet"])
+        sendEvent(settings.hsmDevice,[name:"Leak",value:waterList])
         logInfo("leakDetected"+waterList)
         runIn(waterTimeout,waterLeakDetected)
     }
     else{
         unschedule(waterLeakDetected)
-        settings.hsmDevice.hsmUpdate("water","dry")
-        settings.hsmDevice.hsmUpdate("Leak","All Dry")
+        sendEvent(settings.hsmDevice,[name:"water",value:"dry"])
+        sendEvent(settings.hsmDevice,[name:"Leak",value:"All dry"])
     }
 }
 def waterLeakDetected(){
