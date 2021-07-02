@@ -15,7 +15,8 @@
  *  VERSION HISTORY
  *
  *  V1.0 Hubitat
- *  V1.1 Hubitat 
+ *  V1.1 Hubitat   event update improvemnts
+ *  V1.2 Hubitat   added stop command
  *
  */
 import javax.crypto.Mac;
@@ -44,6 +45,7 @@ metadata {
         command "returnToDock"
         command "findMe"  //(Not working on my D4)
         command "start"
+        command "stop"
         command "pause"
 
         attribute "status","string"
@@ -129,6 +131,12 @@ def start() {
 def pause() {
 	if (debugEnable) log.debug "Executing Pause"
     nucleoPOST("/messages", '{"reqId":"1", "cmd":"pauseCleaning"}')
+    runIn(2, refresh)
+}
+
+def stop() {
+	if (debugEnable) log.debug "Executing stop"
+    nucleoPOST("/messages", '{"reqId":"1", "cmd":"stopCleaning"}')
     runIn(2, refresh)
 }
 
