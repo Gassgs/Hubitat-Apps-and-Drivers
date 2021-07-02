@@ -19,18 +19,19 @@
  *  V1.0.0  1-27-2021   -       First run - Gassgs
  *  V1.2.0  1-28-2021   -       Added arm and disarm away with presence       
  *  V1.3.0  1-29-2021   -       Added Water sensor custom Handler
- *  V2.0.0  1-31-2021   -       Cleanup and improvements    
- *  V2.1.0  2-19-2021   -       Cleanup
+ *  V2.0.0  1-31-2021   -       Cleanup and improvements
+ *  V2.1.0  6-30-2021   -       Improvements changed update method
+ * 
  */
 
 metadata {
     definition (name: "HSM Controller and Status Device", namespace: "Gassgs", author: "Gary G") {
-        capability "Actuator"
+        capability"Actuator"
         capability "Switch"
         capability "Presence Sensor"
         capability "WaterSensor"
+        capability "Refresh"
         
-        command"hsmUpdate",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
         command"clearAlert"
         command"armHome"
         command"armNight"
@@ -66,12 +67,6 @@ def resetAlert(){
     sendEvent(name:"alert",value:"ok")
 }
 
-def hsmUpdate(String status,String value){
-    textValue=value
-    statusValue=status
-    sendEvent(name:statusValue, value: textValue)
-}
-
 def armAway(){
     sendLocationEvent(name: "hsmSetArm", value: "armAway")
 }
@@ -85,7 +80,10 @@ def armHome(){
 }
 
 def disarm(){
-     sendLocationEvent(name: "hsmSetArm", value: "disarm")
+    sendLocationEvent(name: "hsmSetArm", value: "disarm")
 }
 
-
+def refresh(){
+    log.info "refresh called, does nothing.used for google home"
+    //does nothing.used for google home
+}
