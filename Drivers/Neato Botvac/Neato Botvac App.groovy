@@ -37,7 +37,7 @@ definition(
 
 
 preferences {
-	page(name: "auth", title: "Neato", nextPage:"", content:"authPage", uninstall: true, install:true)
+	page(name: "auth", title: "<div style='text-align:center'><b><big>Neato Botvac</b></big></div>", nextPage:"", content:"authPage", uninstall: true, install:true)
 	page(name: "selectDevicePAGE")
 }
 
