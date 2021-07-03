@@ -106,6 +106,15 @@ def authPage() {
             defaultValue: false
             )
             }
+            section{
+            input(
+            name:"logInfo",
+            type:"bool",
+            title: "Enable Info logging",
+            required: true,
+            defaultValue: true
+            )
+            }
         }
 	}
 }
@@ -518,6 +527,7 @@ def logResponse(response) {
             batteryLevel = result.details.charge as String
             batteryPercent = result.details.charge as Integer
             logDebug ("Battery level ${batteryLevel}")
+            if (logInfo) log.info "Battery level ${batteryLevel}"
             sendEvent(robot,[name:"battery",value: batteryLevel]) 
             if (batteryPercent >= 95){
                 state.full = true
@@ -544,6 +554,7 @@ def logResponse(response) {
         		case "1":
                     sendEvent(robot,[name:"switch",value:"off"])
                     logDebug ("switch status should be off - Stopped")
+                    if (logInfo) log.info "Botvac Stopped"
                     if (! state.isDocked) {
                     sendEvent(robot,[name:"status",value:"stopped"])
                     }
@@ -553,20 +564,24 @@ def logResponse(response) {
                     sendEvent(robot,[name:"status",value:"returning to dock"])
                     sendEvent(robot,[name:"switch",value:"on"])
                     logDebug ("switch should be on - returning to dock")
+                    if (logInfo) log.info "Botvac Returning to Dock"
                 }else{
                     sendEvent(robot,[name:"status",value:"running"])
                     sendEvent(robot,[name:"switch",value:"on"])
                     logDebug ("switch should be on - running")
+                    if (logInfo) log.info "Botvac Running"
                 }   
 				break;
             	case "3":
                     sendEvent(robot,[name:"status",value:"paused"])
                     sendEvent(robot,[name:"switch",value:"on"])
                     logDebug ("Vacuum should be paused")
+                    if (logInfo) log.info "Botvac Paused"
                 break;
             	case "4":
                     sendEvent(robot,[name:"status",value:"error"])
                     logDebug ("Vacuum Error??")
+                    if (logInfo) log.info "Botvac error"
 				break;
             	default:
                     sendEvent(robot,[name:"status",value:"unknown"])
@@ -580,6 +595,7 @@ def logResponse(response) {
                  sendEvent(robot,[name:"error",value:"clear"])
              }else{
                  logDebug ("Error is -  $errorCode")
+                 if (logInfo) log.info "Botvac error - $errorCode"
                  sendEvent(robot,[name:"error",value:errorCode])
              }
         }
@@ -587,6 +603,7 @@ def logResponse(response) {
             docked = result.details.isDocked as String
         	if (docked == "true") {
                 logDebug ("Vacuum now Docked")
+                if (logInfo) log.info "Botvac Docked"
                 sendEvent(robot,[name:"status",value:"docked"])
                 state.isDocked = true
             } else {
@@ -595,6 +612,7 @@ def logResponse(response) {
             }
             charge = result.details.isCharging as String
             logDebug ("charge status $charge")
+            if (logInfo) log.info "Botvac charging $charge"
             if (charge == "false"){
                 state.notCharging = true
             }else{
