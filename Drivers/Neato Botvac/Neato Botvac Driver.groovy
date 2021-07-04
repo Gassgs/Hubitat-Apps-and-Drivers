@@ -17,6 +17,7 @@
  *  V1.0 Hubitat
  *  V1.1 Hubitat   event update improvemnts
  *  V1.2 Hubitat   added stop command
+ *  V1.3 Hubitat   fixes and improvements
  *
  */
 import javax.crypto.Mac;
@@ -25,23 +26,24 @@ import java.security.InvalidKeyException;
 
 preferences
 {
-    input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
+	input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
     input( "prefNavigationMode", "enum", options: ["standard", "extraCare", "deep"], title: "Navigation Mode", description: "Only supported on certain models", required: true, defaultValue: "standard" )
     input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
     input("dockRefresh", "number", title: "How often to 'Refresh' while docked, in Minutes", defaultValue: 15, required: true )
     input("runRefresh", "number", title: "How often to 'Refresh' while running, in Seconds", defaultValue: 60, required: true )
     input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
     input(name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: true)
+    input(name:"logInfo",type:"bool",title: "Enable Info logging",required: true,defaultValue: true)
 }
 
 metadata {
 	definition (name: "Neato Botvac Connected Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung", ocfDeviceType: "oic.d.robotcleaner", mnmn: "SmartThingsCommunity", vid: "1b47ad78-269e-3c5c-a1a9-8c84d2a2ef05")	{
     	capability "Battery"
-	capability "Refresh"
-	capability "Switch"
+		capability "Refresh"
+		capability "Switch"
         capability "Actuator"
 
-	command "refresh"
+		command "refresh"
         command "returnToDock"
         command "findMe"  //(Not working on my D4)
         command "start"
@@ -57,19 +59,22 @@ metadata {
 }
 
 def installed() {
-	if (debugEnable) log.debug "Installed with settings: ${settings}"
+	logDebug ("Installed with settings: ${settings}")
 	initialize()
     sendEvent(name: "checkInterval", value: 10 * 60 + 2 * 60, data: [protocol: "cloud"], displayed: false)
 }
 
 def updated() {
-	if (debugEnable) log.debug "Updated with settings: ${settings}"
+	logDebug ("Updated with settings: ${settings}")
 	initialize()
     sendEvent(name: "checkInterval", value: 10 * 60 + 2 * 60, data: [protocol: "cloud"], displayed: false)
 }
 
 def initialize() {
 	poll()
+    if(debugEnable){
+        runIn(1800, logsOff)
+    }
 }
 
 def refreshSch(){
@@ -85,16 +90,16 @@ def refreshSch(){
             state.paused = false
         }
     if (state.docked){
-        if (debugEnable) log.debug "$dockRefresh min refresh active"
+        logDebug ("$dockRefresh min refresh active")
         runIn(dockRefresh*60,refresh)
     }else{
-        if (debugEnable) log.debug "$runRefresh second refresh active"
+        logDebug ("$runRefresh second refresh active")
         runIn(runRefresh,refresh)
     }
 }
 
 def on() {
-	if (debugEnable) log.debug "Executing 'on'"
+	logDebug ("Executing 'on'")
     if (state.paused){
     	nucleoPOST("/messages", '{"reqId":"1", "cmd":"resumeCleaning"}')
     }
@@ -129,13 +134,13 @@ def start() {
 }
 
 def pause() {
-	if (debugEnable) log.debug "Executing Pause"
+	logDebug ("Executing Pause")
     nucleoPOST("/messages", '{"reqId":"1", "cmd":"pauseCleaning"}')
     runIn(2, refresh)
 }
 
 def stop() {
-	if (debugEnable) log.debug "Executing stop"
+	logDebug ("Executing Stop")
     nucleoPOST("/messages", '{"reqId":"1", "cmd":"stopCleaning"}')
     runIn(2, refresh)
 }
@@ -149,7 +154,7 @@ def off() {
 }
 
 def returnToDock() {
-	if (debugEnable) log.debug "Executing 'return to dock'"
+	logDebug ("Executing 'return to dock'")
     nucleoPOST("/messages", '{"reqId":"1", "cmd":"sendToBase"}')
     sendEvent(name:"status",value:"returning to dock")
     runIn(25, refresh)
@@ -157,7 +162,7 @@ def returnToDock() {
 
 def findMe() {
     //not working on D4 model
-	if (debugEnable) log.debug "Executing 'findMe'"
+	logDebug ("Executing 'findMe'")
     nucleoPOST("/messages", '{"reqId": "1","cmd": "findMe"}')
 }
 
@@ -186,12 +191,12 @@ def setPersistentMapMode(mode) {
 }
 
 def poll() {
-	if (debugEnable) log.debug "Executing 'poll'"
+	logDebug ("Executing 'poll'")
     resp = nucleoPOST("/messages", '{"reqId":"1", "cmd":"getRobotState"}')
 }
 
 def refresh() {
-	if (debugEnable) log.debug "Executing 'refresh'"
+	logDebug ("Executing 'refresh'")
     if (parent.getSecretKey(device.deviceNetworkId) == null) {
     }
 	poll()
@@ -236,7 +241,128 @@ def nucleoPOST(path, body) {
 		def date = new Date().format("EEE, dd MMM yyyy HH:mm:ss z", TimeZone.getTimeZone('GMT'))
 		httpPostJson(uri: nucleoURL(path), body: body, headers: nucleoRequestHeaders(date, getHMACSignature(date, body)) ) {response ->
 			parent.logResponse(response)
-			return response
+            def resp = (response.data)
+            def status = (response.status)
+            def result = resp
+            //def binFullFlag = false
+            if (status != 200) {
+                if (result.find{ it.key == "message" }){
+                    switch (result.message) {
+                        case "Could not find robot_serial for specified vendor_name":
+                        statusMsg += 'Robot serial and/or secret is not correct.\n'
+                        break;
+                    }
+                }
+                log.error("Unexpected result in poll(): [${resp}] ${status}")
+                sendEvent(name:"status",value:"error")
+                sendEvent(name:"network",value:"not connected")
+                logDebug ("Not Connected To Neato")
+            }
+            else if (result.find{ it.key == "cleaning" }){
+                batteryLevel = result.details.charge as String
+                batteryPercent = result.details.charge as Integer
+                logDebug ("Battery level ${batteryLevel}")
+                if (logInfo) log.info "Battery level ${batteryLevel}"
+                sendEvent(name:"battery",value: batteryLevel) 
+                if (batteryPercent >= 95){
+                    state.batteryFull = true
+                }else{
+                    state.batteryFull = false
+                }
+            }
+            if (result.find{ it.key == "action" }){
+                if (result.action == 4) {
+                    state.returningToDock = true
+                    logDebug ("returningToDock = true" )
+                }else{
+                    state.returningToDock = false
+                    logDebug ("returningToDock = false" )
+                }
+            }
+            if (result.find{ it.key == "state" }){
+                sendEvent(name:"network",value:"connected")
+                //state 1 - Ready to clean,state 2 - Cleaning, state 3 - Paused, state 4 - Error
+                switch (result.state) {
+                    case "1":
+                    sendEvent(name:"switch",value:"off")
+                    logDebug ("switch status should be off - Stopped")
+                    if (logInfo) log.info "Botvac Stopped"
+                    if (! state.isDocked) {
+                    sendEvent(name:"status",value:"stopped")
+                    }
+                    break;
+                    case "2":
+                    if (state.returningToDock){
+                        sendEvent(name:"status",value:"returning to dock")
+                        sendEvent(name:"switch",value:"on")
+                        logDebug ("switch should be on - returning to dock")
+                        if (logInfo) log.info "Botvac Returning to Dock"
+                    }else{
+                        sendEvent(name:"status",value:"running")
+                        sendEvent(name:"switch",value:"on")
+                        logDebug ("switch should be on - running")
+                        if (logInfo) log.info "Botvac Running"
+                    }
+                    break;
+                    case "3":
+                        sendEvent(name:"status",value:"paused")
+                        sendEvent(name:"switch",value:"on")
+                        logDebug ("Vacuum should be paused")
+                        if (logInfo) log.info "Botvac Paused"
+                    break;
+            	    case "4":
+                        sendEvent(name:"status",value:"error")
+                        logDebug ("Vacuum Error??")
+                        if (logInfo) log.info "Botvac error"
+				    break;
+            	        default:
+                        sendEvent(name:"status",value:"unknown")
+				    break;
+                }
+            }
+            if (result.find{ it.key == "error" }){
+                errorCode = result.error as String
+                if (errorCode == null){
+                    logDebug ("No errors")
+                    sendEvent(name:"error",value:"clear")
+                }else{
+                    logDebug ("Error is -  $errorCode")
+                    if (logInfo) log.info "Botvac error - $errorCode"
+                    sendEvent(name:"error",value:errorCode)
+                }
+            }
+            if (result.find{ it.key == "details" }){
+                docked = result.details.isDocked as String
+                if (docked == "true") {
+                    logDebug ("Vacuum now Docked")
+                    if (logInfo) log.info "Botvac Docked"
+                    sendEvent(name:"status",value:"docked")
+                    state.isDocked = true
+                }else{
+                    logDebug ("Botvac Not Docked")
+                    state.isDocked = false
+                }
+                charge = result.details.isCharging as String
+                logDebug ("charge status $charge")
+                if (logInfo) log.info "Botvac charging $charge"
+                if (charge == "false"){
+                    state.notCharging = true
+                }else{
+                    state.notCharging = false
+                }
+                if (state.notCharging && state.batteryFull){
+                    sendEvent(name:"charging",value:"fully charged") 
+                }else{
+                    sendEvent(name:"charging",value:result.details.isCharging as String)
+                }
+            }
+            //need to see how to handle this(when my bin gets full (error,alert etc..))
+            /*if (binFullFlag) {
+                settings.botvac.statusUpdate("bin","full")
+            } else {
+                settings.botvac?.statusUpdate("bin","empty")
+            } */
+            return response
 		}
 	} catch (groovyx.net.http.HttpResponseException e) {
 		parent.logResponse(e.response)
@@ -278,3 +404,13 @@ Map nucleoRequestHeaders(date, HMACsignature) {
 
 def nucleoURL(path = '/') 			 { return "https://nucleo.neatocloud.com:4443/vendors/neato/robots/${device.deviceNetworkId.tokenize("|")[0]}${path}" }
 
+void logDebug(String msg){
+	if (settings?.debugEnable != false){
+		log.debug "$msg"
+	}
+}
+
+def logsOff(){
+    log.warn "debug logging disabled..."
+	device.updateSetting("debugEnable", [value:"false",type:"bool"])
+}
