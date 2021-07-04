@@ -15,6 +15,7 @@
  *  VERSION HISTORY
  *	V1.0 Hubitat
  *	V1.1 Hubitat
+ *	V1.2 Hubitat fixes and improvements
  */
 
  
@@ -31,8 +32,7 @@ definition(
     singleInstance: true)
 
 {
-	appSetting "clientId"
-	appSetting "clientSecret"
+    
 }
 
 
@@ -69,8 +69,26 @@ def authPage() {
 	logDebug ("RedirectUrl = ${redirectUrl}")
 	// get rid of next button until the user is actually auth'd
 	if (!oauthTokenProvided) {
-		return dynamicPage(name: "auth", title: "Login", nextPage: "", uninstall:uninstallAllowed) {
-        	section { headerSECTION() }
+		return dynamicPage(name: "auth", title: "<div style='text-align:center'><b><big>Login</b></big></div>", nextPage: "", uninstall:uninstallAllowed) {
+            section { headerSECTION() }
+            section{
+            input(
+            name:"clientId",
+            type:"string",
+            title: "Your Client ID (optional)",
+            multiple: false,
+            required: false,
+            submitOnChange: true
+              )
+            input(
+            name:"clientSecret",
+            type:"string",
+            title: "Your Client Secret (optional)",
+            multiple: false,
+            required: false,
+            submitOnChange: true
+              )
+            }
 			section() {
 				paragraph "Tap below to log in to the Neato service and authorize Hubitat access."
 				href url:redirectUrl, style:"external", required:true, title:"Neato Account Authorization", description:description
@@ -102,15 +120,6 @@ def authPage() {
             name:"logEnable",
             type:"bool",
             title: "Enable debug logging",
-            required: true,
-            defaultValue: false
-            )
-            }
-            section{
-            input(
-            name:"logInfo",
-            type:"bool",
-            title: "Enable Info logging",
             required: true,
             defaultValue: true
             )
@@ -421,6 +430,9 @@ def getId(childDevice){
         def neatoBotvac = "${it.deviceNetworkId}"
         logDebug("'${it.deviceNetworkId}'")
         state.neatoBotvac = neatoBotvac
+        if(logEnable){
+            runIn(1800, logsOff)
+        }
     }    
 }
 
@@ -500,137 +512,11 @@ Map beehiveRequestHeaders() {
     ]
 }
 
-def logResponse(response) {
-    //move poll parsing from device to app.......then push changes to device\\
-    def resp = (response.data)
-    def status = (response.status)
-    logDebug ("${resp}")
+def logResponse(response){
+    def log = (response.data)  
+    def status = (response.status) 
+    logDebug ("${log}")
     logDebug ("${status}")
-    def result = resp
-    def robot = state.neatoBotvac as String
-    //def binFullFlag = false
-    if (status != 200) {
-    	if (result.find{ it.key == "message" }){
-        	switch (result.message) {
-            	case "Could not find robot_serial for specified vendor_name":
-                	statusMsg += 'Robot serial and/or secret is not correct.\n'
-                break;
-            }
-        }
-		log.error("Unexpected result in poll(): [${resp}] ${status}")
-        sendEvent(robot,[name:"status",value:"error"])
-        sendEvent(robot,[name:"network",value:"not connected"])
-		logDebug ("Not Connected To Neato")
-	}
-    else if (state.neatoBotvac){ 
-        if (result.find{ it.key == "cleaning" }){
-            batteryLevel = result.details.charge as String
-            batteryPercent = result.details.charge as Integer
-            logDebug ("Battery level ${batteryLevel}")
-            if (logInfo) log.info "Battery level ${batteryLevel}"
-            sendEvent(robot,[name:"battery",value: batteryLevel]) 
-            if (batteryPercent >= 95){
-                state.full = true
-            }else{
-                state.full = false 
-            }
-        }
-        if (result.find{ it.key == "action" }){
-            if (result.action == 4) {
-            state.returningToDock = true
-                logDebug ("returningToDock = true" )
-            }else{
-                state.returningToDock = false
-                logDebug ("returningToDock = false" )
-            }     
-        }
-        if (result.find{ it.key == "state" }){
-            sendEvent(robot,[name:"network",value:"connected"])
-        	//state 1 - Ready to clean
-        	//state 2 - Cleaning
-        	//state 3 - Paused
-       		//state 4 - Error
-            switch (result.state) {
-        		case "1":
-                    sendEvent(robot,[name:"switch",value:"off"])
-                    logDebug ("switch status should be off - Stopped")
-                    if (logInfo) log.info "Botvac Stopped"
-                    if (! state.isDocked) {
-                    sendEvent(robot,[name:"status",value:"stopped"])
-                    }
-				break;
-				case "2":
-                if (state.returningToDock){
-                    sendEvent(robot,[name:"status",value:"returning to dock"])
-                    sendEvent(robot,[name:"switch",value:"on"])
-                    logDebug ("switch should be on - returning to dock")
-                    if (logInfo) log.info "Botvac Returning to Dock"
-                }else{
-                    sendEvent(robot,[name:"status",value:"running"])
-                    sendEvent(robot,[name:"switch",value:"on"])
-                    logDebug ("switch should be on - running")
-                    if (logInfo) log.info "Botvac Running"
-                }   
-				break;
-            	case "3":
-                    sendEvent(robot,[name:"status",value:"paused"])
-                    sendEvent(robot,[name:"switch",value:"on"])
-                    logDebug ("Vacuum should be paused")
-                    if (logInfo) log.info "Botvac Paused"
-                break;
-            	case "4":
-                    sendEvent(robot,[name:"status",value:"error"])
-                    logDebug ("Vacuum Error??")
-                    if (logInfo) log.info "Botvac error"
-				break;
-            	default:
-                    sendEvent(robot,[name:"status",value:"unknown"])
-				break;
-        	}
-        }
-         if (result.find{ it.key == "error" }){
-             errorCode = result.error as String
-             if (errorCode == null){
-                 logDebug ("No errors")
-                 sendEvent(robot,[name:"error",value:"clear"])
-             }else{
-                 logDebug ("Error is -  $errorCode")
-                 if (logInfo) log.info "Botvac error - $errorCode"
-                 sendEvent(robot,[name:"error",value:errorCode])
-             }
-        }
-        if (result.find{ it.key == "details" }){
-            docked = result.details.isDocked as String
-        	if (docked == "true") {
-                logDebug ("Vacuum now Docked")
-                if (logInfo) log.info "Botvac Docked"
-                sendEvent(robot,[name:"status",value:"docked"])
-                state.isDocked = true
-            } else {
-                logDebug ("Botvac Not Docked")
-                state.isDocked = false
-            }
-            charge = result.details.isCharging as String
-            logDebug ("charge status $charge")
-            if (logInfo) log.info "Botvac charging $charge"
-            if (charge == "false"){
-                state.notCharging = true
-            }else{
-                state.notCharging = false
-            }
-            if (state.notCharging && state.full){
-                sendEvent(robot,[name:"charging",value:"fully charged"]) 
-            }else{
-                sendEvent(robot,[name:"charging",value:result.details.isCharging as String])
-            }        
-        }
-        //need to see how to handle this(when my bin gets full (error,alert etc..))
-        /*if (binFullFlag) {
-            settings.botvac.statusUpdate("bin","full")
-        } else {
-            settings.botvac?.statusUpdate("bin","empty")
-        } */
-    }
 }
 
 def logErrors(options = [errorReturn: null, logObject: log], Closure c) {
@@ -655,7 +541,7 @@ def getApiEndpoint()         { return "https://apps.neatorobotics.com" }
 def getSmartThingsClientId() { return appSettings?.clientId }
 def beehiveURL(path = '/') 	 { return "https://beehive.neatocloud.com${path}" }
 private def textVersion() {
-    def text = "Neato (Connect)\nHubitat Version: 1.1"
+    def text = "<b>Neato (Connect)\nHubitat Version: 1.2</b>"
 }
 
 private def textCopyright() {
@@ -663,18 +549,18 @@ private def textCopyright() {
 }
 
 def clientId() {
-	if(!appSettings?.clientId) {
+	if(!settings.clientId) {
 		return "4f21ab200ecacf56759e7b2654124f5945630e4249823dee6c0ae56bb7adc1de"
 	} else {
-		return appSettings?.clientId
+		return settings.clientId
 	}
 }
 
 def clientSecret() {
-	if(!appSettings?.clientSecret) {
+	if(!settings.clientSecret) {
 		return "c4b91d782c86ff6ad714fc6176bf06e4f83aafbc5c68621a8d6c7d21403516e5"
 	} else {
-		return appSettings?.clientSecret
+		return settings.clientSecret
 	}
 }
 
@@ -682,4 +568,9 @@ void logDebug(String msg){
 	if (settings?.logEnable != false){
 		log.debug "$msg"
 	}
+}
+
+def logsOff(){
+    log.warn "debug logging disabled..."
+	device.updateSetting("logEnable", [value:"false",type:"bool"])
 }
