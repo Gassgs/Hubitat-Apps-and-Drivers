@@ -103,12 +103,13 @@ def off() {
 }
 
 def toggle(){
-    if (state.on){
+    status = device.currentValue("switch")
+    if (status == "on"){
         off()
     }else{
         on()
     }
-}  
+}   
 
 def refresh() {
     unschedule(refresh)
@@ -135,10 +136,8 @@ def refresh() {
                    if (logInfo) log.info "$deviceIp - is $status"
                    if (status == "ON"){
                    sendEvent(name:"switch",value:"on")
-                       state.on = true
                }else{
                    sendEvent(name:"switch",value:"off")
-                       state.on = false
                    }  
                }
            }
