@@ -113,7 +113,8 @@ def close(){
 }
 
 def toggle(){
-    if (state.on){
+    status = device.currentValue("switch")
+    if (status == "on"){
         off()
     }else{
         on()
@@ -139,11 +140,9 @@ def refresh() {
                    if (status == "ON"){
                        sendEvent(name:"switch",value:"on")
                        sendEvent(name: "valve", value: "open")
-                       state.on = true
                }else{
                        sendEvent(name:"switch",value:"off")
                        sendEvent(name: "valve", value: "closed")
-                       state.on = false
                    }  
                }
            }
