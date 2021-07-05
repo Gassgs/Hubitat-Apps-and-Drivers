@@ -1,4 +1,4 @@
-<div style=text-align:center><b><big>Multi Sensor Plus</div></big></b>
+                                                      <b><big>Multi Sensor Plus</big></b>
 
 <b>Make your virtual switches more useful!!</b>
 
