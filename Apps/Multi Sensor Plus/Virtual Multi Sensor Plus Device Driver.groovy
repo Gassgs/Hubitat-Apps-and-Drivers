@@ -20,11 +20,12 @@
  *  V1.1.0  1-12-2021       improved layout and standardized Hum,Temp,Lux events  Gassgs
  *  V2.0.0  1-12-2021       improved presence sensor options to include nest cams and normal presence devices  Gassgs
  *  V2.1.0  1-26-2021       code cleanup
+ *  V2.2.0  7-05-2021       added auto off options, toggle, and status update method redo.
  * 
  */
 
 metadata {
-    definition (name: "Virtual Multi Sensor Plus", namespace: "Gassgs", author: "Gary G"){
+    definition (name: "Virtual Multi Sensor Plus", namespace: "Gassgs", author: "Gary G", importUrl:"https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Apps/Multi%20Sensor%20Plus/Virtual%20Multi%20Sensor%20Plus%20Device%20Driver.groovy"){
         capability"Actuator"
         capability "Switch"
         capability "Sensor"
@@ -36,11 +37,8 @@ metadata {
         capability "TemperatureMeasurement"
         capability "RelativeHumidityMeasurement"
         capability "IlluminanceMeasurement"
-
-        command "setTemperature",["number"]
-        command "setHumidity",["number"]
-        command "setIlluminance",["number"]
-        command "statusUpdate",[[name:"status",type:"STRING"],[name:"text",type:"STRING"]]
+        
+        command "toggle"
 
         attribute"Contacts","string"
         attribute"Motion_Sensors","string"
@@ -52,33 +50,33 @@ metadata {
         attribute"Locks","string"
     }
 }
+    preferences {
+        input name: "autoEnable", type: "bool", title: "Enable for auto off", required: true, defaultValue: false
+        input name: "autoOff", type: "number", title: "Timer for auto off, in seconds", required: true, defaultValue: 5
+        input name: "logEnable", type: "bool", title: "Enable info logging", defaultValue: true
+}
 
 def on(){
-    log.info "Switch_On"
+    if (logEnable) log.info "Switch_On"
     sendEvent(name: "switch", value: "on")
+    if(autoEnable){
+        if (logEnable) log.info "Turning Off in $autoOff seconds"
+        runIn(autoOff,off)
+    }
 }
 
 def off(){
-    log.info "Switch_Off"
+    if (logEnable) log.info "Switch_Off"
     sendEvent(name: "switch", value: "off")
 }
 
-def statusUpdate(String status,String value){
-    textValue=value
-    statusValue=status
-    sendEvent(name:statusValue, value: textValue)
-}
-
-def setTemperature(avg){
-    sendEvent(name: "temperature", value: avg)
-}
-
-def setHumidity(avg){
-    sendEvent(name: "humidity", value: avg)
-}
-
-def setIlluminance(avg){
-    sendEvent(name: "illuminance", value: avg)
+def toggle(){
+    status = (device.currentValue("switch"))
+    if (status == "on"){
+        off()
+    }else{
+        on()
+    }
 }
 
 def installed(){
