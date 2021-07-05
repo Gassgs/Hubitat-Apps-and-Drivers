@@ -1,4 +1,6 @@
-<b>Multi Sensor Plus</b>
+<b><big>Multi Sensor Plus</big></b>
+
+<b>Make your virtual switches more useful!!</b>
 
 <b>Average: Temperature, Humidity, and Illuminance   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch
                                                         -  All In One Device  -</b>
