@@ -572,5 +572,5 @@ void logDebug(String msg){
 
 def logsOff(){
     log.warn "debug logging disabled..."
-	device.updateSetting("logEnable", [value:"false",type:"bool"])
+	app.updateSetting("logEnable", [value:"false",type:"bool"])
 }
