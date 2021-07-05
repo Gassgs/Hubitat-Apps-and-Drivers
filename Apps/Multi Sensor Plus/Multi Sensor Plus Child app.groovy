@@ -37,6 +37,7 @@
  *  V2.1.0 -    1-22-2021       code clean up and improvements
  *  V2.2.0 -    1-23-2021       added initialize values & code improvements
  *  V2.3.0 -    1-24-2021       reworked avg and code cleanup - Release
+ *  V2.4.0 -    7-05-2021       reworked status updating method.
  */
 
 import groovy.transform.Field
@@ -50,6 +51,7 @@ definition(
     "-  Plus  a Virtual Switch  -  All  In One Device",
     parent: "Gassgs:Multi Sensor Plus",
     category: "Utilities",
+    importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Apps/Multi%20Sensor%20Plus/Multi%20Sensor%20Plus%20Child%20app.groovy",
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: "",
@@ -279,7 +281,7 @@ def averageTemperature(){
 
 def getTemperature(){
 	def avg = averageTemperature()
-	multiSensor.setTemperature(avg)
+    sendEvent(multiSensor,[name:"temperature",value:"$avg"])
 	logInfo ("Current temperature average is ${averageTemperature()}")
 }
 
@@ -293,7 +295,7 @@ def averageHumidity(){
 
 def getHumidity(){
 	def avg = averageHumidity()
-	multiSensor.setHumidity(avg)
+    sendEvent(multiSensor,[name:"humidity",value:"$avg"])
 	logInfo("Current humidity average is ${averageHumidity()}%")
 }
 
@@ -310,7 +312,7 @@ def averageIlluminance(){
 
 def getLux(){
 	def avg = averageIlluminance()
-	multiSensor.setIlluminance(avg)
+    sendEvent(multiSensor,[name:"illuminance",value:"$avg"])
 	logInfo ("Current lux average is ${averageIlluminance()}")
 }
 
@@ -322,14 +324,14 @@ def getContacts(){
     def open = settings.contactSensors.findAll { it?.latestValue("contact") == 'open' }
 		if (open){
             contactList = "${open}"
-            multiSensor.statusUpdate("contact","open")
-            multiSensor.statusUpdate("Contacts",contactList)
+            sendEvent(multiSensor,[name:"contact",value:"open"])
+            sendEvent(multiSensor,[name:"Contacts",value:contactList])
             logInfo("contactOpen"+contactList)
         }
     else{
-    multiSensor.statusUpdate("contact","closed")
-    multiSensor.statusUpdate("Contacts","All Closed")
-    logInfo("All Closed")
+        sendEvent(multiSensor,[name:"contact",value:"closed"])
+        sendEvent(multiSensor,[name:"Contacts",value:"All Closed"])
+        logInfo("All Closed")
     }
 }
 
@@ -341,14 +343,14 @@ def getLocks(){
 	def unlocked = settings.locks.findAll { it?.latestValue("lock") == 'unlocked' }
 		if (unlocked){
             lockList = "${unlocked}"
-            multiSensor.statusUpdate("lock","unlocked")
-            multiSensor.statusUpdate("Locks",lockList)
+            sendEvent(multiSensor,[name:"lock",value:"unlocked"])
+            sendEvent(multiSensor,[name:"Locks",value:lockList])
             logInfo("Unlocked"+lockList)
         }
     else{
-    multiSensor.statusUpdate("lock","locked")
-    multiSensor.statusUpdate("Locks","All Locked")
-     logInfo("All Locked")
+        sendEvent(multiSensor,[name:"lock",value:"locked"])
+        sendEvent(multiSensor,[name:"Locks",value:"All Locked"])
+        logInfo("All Locked")
     }
 }
 
@@ -360,14 +362,14 @@ def getWaterStatus(){
 	def wet = settings.waterSensors.findAll { it?.latestValue("water") == 'wet' }
 		if (wet){
             waterList = "${wet}"
-            multiSensor.statusUpdate("water","wet")
-            multiSensor.statusUpdate("Water_Sensors",waterList)
+            sendEvent(multiSensor,[name:"water",value:"wet"])
+            sendEvent(multiSensor,[name:"Water_Sensors",value:waterList])
             logInfo("leakDetected"+waterList)
         }
     else{
-    multiSensor.statusUpdate("water","dry")
-    multiSensor.statusUpdate("Water_Sensors","All Dry")
-    logInfo("All Dry")
+        sendEvent(multiSensor,[name:"water",value:"dry"])
+        sendEvent(multiSensor,[name:"Water_Sensors",value:"All Dry"])
+        logInfo("All Dry")
     }
 }
 
@@ -380,8 +382,8 @@ def getMotion(){
 		if (active){
 		    unschedule(motionInactive)
             motionList = "${active}"
-            multiSensor.statusUpdate("motion","active")
-            multiSensor.statusUpdate("Motion_Sensors",motionList)
+            sendEvent(multiSensor,[name:"motion",value:"active"])
+            sendEvent(multiSensor,[name:"Motion_Sensors",value:motionList])
             logInfo("motionActive"+motionList)
         }
     else{
@@ -389,9 +391,9 @@ def getMotion(){
     }
 }
 def motionInactive(){
-    multiSensor.statusUpdate("motion","inactive")
-    multiSensor.statusUpdate("Motion_Sensors","All Inactive")
-     logInfo("All Inactive")
+    sendEvent(multiSensor,[name:"motion",value:"inactive"])
+    sendEvent(multiSensor,[name:"Motion_Sensors",value:"All Inactive"])
+    logInfo("All Inactive")
 }
 
 def soundSensorHandler(evt){
@@ -403,8 +405,8 @@ def getSound(){
 		if (detected){
 		    unschedule(soundNotDetected)
             soundList = "${detected}"
-            multiSensor.statusUpdate("sound","detected")
-            multiSensor.statusUpdate("Sound_Heard",soundList)
+            sendEvent(multiSensor,[name:"sound",value:"detected"])
+            sendEvent(multiSensor,[name:"Sound_Heard",value:soundList])
             logInfo("soundDetected"+soundList)
         }
     else{
@@ -412,8 +414,8 @@ def getSound(){
     }
 }
 def soundNotDetected(){
-    multiSensor.statusUpdate("sound","not detected")
-    multiSensor.statusUpdate("Sound_Heard","No Sound Detected")
+    sendEvent(multiSensor,[name:"sound",value:"not detected"])
+    sendEvent(multiSensor,[name:"Sound_Heard",value:"No Sound Detected"])
     logInfo("No Sound Detected")
 }
 
@@ -435,8 +437,8 @@ def presenceHandler1(){
 		if (present){
 		    unschedule(personNotDetected)
             presenceList = "${present}"
-            multiSensor.statusUpdate("presence","present")
-            multiSensor.statusUpdate("Person_Detected",presenceList)
+            sendEvent(multiSensor,[name:"presence",value:"present"])
+            sendEvent(multiSensor,[name:"Person_Detected",value:presenceList])
             logInfo("personDetected"+presenceList)
         }
     else{
@@ -444,22 +446,22 @@ def presenceHandler1(){
     }
 }
 def personNotDetected(){
-    multiSensor.statusUpdate("presence","not present")
-    multiSensor.statusUpdate("Person_Detected","No One Present")
-     logInfo("No One Present")
+    sendEvent(multiSensor,[name:"presence",value:"not present"])
+    sendEvent(multiSensor,[name:"Person_Detected",value:"No One Present"])
+    logInfo("No One Present")
 }
 
 def presenceHandler2(){
 	def present = settings.presenceSensors.findAll { it?.latestValue("presence") == 'present' }
 		if (present){
             presenceList = "${present}"
-            multiSensor.statusUpdate("presence","present")
-            multiSensor.statusUpdate("Home",presenceList)
+            sendEvent(multiSensor,[name:"presence",value:"present"])
+            sendEvent(multiSensor,[name:"Home",value:presenceList])
             logInfo("Home"+presenceList)
         }
     else{
-        multiSensor.statusUpdate("presence","not present")
-        multiSensor.statusUpdate("Home","Everyone is  Away")
+        sendEvent(multiSensor,[name:"presence",value:"not present"])
+        sendEvent(multiSensor,[name:"Home",value:"Everyone is Away"])
         logInfo("Everyone is  Away")
     }
 }
