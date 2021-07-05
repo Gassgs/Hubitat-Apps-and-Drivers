@@ -30,6 +30,7 @@
  *  V1.0.0  -       1-09-2021       First run
  *  V2.0.0  -       1-11-2021       Improvements
  *  V2.1.0  -       1-26-2021       Code Cleanup
+ *  V2.2.0  -       7-05-2021       Added import url
  *
  */
 
@@ -43,6 +44,7 @@ definition(
     "Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -"+
     "Plus  a Virtual Switch  -  All  In One Device",
     category: "",
+    importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Apps/Multi%20Sensor%20Plus/Multi%20Sensor%20Plus%20Parent%20app.groovy",
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
