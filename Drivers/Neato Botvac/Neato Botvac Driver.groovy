@@ -285,9 +285,9 @@ def nucleoPOST(path, body) {
                 switch (result.state) {
                     case "1":
                     sendEvent(name:"switch",value:"off")
-                    logDebug ("switch status should be off - Stopped")
-                    if (logInfo) log.info "Botvac Stopped"
                     if (! state.isDocked) {
+		    logDebug ("switch status should be off - Stopped")
+                    if (logInfo) log.info "Botvac Stopped"
                     sendEvent(name:"status",value:"stopped")
                     }
                     break;
