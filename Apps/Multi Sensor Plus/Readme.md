@@ -1,4 +1,4 @@
-                                                      <b><big>Multi Sensor Plus</big></b>
+<b><big>Multi Sensor Plus</big></b>
 
 <b>Make your virtual switches more useful!!</b>
 
