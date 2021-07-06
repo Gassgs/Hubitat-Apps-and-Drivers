@@ -180,11 +180,11 @@ def refresh() {
                    if (logEnable) log.debug "Wifi signal strength $signal db"
                    sendEvent(name:"wifi",value:"${signal}db")
                    if (settings.plugNum == "0"){
-                       if (logEnable) log.debug "$deviceIp - $status"
-                       if (logInfo) log.info "$deviceIp is - $status"
+                       if (logEnable) log.debug "$device.label $deviceIp - $status"
+                       if (logInfo) log.info "$device.label is - $status"
                    }else{
-                       if (logEnable) log.debug "$deviceIp plug# $plugNum - $status"
-                       if (logInfo) log.info "$deviceIp plug# $plugNum is - $status"
+                       if (logEnable) log.debug "$device.label $deviceIp plug# $plugNum - $status"
+                       if (logInfo) log.info "$device.label plug# $plugNum is - $status"
                    }   
                    if (status == "ON"){
                        sendEvent(name:"switch",value:"on")
