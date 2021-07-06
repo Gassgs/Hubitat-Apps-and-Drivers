@@ -135,8 +135,8 @@ def refresh() {
                    signal = json.StatusSTS.Wifi.Signal as String
                    if (logEnable) log.debug "Wifi signal strength $signal db"
                    sendEvent(name:"wifi",value:"${signal}db")
-                   if (logEnable) log.debug "$deviceIp - $status"
-                   if (logInfo) log.info "$deviceIp - is $status"
+                   if (logEnable) log.debug "$device.label $deviceIp - $status"
+                   if (logInfo) log.info "$device.label - is $status"
                    if (status == "ON"){
                        sendEvent(name:"switch",value:"on")
                        sendEvent(name: "valve", value: "open")
