@@ -262,7 +262,7 @@ def nucleoPOST(path, body) {
                 batteryLevel = result.details.charge as String
                 batteryPercent = result.details.charge as Integer
                 logDebug ("Battery level ${batteryLevel}")
-                if (logInfo) log.info "Battery level ${batteryLevel}"
+                if (logInfo) log.info "$device.label Battery level ${batteryLevel}"
                 sendEvent(name:"battery",value: batteryLevel) 
                 if (batteryPercent >= 95){
                     state.batteryFull = true
@@ -287,7 +287,7 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"switch",value:"off")
                     if (! state.isDocked) {
                     sendEvent(name:"status",value:"stopped")
-		    logDebug ("switch status should be off - Botvac Stopped")
+                    logDebug ("switch status should be off - Stopped")
                     if (logInfo) log.info "Botvac Stopped"
                     }
                     break;
@@ -296,24 +296,24 @@ def nucleoPOST(path, body) {
                         sendEvent(name:"status",value:"returning to dock")
                         sendEvent(name:"switch",value:"on")
                         logDebug ("switch should be on - returning to dock")
-                        if (logInfo) log.info "Botvac Returning to Dock"
+                        if (logInfo) log.info "$device.label Returning to Dock"
                     }else{
                         sendEvent(name:"status",value:"running")
                         sendEvent(name:"switch",value:"on")
                         logDebug ("switch should be on - running")
-                        if (logInfo) log.info "Botvac Running"
+                        if (logInfo) log.info "$device.label Running"
                     }
                     break;
                     case "3":
                         sendEvent(name:"status",value:"paused")
                         sendEvent(name:"switch",value:"on")
                         logDebug ("Vacuum should be paused")
-                        if (logInfo) log.info "Botvac Paused"
+                        if (logInfo) log.info "$device.label Paused"
                     break;
             	    case "4":
                         sendEvent(name:"status",value:"error")
                         logDebug ("Vacuum Error??")
-                        if (logInfo) log.info "Botvac error"
+                        if (logInfo) log.info "$device.label error"
 				    break;
             	        default:
                         sendEvent(name:"status",value:"unknown")
@@ -327,7 +327,7 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"error",value:"clear")
                 }else{
                     logDebug ("Error is -  $errorCode")
-                    if (logInfo) log.info "Botvac error - $errorCode"
+                    if (logInfo) log.info "$device.label error - $errorCode"
                     sendEvent(name:"error",value:errorCode)
                 }
             }
@@ -335,7 +335,7 @@ def nucleoPOST(path, body) {
                 docked = result.details.isDocked as String
                 if (docked == "true") {
                     logDebug ("Vacuum now Docked")
-                    if (logInfo) log.info "Botvac Docked"
+                    if (logInfo) log.info "$device.label Docked"
                     sendEvent(name:"status",value:"docked")
                     state.isDocked = true
                 }else{
@@ -344,7 +344,7 @@ def nucleoPOST(path, body) {
                 }
                 charge = result.details.isCharging as String
                 logDebug ("charge status $charge")
-                if (logInfo) log.info "Botvac charging $charge"
+                if (logInfo) log.info "$device.label charging $charge"
                 if (charge == "false"){
                     state.notCharging = true
                 }else{
