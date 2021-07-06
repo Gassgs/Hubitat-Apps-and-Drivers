@@ -123,8 +123,8 @@ def refresh() {
                    if (logEnable) log.debug "DS18B20 temperature found"
                    temp = json.StatusSNS.DS18B20.Temperature
                    sendEvent(name:"temperature",value:"${temp}")
-                   if (logEnable) log.debug "Temperature is ${temp}"
-                   if (logInfo) log.info "Temperature of $deviceIp - is ${temp}"
+                   if (logEnable) log.debug "Temperature of $device.label $deviceIp is ${temp}"
+                   if (logInfo) log.info "Temperature of $device.label - is ${temp}"
             }
                if (json.containsKey("StatusSTS")){
                    if (logEnable) log.debug "PWR status found"
@@ -132,8 +132,8 @@ def refresh() {
                    signal = json.StatusSTS.Wifi.Signal as String
                    if (logEnable) log.debug "Wifi signal strength $signal db"
                    sendEvent(name:"wifi",value:"${signal}db")
-                   if (logEnable) log.debug "$deviceIp - $status"
-                   if (logInfo) log.info "$deviceIp - is $status"
+                   if (logEnable) log.debug "$device.label $deviceIp - $status"
+                   if (logInfo) log.info "$device.label - is $status"
                    if (status == "ON"){
                    sendEvent(name:"switch",value:"on")
                }else{
