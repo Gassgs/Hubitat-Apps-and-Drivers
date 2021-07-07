@@ -143,7 +143,7 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 
 def open() {
     if(logEnable) log.debug "open()"
-      if(logInfoEnable)log.info "open()"
+      if(logInfoEnable)log.info "$device.label open()"
     /*delayBetween([
             zwave.basicV1.basicSet(value: 0xFF).format(),
             zwave.switchMultilevelV1.switchMultilevelGet().format()
@@ -153,7 +153,7 @@ def open() {
 
 def close() {
     if(logEnable) log.debug "close()"
-    if(logInfoEnable) log.info "close()"
+    if(logInfoEnable) log.info "$device.label close()"
     /*delayBetween([
             zwave.basicV1.basicSet(value: 0x00).format(),
             zwave.switchMultilevelV1.switchMultilevelGet().format()
@@ -170,8 +170,8 @@ def off() {
 }
 
 def setLevel(value, duration = null) {
-   if(logEnable)  log.debug "setLevel(${value.inspect()})"
-     if(logInfoEnable) log.info "setLevel(${value.inspect()})"
+    if(logEnable)  log.debug "setLevel(${value.inspect()})"
+    if(logInfoEnable) log.info "$device.label setLevel(${value.inspect()})"
     Integer level = value as Integer
     if (level < 0) level = 0
     if (level > 99) level = 99
@@ -189,7 +189,7 @@ def pause() {
 
 def stop() {
     if(logEnable) log.debug "stop()"
-    if(logInfoEnable) log.info "stop()"
+    if(logInfoEnable) log.info "$device.label stop()"
     zwave.switchMultilevelV3.switchMultilevelStopLevelChange().format()
 }
 
