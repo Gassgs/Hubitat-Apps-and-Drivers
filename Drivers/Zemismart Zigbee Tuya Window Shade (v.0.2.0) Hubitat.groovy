@@ -117,8 +117,8 @@ def installed() {
 }
 
 def close() {
-	if(logEnable)log.info"close()"
-    if(logInfoEnable)log.info"close()"
+	if(logEnable)log.debug"close()"
+    if(logInfoEnable)log.info"$device.label close()"
     def cm = (OCcommand ?:"0") as int
     if(logEnable)log.debug "cm=${cm}"
     def val = Math.abs(2 - cm)
@@ -126,8 +126,8 @@ def close() {
 }
 
 def open() {
-	if(logEnable)log.info "open()"
-    if(logInfoEnable)log.info "open()"
+	if(logEnable)log.debug "open()"
+    if(logInfoEnable)log.info "$device.label open()"
     def cm = (OCcommand ?:"0") as int
     def val = Math.abs(0 - cm)
 	sendTuyaCommand("0104", "00", "010" + val)
@@ -142,14 +142,14 @@ def off(){
 }    
 
 def pause() {
-	if(logEnable)log.info "pause()"
-    if(logInfoEnable)log.info "pause()"
+	if(logEnable)log.debug "pause()"
+    if(logInfoEnable)log.info "$device.label pause()"
 	sendTuyaCommand("0104", "00", "0101")
 }
 
 def setLevel(data, rate = null) {
-    if(logEnable) log.info "setLevel("+data+")"
-    if(logInfoEnable) log.info "setLevel("+data+")"
+    if(logEnable) log.debug "setLevel("+data+")"
+    if(logInfoEnable) log.info "$device.label setLevel("+data+")"
     def currentLevel = device.currentValue("level")
     if (currentLevel == data) {
     sendEvent(name: "level", value: currentLevel)
@@ -159,8 +159,8 @@ sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intVal
 }
 
 def setPosition(position){ 
-    if(logEnable) log.info "setPos to $position"
-    if(logInfoEnable) log.info "setPos to $position"
+    if(logEnable) log.debug "setPos to $position"
+    if(logInfoEnable) log.info "$device.label setPos to $position"
     setLevel(position, null)
 }
 
@@ -202,12 +202,12 @@ def updated() {
 }	
 
 def DirectionSet(Dval) {
-	if (logEnable) log.info "Dset(${Dval})"
-   sendTuyaCommand("05040001", Dval, "")
+    if (logEnable) log.debug "Dset(${Dval})"
+    sendTuyaCommand("05040001", Dval, "")
 }
 
 private sendTuyaCommand(dp, fn, data) {
-	if (logEnable) log.info "${zigbee.convertToHexString(rand(256), 2)}=${dp},${fn},${data}"
+	if (logEnable) log.debug "${zigbee.convertToHexString(rand(256), 2)}=${dp},${fn},${data}"
 	zigbee.command(CLUSTER_TUYA, SETDATA, "00" + zigbee.convertToHexString(rand(256), 2) + dp + fn + data)
 }
 
