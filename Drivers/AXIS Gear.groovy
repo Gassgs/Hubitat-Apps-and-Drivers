@@ -146,7 +146,6 @@ def ShadesUp(){
     }else { 
     	shadeValue = 100
 	}
-    //sendEvent(name:"level", value:shadeValue, displayed:true)
     setLevel(shadeValue)
 }
 
@@ -159,7 +158,6 @@ def ShadesDown(){
     }else { 
     	shadeValue = 0
 	}
-    //sendEvent(name:"level", value:shadeValue, displayed:true)
     setLevel(shadeValue)
 }
 
@@ -218,8 +216,8 @@ def batteryPercentageEventHandler(batteryLevel) {
 }
 
 def close() {
-	if(logEnable) log.info "close()"
-    if(logInfoEnable) log.info "close()"
+	if(logEnable) log.debug "close()"
+    if(logInfoEnable) log.info "$device.label close()"
 	
     sendEvent(name: "windowShade", value: "closing")
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
@@ -229,8 +227,8 @@ def close() {
 }
 
 def open() {
-	if(logEnable) log.info "open()"
-    if(logInfoEnable) log.info "open()"
+	if(logEnable) log.debug "open()"
+    if(logInfoEnable) log.info "$device.label open()"
 
     sendEvent(name: "windowShade", value: "opening")
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
@@ -248,7 +246,7 @@ def off(){
 }
 
 def setLevel(data, rate = null) {
-    if(logInfoEnable) log.info "setLevel ${data}%"
+    if(logInfoEnable) log.info "$device.label setLevel ${data}%"
 	def cmd
     def level = data as Integer
 	if (supportsLiftPercentage()) {
@@ -278,17 +276,17 @@ def updateLiftState() {
 }
 
 def setPosition(data) {
-    if(logEnable) log.info "setPosition ${data}%"
+    if(logEnable) log.debug "$device.label setPosition ${data}%"
 	setLevel(data)
 }
-// AXIS does not repond fast enough to use pause
+
 def pause() {
     stop()
 }
-// AXIS does not repond fast enough to use stop 
+
 def stop() {
 	if(logEnable) log.debug "stop()"
-    if(logInfoEnable) log.info "stop()"
+    if(logInfoEnable) log.info "$device.label stop()"
 	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_PAUSE)
 }
 
@@ -303,15 +301,9 @@ def startPositionChange(direction) {
        close()
     }
 }
-/**
- * PING is used by Device-Watch in attempt to reach the Device
- * */
-def ping() {
-	return refresh()
-}
 
 def refresh() {
-	if(logEnable) log.info "refresh()"
+	if(logEnable) log.debug "refresh()"
 	def cmds
 	if (supportsLiftPercentage()) {
 		cmds = zigbee.readAttribute(CLUSTER_WINDOW_COVERING, ATTRIBUTE_POSITION_LIFT)
@@ -328,7 +320,7 @@ def refresh() {
 
 def configure() {
 	// Device-Watch allows 2 check-in misses from device + ping (plus 2 min lag time)
-	if(logEnable) log.info "configure()"
+	if(logEnable) log.debug "configure()"
     state.currentVersion = 0
 
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
@@ -370,10 +362,10 @@ private def parseBindingTableMessage(description) {
 }
 
 private Integer getGroupAddrFromBindingTable(description) {
-	if(logEnable) log.info "Parsing binding table - '$description'"
+	if(logEnable) log.debug "Parsing binding table - '$description'"
 	def btr = zigbee.parseBindingTableResponse(description)
 	def groupEntry = btr?.table_entries?.find { it.dstAddrMode == 1 }
-	if(logEnable) log.info "Found ${groupEntry}"
+	if(logEnable) log.debug "Found ${groupEntry}"
 	!groupEntry?.dstAddr ?: Integer.parseInt(groupEntry.dstAddr, 16)
 }
 
