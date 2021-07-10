@@ -18,6 +18,7 @@
  *  V1.1 Hubitat   event update improvemnts
  *  V1.2 Hubitat   added stop command
  *  V1.3 Hubitat   fixes and improvements
+ *  V1.4 Hubitat   minor fixes
  *
  */
 import javax.crypto.Mac;
@@ -79,17 +80,12 @@ def initialize() {
 
 def refreshSch(){
     def currentState = device.currentValue("status")
-    if (currentState == "docked"){
-        state.docked = true
-        }else{
-            state.docked = false
-        }
     if (currentState == "paused"){
         state.paused = true
         }else{
             state.paused = false
         }
-    if (state.docked){
+    if (state.isDocked){
         logDebug ("$dockRefresh min refresh active")
         runIn(dockRefresh*60,refresh)
     }else{
@@ -244,7 +240,6 @@ def nucleoPOST(path, body) {
             def resp = (response.data)
             def status = (response.status)
             def result = resp
-            //def binFullFlag = false
             if (status != 200) {
                 if (result.find{ it.key == "message" }){
                     switch (result.message) {
@@ -284,6 +279,7 @@ def nucleoPOST(path, body) {
                 //state 1 - Ready to clean,state 2 - Cleaning, state 3 - Paused, state 4 - Error
                 switch (result.state) {
                     case "1":
+                    state.noError = true
                     sendEvent(name:"switch",value:"off")
                     if (! state.isDocked) {
                     sendEvent(name:"status",value:"stopped")
@@ -292,6 +288,7 @@ def nucleoPOST(path, body) {
                     }
                     break;
                     case "2":
+                    state.noError = true
                     if (state.returningToDock){
                         sendEvent(name:"status",value:"returning to dock")
                         sendEvent(name:"switch",value:"on")
@@ -305,12 +302,14 @@ def nucleoPOST(path, body) {
                     }
                     break;
                     case "3":
+                    state.noError = true
                         sendEvent(name:"status",value:"paused")
                         sendEvent(name:"switch",value:"on")
                         logDebug ("Vacuum should be paused")
                         if (logInfo) log.info "$device.label Paused"
                     break;
             	    case "4":
+                    state.noError = false
                         sendEvent(name:"status",value:"error")
                         logDebug ("Vacuum Error??")
                         if (logInfo) log.info "$device.label error"
@@ -336,8 +335,10 @@ def nucleoPOST(path, body) {
                 if (docked == "true") {
                     logDebug ("Vacuum now Docked")
                     if (logInfo) log.info "$device.label Docked"
-                    sendEvent(name:"status",value:"docked")
                     state.isDocked = true
+                    if (state.noError){
+                        sendEvent(name:"status",value:"docked")
+                    }
                 }else{
                     logDebug ("Botvac Not Docked")
                     state.isDocked = false
@@ -356,12 +357,6 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"charging",value:result.details.isCharging as String)
                 }
             }
-            //need to see how to handle this(when my bin gets full (error,alert etc..))
-            /*if (binFullFlag) {
-                settings.botvac.statusUpdate("bin","full")
-            } else {
-                settings.botvac?.statusUpdate("bin","empty")
-            } */
             return response
 		}
 	} catch (groovyx.net.http.HttpResponseException e) {
