@@ -27,7 +27,7 @@ import java.security.InvalidKeyException;
 
 preferences
 {
-	input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
+    input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
     input( "prefNavigationMode", "enum", options: ["standard", "extraCare", "deep"], title: "Navigation Mode", description: "Only supported on certain models", required: true, defaultValue: "standard" )
     input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
     input("dockRefresh", "number", title: "How often to 'Refresh' while docked, in Minutes", defaultValue: 15, required: true )
@@ -40,11 +40,11 @@ preferences
 metadata {
 	definition (name: "Neato Botvac Connected Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung", ocfDeviceType: "oic.d.robotcleaner", mnmn: "SmartThingsCommunity", vid: "1b47ad78-269e-3c5c-a1a9-8c84d2a2ef05")	{
     	capability "Battery"
-		capability "Refresh"
-		capability "Switch"
+	capability "Refresh"
+	capability "Switch"
         capability "Actuator"
 
-		command "refresh"
+	command "refresh"
         command "returnToDock"
         command "findMe"  //(Not working on my D4)
         command "start"
@@ -54,7 +54,6 @@ metadata {
         attribute "status","string"
         attribute "network","string"
         attribute "charging","string"
-        //attribute "bin","string"
         attribute "error","string"
 	}
 }
