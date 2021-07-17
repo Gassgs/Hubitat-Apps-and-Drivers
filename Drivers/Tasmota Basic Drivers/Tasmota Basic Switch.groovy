@@ -20,11 +20,11 @@
  *
  *  Change History:
  *
- *  V1.0.0  7-2-2021       first run   
- * 
+ *  V1.0.0  7-02-2021       first run   
+ *  V1.1.0  7-17-2021       Refresh schedule improvements
  */
 
-def driverVer() { return "1.0" }
+def driverVer() { return "1.1" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -43,8 +43,14 @@ metadata {
     }
 }
     preferences {
+        def refreshRate = [:]
+		refreshRate << ["1 min" : "Refresh every minute"]
+		refreshRate << ["5 min" : "Refresh every 5 minutes"]
+        refreshRate << ["10 min" : "Refresh every 10 minutes"]
+		refreshRate << ["15 min" : "Refresh every 15 minutes"]
+		refreshRate << ["30 min" : "Refresh every 30 minutes"]
         input name: "deviceIp",type: "string", title: "Tasmota Device IP Address", required: true
-        input name: "refreshInt",type: "number", title: "How often to refresh, in Minutes", required: true, defaultValue:5
+        input ("refresh_Rate", "enum", title: "Device Refresh Rate", options: refreshRate, defaultValue: "15 min")
         input name: "plugNum",type: "enum",title: "Plug Number", options:["0","1","2","3","4"], defaultValue: 0
         input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
@@ -59,7 +65,28 @@ def updated() {
     log.info "updated..."
     log.warn "debug logging is: ${logEnable == true}"
     state.DriverVersion=driverVer()
-    refresh()
+    
+    switch(refresh_Rate) {
+		case "1 min" :
+			runEvery1Minute(refresh)
+            if (logEnable) log.debug "refresh every minute schedule"
+			break
+		case "5 min" :
+			runEvery5Minutes(refresh)
+            if (logEnable) log.debug "refresh every 5 minutes schedule"
+			break
+        case "10 min" :
+			runEvery10Minutes(refresh)
+            if (logEnable) log.debug "refresh every 10 minutes schedule"
+			break
+		case "15 min" :
+			runEvery15Minutes(refresh)
+            if (logEnable) log.debug "refresh every 15 minutes schedule"
+			break
+		case "30 min" :
+			runEvery30Minutes(refresh)
+            if (logEnable) log.debug "refresh every 30 minutes schedule"
+	}
     if (logEnable) runIn(1800, logsOff)
 }
 
@@ -147,7 +174,6 @@ def toggle(){
 }  
 
 def refresh() {
-    unschedule(refresh)
     if(settings.deviceIp){
         if (logEnable) log.debug "Refreshing Device Status - [${settings.deviceIp}]"
         try {
@@ -196,7 +222,6 @@ def refresh() {
     }catch (Exception e) {
         log.warn "Call to on failed: ${e.message}"
     }
-    runIn(refreshInt*60,refresh)
     }
 } 
 
@@ -205,6 +230,5 @@ def installed() {
     log.info "installed..."
     log.warn "debug logging is: ${logEnable == true}"
     state.DriverVersion=driverVer()
-    refresh()
     if (logEnable) runIn(1800, logsOff)
 }
