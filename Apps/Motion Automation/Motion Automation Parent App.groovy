@@ -1,8 +1,8 @@
 /**
  *  ****************  Motion Automation ****************
  *
- *  Motion automation parent app. Parent for Advanced lighting,Simple Lighting and
- *  Blinds + Shades.
+ *  Motion automation parent app. Parent for Advanced lighting & Simple Lighting Rules
+ *  
  *   
  *
  *
@@ -29,7 +29,9 @@
  *
  *  V1.0.0  -       2-08-2021       First attempt 
  *  V1.1.0  -       2-09-2021       visual improvements, changed name
- *  V1.2.0  -       2-11-2021       Added support for 3 child apps   
+ *  V1.2.0  -       2-11-2021       Added support for 3 child apps
+ *  V1.3.0  -       7-23-2021       removed "motion blind child", moved to new app.
+ *  
  */
 
 import groovy.transform.Field
@@ -48,7 +50,7 @@ definition(
 preferences{
     page(
         name: "mainPreferences",
-        title: "<div style='text-align:center'><b>Motion Automation</b></div>",
+        title: "<div style='text-align:center'><b><big>Motion Automation</big></b></div>",
         install: true,
         uninstall: true)
         {
@@ -67,15 +69,6 @@ preferences{
                 appName: "Motion Lighting Simple Child",
                 namespace: "Gassgs",
                 title: "<b>Add New Motion Lighting Simple Rule</b>",
-                multiple: true
-                )
-        }
-        section{
-            app(
-                name: "childApps",
-                appName: "Motion Blinds and Shades Child",
-                namespace: "Gassgs",
-                title: "<b>Add New Motion Blinds and Shades Rule</b>",
                 multiple: true
                 )
         }
