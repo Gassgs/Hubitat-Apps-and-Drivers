@@ -1,5 +1,5 @@
 /**
- *  Zemismart Zigbee/Tuya Window Shade (v.0.2.0) Hubitat
+ *  Zemismart Zigbee/Tuya Window Shade (v2.1) Hubitat
  *	Copyright 2020 iquix
  *
  *	Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -18,7 +18,7 @@ import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
 import hubitat.helper.HexUtils
 
-def driverVer() { return "2.0" }
+def driverVer() { return "2.1" }
 
 metadata {
 	definition(name: "Zemismart Zigbee/Tuya Window Shade", namespace: "ShinJjang,GG", author: "ShinJjang-iquix-Gassgs", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
@@ -69,8 +69,8 @@ def parse(String description) {
                         if(parData != 1){
                         def stappVal = (stapp ?:"0") as int
                         def data = Math.abs(parData - stappVal)
-						sendEvent([name:"windowShade", value: (data == 0 ? "opening":"closing"), displayed: true])
-                       if(logEnable) log.debug "App control=" + (data == 0 ? "opening":"closing")
+						//sendEvent([name:"windowShade", value: (data == 0 ? "opening":"closing"), displayed: true])
+                        if(logEnable) log.debug "App control=" + (data == 0 ? "opening":"closing")
                         }
                     	break
 					case 1031: // 0x04 0x07: Confirm opening/closing/stopping (triggered from remote)
@@ -78,13 +78,13 @@ def parse(String description) {
                         def remoteVal = remote as int
                         def data = Math.abs(parData - remoteVal)
 						sendEvent([name:"windowShade", value: (data == 0 ? "opening":"closing"), displayed: true])
-                        if(logEnable)log.debug "Remote control=" + (data == 0 ? "opening":"closing")
+                        if(logEnable)log.debug "Remote control =" + (data == 0 ? "opening":"closing")
                     	break
 					case 514: // 0x02 0x02: Started moving to position (triggered from Zigbee)
                     	def setLevel = zigbee.convertHexToInt(descMap.data[9])
                         def lastLevel = device.currentValue("level")
-						sendEvent([name:"windowShade", value: (setLevel >= lastLevel ? "opening":"closing"), displayed: true])
-                        if(logEnable)log.debug "Remote control=" + (setLevel >= lastLevel ? "opening":"closing")
+						//sendEvent([name:"windowShade", value: (setLevel > lastLevel ? "opening":"closing"), displayed: true])
+                        if(logEnable)log.debug "Zigbee control =" + (setLevel > lastLevel ? "opening":"closing")
                         break
 					case 515: // 0x02 0x03: Arrived at position
                     	def pos = zigbee.convertHexToInt(descMap.data[9])
@@ -116,21 +116,16 @@ def installed() {
 	state.DriverVersion=driverVer()
 }
 
-def close() {
-	if(logEnable)log.debug"close()"
-    if(logInfoEnable)log.info"$device.label close()"
-    def cm = (OCcommand ?:"0") as int
-    if(logEnable)log.debug "cm=${cm}"
-    def val = Math.abs(2 - cm)
-	sendTuyaCommand("0104", "00", "010" + val)
+def open() {
+    if(logInfoEnable)log.info "$device.label open()"
+    if(logEnable)log.debug "open()"
+    setLevel(100)
 }
 
-def open() {
-	if(logEnable)log.debug "open()"
-    if(logInfoEnable)log.info "$device.label open()"
-    def cm = (OCcommand ?:"0") as int
-    def val = Math.abs(0 - cm)
-	sendTuyaCommand("0104", "00", "010" + val)
+def close() {
+    if(logInfoEnable)log.info "$device.label close()"
+    if(logEnable)log.debug "close()"
+    setLevel(0)
 }
 
 def on(){
@@ -151,17 +146,24 @@ def setLevel(data, rate = null) {
     if(logEnable) log.debug "setLevel("+data+")"
     if(logInfoEnable) log.info "$device.label setLevel("+data+")"
     def currentLevel = device.currentValue("level")
-    if (currentLevel == data) {
+    if (currentLevel > data){
+        sendEvent(name:"windowShade",value:"closing")
+    }
+    else if (currentLevel < data){
+        sendEvent(name:"windowShade", value:"opening")
+    }
+    else if (currentLevel == data) {
     sendEvent(name: "level", value: currentLevel)
-    sendEvent(name: "position", value: currentLevel) 
-}
-sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
+    sendEvent(name: "position", value: currentLevel)
+        
+    }
+    sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
 }
 
-def setPosition(position){ 
+def setPosition(data){ 
     if(logEnable) log.debug "setPos to $position"
     if(logInfoEnable) log.info "$device.label setPos to $position"
-    setLevel(position, null)
+    setLevel(data, null)
 }
 
 def stopLevelChange(){
