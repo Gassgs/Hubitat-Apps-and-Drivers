@@ -1,4 +1,3 @@
-
 /** zemismart
 *  Tuya Window Shade (v.0.1.0) Hubitat v1
  *	Copyright 2020 iquix
@@ -220,7 +219,11 @@ private sendTuyaCommand(dp, fn, data) {
 private rand(n) {
 	return (new Random().nextInt(n))
 }
-def on (){log.warn "$device - some thing thinks im a switch  and is turning me on"}
-def off () {log.warn "$device - some thing thinks im a switch and is turning me off"}
-Driver for ZM25 .txt
-Displaying Driver for ZM25 .txt.
+def on () {
+    open()
+}
+
+def off () {
+    close()
+}
+
