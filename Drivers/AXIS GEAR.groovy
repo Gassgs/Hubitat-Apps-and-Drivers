@@ -15,7 +15,7 @@
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "AXIS GEAR", namespace: "AXIS", author: "AXIS Labs/Gassgs") {
+	definition (name: "AXIS GEAR", namespace: "Gassgs", author: "AXIS Labs/Gassgs") {
 		capability "Window Shade"
 		capability "Switch Level"
 		capability "Battery"
@@ -137,14 +137,6 @@ def setLevel(value,duration = null) {
 	def i = value as Integer
 	sendEvent(name:"level", value: value, unit:"%", displayed: false)
 	sendEvent(name:"position", value: value, unit:"%", displayed:true)
-
-	if (i == 0) {
-		sendEvent(name: "switch", value: "off")
-	}
-	else {
-		sendEvent(name: "switch", value: "on")
-	}
-
 	if (i > currentLevel) {
 		sendEvent(name: "windowShade", value: "opening")
 	}
