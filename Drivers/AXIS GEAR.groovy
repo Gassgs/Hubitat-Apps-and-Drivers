@@ -15,7 +15,7 @@
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "AXIS GEAR", namespace: "Gassgs", author: "AXIS Labs/Gassgs") {
+	definition (name: "AXIS GEAR", namespace: "AXIS", author: "AXIS Labs/Gassgs") {
 		capability "Window Shade"
 		capability "Switch Level"
 		capability "Battery"
