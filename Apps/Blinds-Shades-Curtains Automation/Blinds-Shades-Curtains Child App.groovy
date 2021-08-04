@@ -34,6 +34,7 @@
  *  V1.2.0  -       2-18-2021       Handler improvements
  *  V1.3.0  -       2-19-2021       Logic redo
  *  V1.4.0  -       7-22-2021       Adding features and Improvements
+ *  V1.5.0  -       7-27-2021       Bug fixes and Improvements
  */
 
 import groovy.transform.Field
@@ -696,55 +697,85 @@ def setModePosition(){
         }
     }
     if (state.afternoon){
-        logDebug ("Setting afternoon position $afternoonPos")
         state.shadeActiveMode = true
-        if (settings.duration == 1 || settings.duration == 0){
-            settings.shade.setPosition(afternoonPos)
+        currentPos = shade.currentValue("position") as Integer
+        logDebug ("current position is $currentPos, afternoon position is $afternoonPos")
+        if (currentPos == afternoonPos){
+            logDebug ("Currrent Position is already at afternoon position, $afternoonPos no change needed")
         }else{
-            settings.shade.setLevel(afternoonPos,duration)
+            logDebug ("Setting afternoon position $afternoonPos")
+            if (settings.duration == 1 || settings.duration == 0){
+                settings.shade.setPosition(afternoonPos)
+            }else{
+                settings.shade.setLevel(afternoonPos,duration)
+            }
         }
     }
     if (state.dinner){
-        logDebug ("Setting dinner position $dinnerPos")
-        if (settings.duration == 1 || settings.duration == 0){
-            settings.shade.setPosition(dinnerPos)
+        currentPos = shade.currentValue("position") as Integer
+        logDebug ("current position is $currentPos, dinner position is $dinnerPos")
+        if (currentPos == dinnerPos){
+            logDebug ("Currrent Position is already at dinner position, $dinnerPos no change needed")
         }else{
-            settings.shade.setLevel(dinnerPos,duration)
+            logDebug ("Setting dinner position $dinnerPos")
+            if (settings.duration == 1 || settings.duration == 0){
+                settings.shade.setPosition(dinnerPos)
+            }else{
+                settings.shade.setLevel(dinnerPos,duration)
+            }
         }
     }
     if (state.evening){
-        if (eveningPos == 0){
-            shadesCloseCheck()
-        }else if (state.shadeActiveMode) {
-            logDebug ("Setting evening position $eveningPos")
-            if (settings.duration == 1 || settings.duration == 0){
-                settings.shade.setPosition(eveningPos)
-            }else{
-                settings.shade.setLevel(eveningPos,duration)
+        currentPos = shade.currentValue("position") as Integer
+        logDebug ("current position is $currentPos, evening position is $eveningPos")
+        if (currentPos == eveningPos){
+            logDebug ("Currrent Position is already at evening position, $eveningPos no change needed")
+        }else{
+            if (eveningPos == 0){
+                shadesCloseCheck()
+            }else if (state.shadeActiveMode) {
+                logDebug ("Setting evening position $eveningPos")
+                if (settings.duration == 1 || settings.duration == 0){
+                    settings.shade.setPosition(eveningPos)
+                }else{
+                    settings.shade.setLevel(eveningPos,duration)
+                }
             }
         }   
     }
     if (state.lateEvening){
-        if (lateEveningPos == 0){
-            shadesCloseCheck()
-        }else if (state.shadeActiveMode) {
-            logDebug ("Setting late evening position $lateEveningPos")
-            if (settings.duration == 1 || settings.duration == 0){
-            settings.shade.setPosition(lateEveningPos)
-            }else{
-            settings.shade.setLevel(lateEveningPos,duration)
+        currentPos = shade.currentValue("position") as Integer
+        logDebug ("current position is $currentPos, late evening position is $lateEveningPos")
+        if (currentPos == lateEveningPos){
+            logDebug ("Currrent Position is already at late evening position, $lateEveningPos no change needed")
+        }else{
+            if (lateEveningPos == 0){
+                shadesCloseCheck()
+            }else if (state.shadeActiveMode) {
+                logDebug ("Setting late evening position $lateEveningPos")
+                if (settings.duration == 1 || settings.duration == 0){
+                    settings.shade.setPosition(lateEveningPos)
+                }else{
+                    settings.shade.setLevel(lateEveningPos,duration)
+                }
             }
         }   
     }
     if (state.night){
-        if (nightPos == 0){
-            shadesCloseCheck()
-        }else if (state.shadeActiveMode) {
-            logDebug ("Setting night position $nightPos")
-            if (settings.duration == 1 || settings.duration == 0){
-            settings.shade.setPosition(nightPos)
-            }else{
-            settings.shade.setLevel(nightPos,duration)
+        currentPos = shade.currentValue("position") as Integer
+        logDebug ("current position is $currentPos, night position is $nightPos")
+        if (currentPos == nightPos){
+            logDebug ("Currrent Position is already at night position, $nightPos no change needed")
+        }else{
+            if (nightPos == 0){
+                shadesCloseCheck()
+            }else if (state.shadeActiveMode) {
+                logDebug ("Setting night position $nightPos")
+                if (settings.duration == 1 || settings.duration == 0){
+                    settings.shade.setPosition(nightPos)
+                }else{
+                    settings.shade.setLevel(nightPos,duration)
+                }
             }
         }   
     }
@@ -780,6 +811,9 @@ def shadesCloseCheck(){
         logDebug ("closing shades")
         shadeClose()
         }
+        else{
+            logDebug ("waiting for lux to be below threshold to close shades")
+        }
     }
     else if (settings.contact){
         if (state.windowOpen){
@@ -789,6 +823,9 @@ def shadesCloseCheck(){
         logDebug ("closing shades")
         shadeClose()
         }
+        else{
+            logDebug ("waiting for lux to be below threshold to close shades")
+        }
     }
     else if (settings.temperatureSensors){
         if (state.temperatureNeg){
@@ -797,6 +834,18 @@ def shadesCloseCheck(){
         else if (state.luxLow){
         logDebug ("closing shades")
         shadeClose()
+        }
+        else{
+            logDebug ("waiting for lux to be below threshold to close shades")
+        }
+    }
+    else{
+        if (state.luxLow){
+        logDebug ("closing shades")
+        shadeClose()
+        }
+        else{
+            logDebug ("waiting for lux to be below threshold to close shades")
         }
     }
 }
