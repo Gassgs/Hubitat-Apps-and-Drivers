@@ -1,5 +1,5 @@
 /**
- *  Zemismart Zigbee/Tuya Window Shade (v2.1) Hubitat
+ *  Zemismart Zigbee/Tuya Window Shade (v.0.2.0) Hubitat
  *	Copyright 2020 iquix
  *
  *	Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -161,8 +161,8 @@ def setLevel(data, rate = null) {
 }
 
 def setPosition(data){ 
-    if(logEnable) log.debug "setPos to $position"
-    if(logInfoEnable) log.info "$device.label setPos to $position"
+    if(logEnable) log.debug "setPos to("+data+")"
+    if(logInfoEnable) log.info "$device.label setPos to("+data+")"
     setLevel(data, null)
 }
 
