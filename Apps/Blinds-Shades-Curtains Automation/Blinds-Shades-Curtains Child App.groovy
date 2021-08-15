@@ -35,6 +35,7 @@
  *  V1.3.0  -       2-19-2021       Logic redo
  *  V1.4.0  -       7-22-2021       Adding features and Improvements
  *  V1.5.0  -       7-27-2021       Bug fixes and Improvements
+ *  V1.6.0  -       8-15-2021       Added no change options for afternoon and dinner modes
  */
 
 import groovy.transform.Field
@@ -189,7 +190,7 @@ preferences{
         input(
             name:"afternoonPos",
             type:"number",
-            title:"<b>Afternoon</b> position",
+            title:"<b>Afternoon</b> position - Enter 0 for no change",
             defaultValue:"50",
             required: true,
             submitOnChange: true
@@ -197,7 +198,7 @@ preferences{
         input(
             name:"dinnerPos",
             type:"number",
-            title:"<b>Dinner</b> position",
+            title:"<b>Dinner</b> position - Enter 0 for no change",
             defaultValue:"50",
             required: true,
             submitOnChange: true
@@ -205,7 +206,7 @@ preferences{
         input(
             name:"eveningPos",
             type:"number",
-            title:"<b>Evening</b> position - 0 for close",
+            title:"<b>Evening</b> position - Enter 0 to enable closing",
             defaultValue:"40",
             required: true,
             submitOnChange: true
@@ -213,7 +214,7 @@ preferences{
         input(
             name:"lateEveningPos",
             type:"number",
-            title:"<b>Late Evening</b> position - 0 for close",
+            title:"<b>Late Evening</b> position - Enter 0 to enable closing",
             defaultValue:"30",
             required: true,
             submitOnChange: true
@@ -221,7 +222,7 @@ preferences{
         input(
             name:"nightPos",
             type:"number",
-            title:"<b>Night</b> position - 0 for close",
+            title:"<b>Night</b> position - Enter 0 to enable closing",
             defaultValue:"20",
             required: true,
             submitOnChange: true
@@ -702,7 +703,11 @@ def setModePosition(){
         logDebug ("current position is $currentPos, afternoon position is $afternoonPos")
         if (currentPos == afternoonPos){
             logDebug ("Currrent Position is already at afternoon position, $afternoonPos no change needed")
-        }else{
+        }
+        else if (afternoonPos == 0){
+            logDebug ("Position Set, No Change Requested")
+        }
+        else{
             logDebug ("Setting afternoon position $afternoonPos")
             if (settings.duration == 1 || settings.duration == 0){
                 settings.shade.setPosition(afternoonPos)
@@ -716,7 +721,11 @@ def setModePosition(){
         logDebug ("current position is $currentPos, dinner position is $dinnerPos")
         if (currentPos == dinnerPos){
             logDebug ("Currrent Position is already at dinner position, $dinnerPos no change needed")
-        }else{
+        }
+        else if (dinnerPos == 0){
+            logDebug ("Position Set, No Change Requested")
+        }
+        else{
             logDebug ("Setting dinner position $dinnerPos")
             if (settings.duration == 1 || settings.duration == 0){
                 settings.shade.setPosition(dinnerPos)
