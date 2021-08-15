@@ -25,6 +25,7 @@
  *  V1.0.0  6-09-2021       first run   
  *  V1.1.0  6-14-2021       improvments & added morning position option
  *  V1.2.0  6-17-2021       Seperate Tilt and Shade drivers
+ *  V1.3.0  8-14-2021       Fixed opening/closing bug with no position change.
  * 
  */
 
@@ -163,10 +164,14 @@ def setPosition(value) {
                 if (logEnable) log.debug "Command Success Response from SOMA Connect"
                 sendEvent(name: "position", value: value, isStateChange: true)
                 sendEvent(name: "level", value: value, isStateChange: true)
-                if (value > device.currentValue("level")){
+                if (value == device.currentValue("level")){
+                    runIn(timeout,refresh)
+                }
+                else if (value > device.currentValue("level")){
                     sendEvent(name: "windowShade", value: "opening", isStateChange: true)
                     runIn(timeout,refresh) 
-                }else{
+                }
+                else{
                     sendEvent(name: "windowShade", value: "closing", isStateChange: true)
                     runIn(timeout,refresh) 
                 }
