@@ -22,6 +22,7 @@
  *
  *  V1.0.0  7-02-2021       first run   
  *  V1.1.0  7-17-2021       Refresh schedule improvements
+ *  V1.2.0  8-15-2021       Added option to pause refreshing
  */
 
 def driverVer() { return "1.1" }
@@ -52,6 +53,7 @@ metadata {
         input name: "deviceIp",type: "string", title: "Tasmota Device IP Address", required: true
         input ("refresh_Rate", "enum", title: "Device Refresh Rate", options: refreshRate, defaultValue: "15 min")
         input name: "plugNum",type: "enum",title: "Plug Number", options:["0","1","2","3","4"], defaultValue: 0
+        input name: "paused", type: "bool", title: "Disable Device Check", defaultValue: false
         input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 }
@@ -68,25 +70,38 @@ def updated() {
     
     switch(refresh_Rate) {
 		case "1 min" :
+        if(!paused){
 			runEvery1Minute(refresh)
             if (logEnable) log.debug "refresh every minute schedule"
+        }
 			break
 		case "5 min" :
+        if(!paused){
 			runEvery5Minutes(refresh)
             if (logEnable) log.debug "refresh every 5 minutes schedule"
+        }
 			break
         case "10 min" :
+        if(!paused){
 			runEvery10Minutes(refresh)
             if (logEnable) log.debug "refresh every 10 minutes schedule"
+        }
 			break
 		case "15 min" :
+        if(!paused){
 			runEvery15Minutes(refresh)
             if (logEnable) log.debug "refresh every 15 minutes schedule"
+        }
 			break
 		case "30 min" :
+        if(!paused){
 			runEvery30Minutes(refresh)
             if (logEnable) log.debug "refresh every 30 minutes schedule"
+        }
 	}
+    if (paused){
+        log.warn "device is paused and will not be refreshed"
+    }
     if (logEnable) runIn(1800, logsOff)
 }
 
