@@ -28,7 +28,7 @@
  *  V1.3.0  8-14-2021       Fixed opening/closing bug with no position change.
  */
 
-def driverVer() { return "1.2" }
+def driverVer() { return "1.3" }
 
 
 
