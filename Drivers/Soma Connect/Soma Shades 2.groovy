@@ -29,7 +29,7 @@
  * 
  */
 
-def driverVer() { return "1.2" }
+def driverVer() { return "1.3" }
 
 
 
