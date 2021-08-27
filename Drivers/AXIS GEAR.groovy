@@ -108,7 +108,6 @@ def ShadesDown() {
 def stop() {
 	if (infoEnable) log.info "$device.label stop()"
     return zigbee.command(CLUSTER_WINDOWCOVERING, WINDOWCOVERING_CMD_STOP)
-    return zigbee.command(CLUSTER_LEVEL, LEVEL_CMD_STOP)
 }
 
 def stopPositionChange() {
