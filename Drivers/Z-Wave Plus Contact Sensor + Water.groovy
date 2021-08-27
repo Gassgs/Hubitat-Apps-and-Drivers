@@ -27,18 +27,18 @@ metadata {
 	definition (
 		name: "Z-Wave Plus Contact Sensor + Water", namespace: "Gassgs", author: "SmartThings"
 	) {
-		capability "Sensor"
-		capability "Contact Sensor"
-		capability "Configuration"
-		capability "Battery"
-		capability "Tamper Alert"
+	capability "Sensor"
+	capability "Contact Sensor"
+	capability "Configuration"
+	capability "Battery"
+	capability "Tamper Alert"
         capability "Water Sensor"
-		capability "Refresh"
+	capability "Refresh"
         
         command "batteryChanged"
 
         fingerprint inClusters: "0x86,0x72"
-	    fingerprint mfr:"0109", prod:"2001", model:"0106", deviceJoinName: "Monoprice Door/Window Sensor"
+	fingerprint mfr:"0109", prod:"2001", model:"0106", deviceJoinName: "Monoprice Door/Window Sensor"
         fingerprint mfr:"0109", prod:"2022", model:"2201", deviceJoinName: "Monoprice Recessed Door Sensor"
         fingerprint deviceId: "2201", inClusters:"0x5E,0x86,0x72,0x5A,0x85,0x59,0x73,0x80,0x71,0x84,0x7A,0x98" 
 	}
@@ -49,7 +49,7 @@ metadata {
 		input "reportBatteryEvery", "number", title: "Battery Reporting Interval (Hours)",defaultValue: 6,range: "1..167",displayDuringSetup: true, required: false
 		input "enableExternalSensor", "bool", title: "Enable External Sensor?",defaultValue: false,displayDuringSetup: true, required: false
 		input "autoClearTamper", "bool", title: "Automatically Clear Tamper?",defaultValue: false,displayDuringSetup: true, required: false
-        input name: "infoEnable", type: "bool", title: "Enable info text logging", defaultValue: true
+        	input name: "infoEnable", type: "bool", title: "Enable info text logging", defaultValue: true
 		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 	}
 }
