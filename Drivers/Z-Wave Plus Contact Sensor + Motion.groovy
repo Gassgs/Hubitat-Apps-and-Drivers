@@ -1,7 +1,8 @@
 /**
- *  Monoprice Z-Wave Plus Recessed Door Sensor With Motion
+ *  Z-Wave Plus Contact Sensor + Motion
  *  
- *    Gassgs
+ *  Author: Smartthings
+ *    Mod by Gassgs
  *
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -13,21 +14,29 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *  Change History:
+ *
+ *  V1.0.0  3-09-2021       Moddified to add motion options
+ *  V1.1.0  7-09-2021       Removed unused states  
+ *  V1.2.0  8-22-2021       Added Battery change date and count
  */
+
+def driverVer() { return "1.2" }
+
 metadata {
 	definition (
-		name: "Z-Wave Plus Contact Sensor +Motion", namespace: "Gassgs", author: "SmartThings"
+		name: "Z-Wave Plus Contact Sensor + Motion", namespace: "Gassgs", author: "SmartThings"
 	) {
-		capability "Sensor"
-		capability "Contact Sensor"
-		capability "Configuration"
-		capability "Battery"
-		capability "Tamper Alert"
-        	capability "Motion Sensor"
-		capability "Refresh"
+	capability "Sensor"
+	capability "Contact Sensor"
+	capability "Configuration"
+	capability "Battery"
+	capability "Tamper Alert"
+        capability "Motion Sensor"
+	capability "Refresh"
+        
+        command "batteryChanged"
 
-		attribute "lastCheckin", "string"
-			
         fingerprint inClusters: "0x86,0x72"
 	fingerprint mfr:"0109", prod:"2001", model:"0106", deviceJoinName: "Monoprice Door/Window Sensor"
         fingerprint mfr:"0109", prod:"2022", model:"2201", deviceJoinName: "Monoprice Recessed Door Sensor"
@@ -41,22 +50,33 @@ metadata {
 		input "enableExternalSensor", "bool", title: "Enable External Sensor?",defaultValue: false,displayDuringSetup: true, required: false
 		input "autoClearTamper", "bool", title: "Automatically Clear Tamper?",defaultValue: false,displayDuringSetup: true, required: false
         	input name: "motionEnabled", type: "bool" , title: "Motion Active When Closed? ", defaultValue: false
+        	input name: "infoEnable", type: "bool", title: "Enable info text logging", defaultValue: true
 		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 	}
 }
 
 def updated() {	
 	// This method always gets called twice when preferences are saved.
-	if (!isDuplicateCommand(state.lastUpdated, 3000)) {
-		state.lastUpdated = new Date().time
-		log.info "updated..."
-       log.warn "debug logging is: ${logEnable == true}"
-        if (logEnable) runIn(1800, logsOff)
-		
-		if (state.checkinInterval != settings?.checkinInterval || state.enableExternalSensor != settings?.enableExternalSensor) {
-			state.pendingChanges = true  
-		}
-	}	
+    if (state.batteryChangedDays != null){
+        schedule('0 0 4 * * ?',addDay)
+    }
+    state.DriverVersion = driverVer()
+	if (infoEnable) log.info "updated..."
+    log.warn "debug logging is: ${logEnable == true}"
+    if (logEnable) runIn(1800, logsOff)
+}
+
+def batteryChanged(){
+    date = new Date()
+    state.batteryChanged = "$date"
+    state.batteryChangedDays = 0
+    updated()
+}
+
+def addDay(){
+    if (state.batteryChangedDays != null){
+    state.batteryChangedDays = state.batteryChangedDays + 1
+    }
 }
 
 def logsOff() {
@@ -65,7 +85,7 @@ def logsOff() {
 }
 
 def configure() {	
-	if (logEnable) logTrace "configure()"
+	if (logEnable) log.debug "configure()"
 	def cmds = []
 	
 	if (!device.currentValue("contact")) {
@@ -73,7 +93,7 @@ def configure() {
 	}
 	
 	if (!state.isConfigured) {
-		  if (logEnable) logTrace "Waiting 1 second because this is the first time being configured"
+		  if (logEnable) log.debug "Waiting 1 second because this is the first time being configured"
 		// Give inclusion time to finish.
 		cmds << "delay 1000"			
 	}
@@ -87,7 +107,7 @@ def configure() {
 		batteryGetCmd()
 	], 100)
 		
-	if (logEnable) logDebug "Sending configuration to device."
+	if (logEnable) log.debug "Sending configuration to device."
 	return cmds
 }
 
@@ -114,19 +134,10 @@ def parse(String description) {
 		result += zwaveEvent(cmd)
 	}
 	else {
-		if (logEnable) logDebug "Unable to parse description: $description"
+		if (logEnable) log.debug "Unable to parse description: $description"
 	}
 	
-	if (!isDuplicateCommand(state.lastCheckinTime, 60000)) {
-		state.lastCheckinTime = new Date().time	
-		result << createLastCheckinEvent()
-	}
 	return result
-}
-
-private createLastCheckinEvent() {
-	if (logEnable) logDebug "Device Checked In"	
-	return createEvent(createEventMap("lastCheckin", convertToLocalTimeString(new Date()), false))
 }
 
 def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
@@ -161,7 +172,7 @@ private getCommandClassVersions() {
 }
 
 def zwaveEvent(hubitat.zwave.commands.wakeupv2.WakeUpNotification cmd) {
-	  if (logEnable) logTrace "WakeUpNotification: $cmd"
+	  if (logEnable) log.debug "WakeUpNotification: $cmd"
 	def cmds = []
 	
 	if (canSendConfiguration()) {
@@ -171,7 +182,7 @@ def zwaveEvent(hubitat.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 		cmds << batteryGetCmd()
 	}
 	else {
-		  if (logEnable) logTrace "Skipping battery check because it was already checked within the last $reportEveryHours hours."
+		  if (logEnable) log.debug "Skipping battery check because it was already checked within the last $reportEveryHours hours."
 	}
 	
 	if (cmds) {
@@ -185,8 +196,6 @@ def zwaveEvent(hubitat.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 private canReportBattery() {
 	def reportEveryHours = settings?.reportBatteryEvery ?: 6
 	def reportEveryMS = (reportEveryHours * 60 * 60 * 1000)
-		
-	return (!state.lastBatteryReport || ((new Date().time) - state.lastBatteryReport > reportEveryMS)) 
 }
 
 def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
@@ -197,14 +206,14 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 	else if (val < 1) {
 		val = 1
 	}
-	state.lastBatteryReport = new Date().time	
+    if (infoEnable) log.info "$device.label battery $val %"
 	[
 		createEvent(createEventMap("battery", val, null, "%"))
 	]
 }	
 
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
-	  if (logEnable) logTrace "ConfigurationReport: $cmd"
+	if (logEnable) log.debug "ConfigurationReport: $cmd"
 	def parameterName
 	switch (cmd.parameterNumber) {
 		case 1:
@@ -215,29 +224,25 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 			parameterName = "Parameter #${cmd.parameterNumber}"
 	}		
 	if (parameterName) {
-		  if (logEnable) logDebug "${parameterName}: ${cmd.configurationValue}"
+		  if (logEnable) log.debug "${parameterName}: ${cmd.configurationValue}"
 	} 
-	state.isConfigured = true
-	state.pendingRefresh = false
-	state.pendingChanges = false
-	state.checkinInterval = checkinIntervalSetting
 	return []
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-	  if (logEnable) logTrace "BasicReport: $cmd"	
+	  if (logEnable) log.debug "BasicReport: $cmd"	
 	return []
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
-	  if (logEnable) logTrace "Basic Set: $cmd"	
+	  if (logEnable) log.debug "Basic Set: $cmd"	
 	return []
 }
 
 
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 	def result = []	
-	if (logEnable) logTrace "NotificationReport: $cmd"
+	if (logEnable) log.debug "NotificationReport: $cmd"
 	if (cmd.notificationType == 0x06) {
 		result += handleContactEvent(cmd.event)
 	}
@@ -248,7 +253,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
-	if (logEnable) logDebug "Unhandled Command: $cmd"
+	if (logEnable) log.debug "Unhandled Command: $cmd"
 	return []
 }
 
@@ -282,7 +287,7 @@ private handleTamperEvent(event) {
 			val = "clear"
 		}
 		else {
-			if (logEnable) logDebug "Tamper is Clear"
+			if (logEnable) log.debug "Tamper is Clear"
 		}
 	}
 	if (val) {
@@ -297,8 +302,7 @@ def refresh() {
 		sendEvent(createEventMap("tamper", "clear", false))
 	}
 	else {
-		if (logEnable) logDebug "The configuration and attributes will be refresh the next time the device wakes up.  If you want this to happen immediately, open the back cover of the device, wait until the red light turns solid, and then put the cover back on."
-		state.pendingRefresh = true
+		if (logEnable) log.debug "The configuration and attributes will be refresh the next time the device wakes up.  If you want this to happen immediately, open the back cover of the device, wait until the red light turns solid, and then put the cover back on."
 	}
 }
 
@@ -307,7 +311,7 @@ def createEventMap(eventName, newVal, displayed=null, unit=null) {
 		displayed = (device.currentValue(eventName) != newVal)
 	}
 	if (displayed) {
-		if (logEnable) logDebug "${eventName.capitalize()} is ${newVal}"
+		if (infoEnable) log.info "$device.label ${eventName.capitalize()} is ${newVal}"
 	}
 	def eventMap = [
 		name: eventName, 
@@ -322,7 +326,7 @@ def createEventMap(eventName, newVal, displayed=null, unit=null) {
 }
 
 private wakeUpIntervalSetCmd(val) {
-	if (logEnable) logTrace "wakeUpIntervalSetCmd(${val})"
+	if (logEnable) log.debug "wakeUpIntervalSetCmd(${val})"
 	return secureCmd(zwave.wakeUpV2.wakeUpIntervalSet(seconds:val, nodeid:zwaveHubNodeId))
 }
 
@@ -331,7 +335,7 @@ private wakeUpNoMoreInfoCmd() {
 }
 
 private batteryGetCmd() {
-	if (logEnable) logTrace "Requesting battery report"
+	if (logEnable) log.debug "Requesting battery report"
 	return secureCmd(zwave.batteryV1.batteryGet())
 }
 
@@ -344,12 +348,12 @@ private externalSensorConfigSetCmd(isEnabled) {
 }
 
 private configSetCmd(paramNumber, valSize, val) {	
-	if (logEnable) logTrace "Setting configuration param #${paramNumber} to ${val}"
+	if (logEnable) log.debug "Setting configuration param #${paramNumber} to ${val}"
 	return secureCmd(zwave.configurationV1.configurationSet(parameterNumber: paramNumber, size: valSize, configurationValue: [val]))
 }
 
 private configGetCmd(paramNumber) {
-	if (logEnable) logTrace "Requesting configuration report for param #${paramNumber}"
+	if (logEnable) log.debug "Requesting configuration report for param #${paramNumber}"
 	return secureCmd(zwave.configurationV1.configurationGet(parameterNumber: paramNumber))
 }
 
@@ -380,12 +384,3 @@ private isDuplicateCommand(lastExecuted, allowedMil) {
 	!lastExecuted ? false : (lastExecuted + allowedMil > new Date().time) 
 }
 
-private logDebug(msg) {
-	if (settings?.debugOutput || settings?.debugOutput == null) {
-		  if (logEnable) log.debug "$msg"
-	}
-}
-
-private logTrace(msg) {
-	// log.trace "$msg"
-}
