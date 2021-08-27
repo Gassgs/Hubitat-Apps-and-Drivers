@@ -15,7 +15,7 @@
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "AXIS GEAR", namespace: "AXIS", author: "AXIS Labs/Gassgs") {
+	definition (name: "AXIS GEAR", namespace: "Gassgs", author: "AXIS Labs/Gassgs") {
 		capability "Window Shade"
 		capability "Switch Level"
 		capability "Battery"
@@ -144,17 +144,20 @@ def setLevel(value,duration = null) {
 		sendEvent(name: "windowShade", value: "closing")
 	}
     runIn(refreshInt,refresh)
-    return zigbee.setLevel(i)
+    return zigbee.command(CLUSTER_WINDOWCOVERING,WINDOWCOVERING_CMD_GOTOLIFTPERCENTAGE, zigbee.convertToHexString(100-i,2))
+    //return zigbee.setLevel(i)
 }
 
 def open() {
 	if (infoEnable) log.info "$device.label open()"
-	setLevel("100")
+    return zigbee.command(CLUSTER_WINDOWCOVERING, WINDOWCOVERING_CMD_OPEN)
+	//setLevel("100")
 }
 
 def close() {
 	if (infoEnable) log.info "$device.label close()"
-	setLevel("0")
+    return zigbee.command(CLUSTER_WINDOWCOVERING, WINDOWCOVERING_CMD_CLOSE)
+	//setLevel("0")
 }
 
 def setWindowShade(value) {
