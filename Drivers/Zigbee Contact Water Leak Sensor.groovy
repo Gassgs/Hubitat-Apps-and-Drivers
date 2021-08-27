@@ -1,8 +1,8 @@
 /*
- * Zigbee Contact Water Leak Sensor
- * for Ecolink contact sensor
+ *  Zigbee Contact Water Leak Sensor
+ *  for Ecolink or Visonic contact sensor
  *
- *  Copyright 2018 SmartThings
+ *  Copyright 2018 SmartThings / Modified by Gassgs
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not
  *  use this file except in compliance with the License. You may obtain a copy
@@ -15,7 +15,16 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  *  License for the specific language governing permissions and limitations
  *  under the License.
+ *
+ *  Change History:
+ *
+ *  V1.0.0  3-09-2021       Moddified to add Water options
+ *  V1.1.0  8-03-2021       "fixed" Battery reporting
+ *  V1.2.0  8-22-2021       Added Battery change date and count
  */
+
+def driverVer() { return "1.2" }
+
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
 metadata
@@ -29,9 +38,12 @@ metadata
 		capability "Refresh"
 		capability "Sensor"
         
+        command "batteryChanged"
+        
         attribute "batteryVoltage","string"
 
 		fingerprint inClusters: "0000,0001,0003,0020,0402,0500,0B05", outClusters: "0019", manufacturer: "Ecolink", model: "4655BC0-R", deviceJoinName: "Ecolink Contact Sensor"
+        fingerprint inClusters: "0000,0001,0003,0402,0500,0020,0B05", outClusters: "0019", manufacturer: "Visonic", model: "MCT-340 E", deviceJoinName: "Visonic Contact Sensor"
 	}
 
 	preferences{
@@ -73,16 +85,8 @@ def parse(String description)
 		{
 			Map descMap = zigbee.parseDescriptionAsMap(description)
 
-			if (descMap?.clusterId == "0001" && descMap.command == "07" && descMap.value)
-			{
-				logDebug "BATT METRICS - attr: ${descMap?.attrInt}, value: ${descMap?.value}, decValue: ${Integer.parseInt(descMap.value, 16)}, currPercent: ${device.currentState("battery")?.value}, device: ${device.getDataValue("manufacturer")} ${device.getDataValue("model")}"
-				List<Map> descMaps = collectAttributes(descMap)
-				def battMap = descMaps.find { it.attrInt == 0x0020 }
-
-				if (battMap)
-				{
-					map = getBatteryResult(Integer.parseInt(battMap.value, 16))
-				}
+			if (descMap.cluster == "0001" && descMap.attrId == "0020") {
+				batteryEvent(Integer.parseInt(descMap.value,16))
 			}
 			else if (descMap?.clusterId == "0500" && descMap.attrInt == 0x0002)
 			{
@@ -122,15 +126,20 @@ def parse(String description)
 		if (tempOffset) {
 			map.value = new BigDecimal((map.value as float) + (tempOffset as float)).setScale(1, BigDecimal.ROUND_HALF_UP)
 		}
-		map.descriptionText = temperatureScale == 'C' ? '{{ device.displayName }} was {{ value }}°C' : '{{ device.displayName }} was {{ value }}°F'
+        map.descriptionText = temperatureScale == 'C' ? "${device.displayName} was ${map.value}°C" : "${device.displayName} was ${map.value}°F"
 		map.translatable = true
+        logInfo "$device.label Temperature $map.value °F"
 	}
 	
 	else if (map.name == "batteryVoltage")
 	{
 		map.unit = "V"
 		map.descriptionText = "${device.displayName} battery voltage is ${map.value} volts"
+        logInfo "$device.label battery voltage $map.value"
+        getBatteryResult(map.value)
 	}
+    
+    logDebug "Parse returned $map"
 
 	def result = map ? createEvent(map) : [:]
 
@@ -152,40 +161,32 @@ private Map translateZoneStatus(ZoneStatus zs) {
 	return (zs.isAlarm1Set() || zs.isAlarm2Set()) ? getMotionResult('active') : getMotionResult('inactive')
 }
 
-private Map getBatteryResult(rawValue) {
+def getBatteryResult(rawValue) {
+	def batteryVolts = $rawValue
+	def minVolts = 2.0
+	def maxVolts = 3.0
+	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
+	def batteryValue = Math.min(100, pct)
+    sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
+    logInfo "$device.label battery $batteryValue%"
 
-	def linkText = getLinkText(device)
+	return
+}
 
-	def result = [:]
-
-	def volts = rawValue / 10
-
-	if (!(rawValue == 0 || rawValue == 255)) {
-		result.name = 'battery'
-		result.translatable = true
-		result.unit = "%"
-		def minVolts =  2.4
-		def maxVolts =  2.7
-		// Get the current battery percentage as a multiplier 0 - 1
-		def curValVolts = Integer.parseInt(device.currentState("battery")?.value ?: "100") / 100.0
-		// Find the corresponding voltage from our range
-		curValVolts = curValVolts * (maxVolts - minVolts) + minVolts
-		// Round to the nearest 10th of a volt
-		curValVolts = Math.round(10 * curValVolts) / 10.0
-		if (state?.lastVolts == null || state?.lastVolts == volts || device.currentState("battery")?.value == null || Math.abs(curValVolts - volts) > 0.1) {
-			def pct = (volts - minVolts) / (maxVolts - minVolts)
-			def roundedPct = Math.round(pct * 100)
-			if (roundedPct <= 0)
-				roundedPct = 1
-			result.value = Math.min(100, roundedPct)
-		} else {
-			result.value = device.currentState("battery").value
-		}
-		result.descriptionText = "${device.displayName} battery was ${result.value}%"
-		state.lastVolts = volts
+def batteryEvent(rawValue) {
+	def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
+	def minVolts = 20
+	def maxVolts = 30
+	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
+	def batteryValue = Math.min(100, pct)
+	if (batteryValue > 0){
+		sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
+		sendEvent("name": "batteryVoltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
+		if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
+		if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
 	}
 
-	return result
+	return
 }
 
 private Map getMotionResult(value) {
@@ -217,25 +218,39 @@ def configure() {
 
 	configCmds +=
 		zigbee.batteryConfig() +
-		zigbee.temperatureConfig(30, 300) +
-		zigbee.configureReporting(0x0405, 0x0000, DataType.UINT16, 30, 3600, 100) 
+		zigbee.temperatureConfig(30, 900)
 
 	return configCmds
 }
 
+def batteryChanged(){
+    date = new Date()
+    state.batteryChanged = "$date"
+    state.batteryChangedDays = 0
+    initialize()
+}
+
+def addDay(){
+    if (state.batteryChangedDays != null){
+    state.batteryChangedDays = state.batteryChangedDays + 1
+    }
+}
+
 def installed(){
-	state.lastVolts = 0
-	
-	initialize()
+    batteryChanged()
     configure()
 }
 
 def updated(){
+    state.DriverVersion = driverVer()
 	initialize()
     configure()
 }
 
 def initialize(){
+    if (state.batteryChangedDays != null){
+        schedule('0 0 4 * * ?',addDay)
+    }
 	if (enableTrace || enableDebug){
 		logInfo "Verbose logging has been enabled for the next 30 minutes."
 		runIn(1800, logsOff)
