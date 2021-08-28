@@ -33,7 +33,6 @@ metadata {
 
     preferences() {
         section(""){
-            input "refreshInt", "number", title: "Max time in seconds it takes to Open or Close", required: true, defaultValue: 15
             input "logEnable", "bool", title: "Enable Debug logging", required: true, defaultValue: true
             input "infoEnable", "bool", title: "Enable text info logging", required: true, defaultValue: true
         }
@@ -81,7 +80,7 @@ def getLastShadeLevel() {
 
 //Custom command to increment blind position by 25 %
 def ShadesUp() {
-	def shadeValue = lastShadeLevel as Integer
+	def shadeValue = device.currentValue("level") as Integer
 
 	if (shadeValue < 100) {
 		shadeValue = Math.min(25 * (Math.round(shadeValue / 25) + 1), 100) as Integer
@@ -94,7 +93,7 @@ def ShadesUp() {
 
 //Custom command to decrement blind position by 25 %
 def ShadesDown() {
-	def shadeValue = lastShadeLevel as Integer
+	def shadeValue = device.currentValue("level") as Integer
 
 	if (shadeValue > 0) {
 		shadeValue = Math.max(25 * (Math.round(shadeValue / 25) - 1), 0) as Integer
@@ -115,12 +114,10 @@ def stopPositionChange() {
 }
 
 def on() {
-	sendEvent(name: "switch", value: "on")
 	open()
 }
 
 def off() {
-	sendEvent(name: "switch", value: "off")
 	close()
 }
 
@@ -134,15 +131,13 @@ def setLevel(value,duration = null) {
 	Integer currentLevel = state.level
 
 	def i = value as Integer
-	sendEvent(name:"level", value: value, unit:"%", displayed: false)
-	sendEvent(name:"position", value: value, unit:"%", displayed:true)
+
 	if (i > currentLevel) {
 		sendEvent(name: "windowShade", value: "opening")
 	}
 	else if (i < currentLevel) {
 		sendEvent(name: "windowShade", value: "closing")
 	}
-    runIn(refreshInt,refresh)
     return zigbee.command(CLUSTER_WINDOWCOVERING,WINDOWCOVERING_CMD_GOTOLIFTPERCENTAGE, zigbee.convertToHexString(100-i,2))
 }
 
@@ -169,6 +164,8 @@ def setWindowShade(value) {
 		sendEvent(name: "windowShade", value: "closed", displayed:true)
         sendEvent(name: "switch", value: "off", displayed:true)
 	}
+    sendEvent(name: "level", value: "$value", displayed:true)
+    sendEvent(name: "position", value: "$value", displayed:true)
 }
 
 def startPositionChange(direction) {
