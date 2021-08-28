@@ -144,19 +144,16 @@ def setLevel(value,duration = null) {
 	}
     runIn(refreshInt,refresh)
     return zigbee.command(CLUSTER_WINDOWCOVERING,WINDOWCOVERING_CMD_GOTOLIFTPERCENTAGE, zigbee.convertToHexString(100-i,2))
-    //return zigbee.setLevel(i)
 }
 
 def open() {
 	if (infoEnable) log.info "$device.label open()"
     return zigbee.command(CLUSTER_WINDOWCOVERING, WINDOWCOVERING_CMD_OPEN)
-	//setLevel("100")
 }
 
 def close() {
 	if (infoEnable) log.info "$device.label close()"
     return zigbee.command(CLUSTER_WINDOWCOVERING, WINDOWCOVERING_CMD_CLOSE)
-	//setLevel("0")
 }
 
 def setWindowShade(value) {
