@@ -143,11 +143,17 @@ def setLevel(value,duration = null) {
 
 def open() {
 	if (infoEnable) log.info "$device.label open()"
+    if (device.currentValue("level") != 100){
+        sendEvent(name: "windowShade", value: "opening", displayed:true)
+    }
     return zigbee.command(CLUSTER_WINDOWCOVERING, WINDOWCOVERING_CMD_OPEN)
 }
 
 def close() {
 	if (infoEnable) log.info "$device.label close()"
+    if (device.currentValue("level") != 0){
+        sendEvent(name: "windowShade", value: "closing", displayed:true)
+    }
     return zigbee.command(CLUSTER_WINDOWCOVERING, WINDOWCOVERING_CMD_CLOSE)
 }
 
