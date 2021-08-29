@@ -36,6 +36,7 @@
  *  V1.4.0  -       7-22-2021       Adding features and Improvements
  *  V1.5.0  -       7-27-2021       Bug fixes and Improvements
  *  V1.6.0  -       8-15-2021       Added no change options for afternoon and dinner modes
+ *  V1.7.0  -       8-27-2021       Fixed morning retriggering from motion and switches
  */
 
 import groovy.transform.Field
@@ -548,7 +549,7 @@ def activeMotionHandler(evt){
 }
 
 def motionActive(){
-    if (state.luxOk && state.earlyMorning) {
+    if (state.luxOk && state.earlyMorning && !state.shadeActiveMode) {
         logDebug ("motion active setting position $earlyMorningPos for early morning")
         state.shadeActiveMode = true
          if (settings.duration == 1 || settings.duration == 0){
@@ -566,7 +567,7 @@ def openSwitchHandler(evt){
     }else{
         state.openOn = (status == "on")
     }
-    if (state.openOn && state.earlyMorning){
+    if (state.openOn && state.earlyMorning && !state.shadeActiveMode){
         if (state.shadeClosed){
             logDebug ("Open Switch activated, setting early morning position $earlyMorningPos")
             state.shadeActiveMode =true
@@ -577,7 +578,7 @@ def openSwitchHandler(evt){
             }
         }   
     }
-    else if (state.openOn && state.day){
+    else if (state.openOn && state.day && !state.shadeActiveMode){
         if (state.shadeClosed){
             logDebug ("Open Switch activated, day position $dayPos")
             state.shadeActiveMode =true
