@@ -1,7 +1,8 @@
 /**
  *  Zemismart Zigbee w/ Soma Tilt 2  Vertical Blind Driver for Hubitat
- *  Set level to control Zemismart Zigbee Rail / Set Tilt level to rotate blinds with Soma Tilt.
- *  Open and close contols both devices properly
+ *
+ *  Set level to control Zemismart Zigbee Rail / Set Tilt level to rotate blinds with Soma Tilt 2.
+ *  Open and close controls both devices in sync
  *	Copyright 2021 Gassgs
  *
  *	Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -12,15 +13,23 @@
  *	Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *	on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *	for the specific language governing permissions and limitations under the License.
- This DTH is coded based on iquix's tuya-window-shade DTH.
- https://github.com/iquix/Smartthings/blob/master/devicetypes/iquix/tuya-window-shade.src/tuya-window-shade.groovy
+ *  This DTH is coded based on iquix's tuya-window-shade DTH.
+ *  https://github.com/iquix/Smartthings/blob/master/devicetypes/iquix/tuya-window-shade.src/tuya-window-shade.groovy
+ *  Change Log:
+ *
+ *  V1.0.0  8-20-2021       First version
+ *  V1.1.0  8-22-2021       Bug fixes and improvements
+ *  V1.2.0  8-25-2021       Added Soma Connected Check
+ *  V1.3.0  8-26-2021       Added Tilt limits to prevent overtightening.
+ *  V1.4.0  8-28-2021       Added short delays when opening from closed, as a safety precaution.
+ *  V1.5.0  8-30-2021       Added range limiting for set tilt based on position and tilt open/close commands.
  */
 
 import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
 import hubitat.helper.HexUtils
 
-def driverVer() { return "1.0" }
+def driverVer() { return "1.5" }
 
 metadata {
 	definition(name: "Zigbee + Soma Tilt Vertical Blinds", namespace: "Gassgs", author: "Gary G") {
@@ -36,9 +45,6 @@ metadata {
         
         command "tiltOpen"
         command "tiltClose"
-        
-
-        //attribute "Direction", "enum", ["Reverse","Forward"]
 
 		fingerprint endpointId: "01", profileId: "0104", inClusters: "0000, 0003, 0004, 0005, 0006", outClusters: "0019", manufacturer: "_TYST11_wmcdj3aq", model: "mcdj3aq", deviceJoinName: "Zemismart Zigbee Blind"
 
@@ -48,6 +54,7 @@ metadata {
         input name: "connectIp",type: "text", title: "Soma Connect IP Address", required: true
         input name: "mac",type: "text", title: "Mac address of Tilt 2 device", required: true
         input name: "Direction", type: "enum", title: "Direction Set", defaultValue: "00", options:["01": "Reverse", "00": "Forward"], displayDuringSetup: true
+        input "logInfoEnable", "bool", title: "Enable info text logging", required: true, defaultValue: true
 	    input "logEnable", "bool", title: "Enable debug logging", required: true, defaultValue: true
     }
 }
@@ -130,36 +137,32 @@ private levelEventMoving(currentLevel) {
 }
 
 private levelEventArrived(level) {
+    sendEvent(name: "level", value: (level))
+    sendEvent(name: "position", value: (level))
 	if (level == 0) {
     	sendEvent(name: "windowShade", value: "closed")
         sendEvent(name: "switch", value: "off")
-        setTiltLevel(0)
+        runInMillis(250,closeTilt)
     } else if (level == 100) {
     	sendEvent(name: "windowShade", value: "open")
         sendEvent(name: "switch", value: "on")
-        setTiltLevel(60)
-    } else if (level > 0 && level < 40) {
+        runInMillis(250,closeTilt)
+    } else if (level > 0 && level < 100) {
 		sendEvent(name: "windowShade", value: "partially open")
         sendEvent(name: "switch", value: "on")
-        setTiltLevel(25)
-    } else if (level >= 40 && level < 70) {
-		sendEvent(name: "windowShade", value: "partially open")
-        sendEvent(name: "switch", value: "on")
-        setTiltLevel(35)
-    } else if (level >= 70 && level < 100) {
-		sendEvent(name: "windowShade", value: "partially open")
-        sendEvent(name: "switch", value: "on")
-        setTiltLevel(45)
+        runInMillis(250,closeTilt)
     } else {
     	sendEvent(name: "windowShade", value: "unknown")
         //return
     }
-    sendEvent(name: "level", value: (level))
-    sendEvent(name: "position", value: (level))
+}
+
+def closeTilt(){
+    setTiltLevel(0)
 }
 
 def close() {
-	if(logEnable) log.info "$device.label close()"
+	if(logInfoEnable) log.info "$device.label close()"
 	def currentLevel = device.currentValue("level")
     if (currentLevel == 0) {
     	sendEvent(name: "windowShade", value: "closed")
@@ -168,7 +171,7 @@ def close() {
 }
 
 def open() {
-	if(logEnable) log.info "$device.label open()"
+	if(logInfoEnable) log.info "$device.label open()"
     def currentLevel = device.currentValue("level")
     if (currentLevel == 100) {
     	sendEvent(name: "windowShade", value: "open")
@@ -178,7 +181,7 @@ def open() {
 }
 
 def pause() {
-	if(logEnable) log.info "$device.label pause()"
+	if(logInfoEnable) log.info "$device.label pause()"
 	sendTuyaCommand("0104", "00", "0101")
 
 }
@@ -197,19 +200,24 @@ def setLevel(data, rate = null) {
             sendEvent(name: "windowShade", value: "closed")
         }
         else{
-            if (currentTilt <= 50){
-                setTiltLevel(100)
-                if (state.somaConnected){
-                    sendEvent(name:"windowShade",value:"closing")
-                    sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
-                }else{
-                    log.warn "Could not set Soma Position, Not changing level"
-                }
-            }else{
+            setTiltLevel(100)
+            if (state.somaConnected){
                 sendEvent(name:"windowShade",value:"closing")
                 sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
-            }     
+            }else{
+                log.warn "Could not set Soma Tilt Position, Not changing level"
+            }   
         }    
+    }
+    else if (currentLevel == 0 && data > 0){
+        state.openValue = data
+        setTiltLevel(100)
+        if (state.somaConnected){
+            sendEvent(name:"windowShade", value:"opening")
+            runIn(1,openFromClosed)
+        }else{
+            log.warn "Could not set Soma Tilt Position, Not changing level"
+        }
     }
     else if (currentLevel > data){
         setTiltLevel(100)
@@ -217,22 +225,30 @@ def setLevel(data, rate = null) {
             sendEvent(name:"windowShade", value:"closing")
             sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
         }else{
-            log.warn "Could not set Soma Position, Not changing level"
+            log.warn "Could not set Soma Tilt Position, Not changing level"
         }
     }
     else if (currentLevel < data){
+        state.openValue = data
         setTiltLevel(100)
         if (state.somaConnected){
             sendEvent(name:"windowShade", value:"opening")
-            sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
+            runIn(1,openFromClosed)
         }else{
-            log.warn "Could not set Soma Position, Not changing level"
+            log.warn "Could not set Soma Tilt Position, Not changing level"
         }
     }
     else if (currentLevel == data) {
         sendEvent(name: "level", value: currentLevel)
     }
 }
+
+def openFromClosed(data){
+    data = state.openValue
+    if (logInfoEnable) log.info "$device.label Opened to $data % with delayed start"
+    sendTuyaCommand("0202", "00", "04000000"+HexUtils.integerToHexString(data.intValue(), 1))
+}
+                  
 
 def stopLevelChange(){
     pause()
@@ -297,7 +313,7 @@ def off () {
     close()
 }
 
-def stopTilt() {    //Not currently in use
+def stopTilt() {    //**Not currently in use**
     if (logEnable) log.debug "Sending Stop Command to [${settings.mac}]"
     try {
        httpGet("http://" + connectIp + ":3000/stop_shade/"  + mac) { resp ->
@@ -317,9 +333,53 @@ def stopTilt() {    //Not currently in use
 }
 
 def setTiltLevel(tilt) {
-    if (logEnable) log.debug "Sending Set Tilt Command to [${settings.mac}]"
     state.somaConnected = false
-
+    if (logInfoEnable) log.info "$device.label Requested Tilt Level is $tilt %"
+    currentLevel = device.currentValue("level")
+    if (currentLevel == 100){
+        tilt = tilt * 0.50 + 50
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 90 && currentLevel < 100){
+        tilt = tilt * 0.55 + 45
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 80 && currentLevel < 90){
+        tilt = tilt * 0.60 + 40
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 70 && currentLevel < 80){
+        tilt = tilt * 0.65 + 35
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 60 && currentLevel < 70){
+        tilt = tilt * 0.70 + 30
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 50 && currentLevel < 60){
+        tilt = tilt * 0.75 + 25
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 40 && currentLevel < 50){
+        tilt = tilt * 0.80 + 20
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 30 && currentLevel < 40){
+        tilt = tilt * 0.85 + 15
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 20 && currentLevel < 30){
+        tilt = tilt * 0.90 + 10
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 10 && currentLevel < 20){
+        tilt = tilt * 0.95 + 5
+        if (logInfoEnable) log.info "$device.label New adjusted Tilt Level is $tilt %"
+    }
+    else if (currentLevel >= 0 && currentLevel < 10){
+        if (logInfoEnable) log.info "$device.label Tilt Level not adjusted  $tilt %"
+    }
+    if (logEnable) log.debug "Sending Set Tilt Command to [${settings.mac}]"
     value = tilt.toInteger()
     if (value <= 50){
         position = 100 - (value *2)
@@ -329,19 +389,19 @@ def setTiltLevel(tilt) {
         position = (value - 50) *2
         direction = 1
     }
-        
     try {
-       httpGet("http://" + connectIp + ":3000/set_shade_position/"  + mac + "/" + position + "?close_upwards=" + direction) { resp ->
+        httpGet("http://" + connectIp + ":3000/set_shade_position/"  + mac + "/" + position + "?close_upwards=" + direction) { resp ->
             def json = (resp.data)
             if (logEnable) log.debug "${json}"
             if (json.result == "error") {
-               if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
+                if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
             }
             if (json.result == "success") {
                 if (logEnable) log.debug "Command Success Response from SOMA Connect"
                 sendEvent(name: "tilt", value: value, isStateChange: true)
+                if (logInfoEnable) log.info "$device.label Tilt level set to $value %"
                 state.somaConnected = true
-                runIn(timeout,refresh) 
+                runIn(timeout,refresh)
             }
         }
     } catch (Exception e) {
@@ -349,28 +409,168 @@ def setTiltLevel(tilt) {
     }
 }
 
-def tiltOpen() {
-	def tiltValue = device.currentValue('tilt') as Integer
-
-	if (tiltValue < 100) {
-		tiltValue = Math.min(25 * (Math.round(tiltValue / 25) + 1), 100) as Integer
-	}
-	else {
-		tiltValue = 100
-	}
-	setTiltLevel(tiltValue)
+def tiltOpen(){
+    level = device.currentValue("level")
+    tilt = device.currentValue("tilt")
+    if (level == 100){
+        if (tilt <75){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 90 && level < 100){
+        if (tilt <72){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 80 && level < 90){
+        if (tilt <70){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 70 && level < 80){
+        if (tilt <67){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 60 && level < 70){
+        if (tilt <65){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 50 && level < 60){
+        if (tilt <62){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 40 && level < 50){
+        if (tilt <60){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 30 && level < 40){
+        if (tilt <57){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 20 && level < 30){
+        if (tilt <55){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 10 && level < 20){
+        if (tilt <52){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
+    else if (level >= 0 && level < 10){
+        if (tilt <50){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(100)
+        }
+    }
 }
 
-def tiltClose() {
-	def tiltValue = device.currentValue('tilt') as Integer
-
-	if (tiltValue > 0) {
-		tiltValue = Math.max(25 * (Math.round(tiltValue / 25) - 1), 0) as Integer
-	}
-	else {
-		tiltValue = 0
-	}
-	setTiltLevel(tiltValue)
+def tiltClose(){
+    level = device.currentValue("level")
+    tilt = device.currentValue("tilt")
+    if (level == 100){
+        if (tilt >75){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 90 && level < 100){
+        if (tilt >72){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 80 && level < 90){
+        if (tilt >70){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 70 && level < 80){
+        if (tilt >67){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 60 && level < 70){
+        if (tilt >65){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 50 && level < 60){
+        if (tilt >62){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 40 && level < 50){
+        if (tilt >60){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 30 && level < 40){
+        if (tilt >57){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 20 && level < 30){
+        if (tilt >55){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 10 && level < 20){
+        if (tilt >52){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
+    else if (level >= 0 && level < 10){
+        if (tilt >50){
+            setTiltLevel(50)
+        }else{
+            setTiltLevel(0)
+        }
+    }
 }
 
 def getTilt() {
