@@ -289,6 +289,7 @@ def updated() {
 	DirectionSet(val)
     state.DriverVersion=driverVer()
     refresh()
+    runEvery30Minutes(refresh)
 }
 
 def DirectionSet(Dval) {
@@ -313,26 +314,8 @@ def off () {
     close()
 }
 
-def stopTilt() {    //**Not currently in use**
-    if (logEnable) log.debug "Sending Stop Command to [${settings.mac}]"
-    try {
-       httpGet("http://" + connectIp + ":3000/stop_shade/"  + mac) { resp ->
-           def json = (resp.data)
-           if (logEnable) log.debug "${json}"
-           if (json.result == "error") {
-               if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
-           }
-           if (json.result == "success") {
-               if (logEnable) log.debug "Command Success Response from SOMA Connect"
-               runIn(2,refresh)          
-            }
-       }   
-    } catch (Exception e) {
-        log.warn "Call to on failed: ${e.message}"
-    }
-}
-
 def setTiltLevel(tilt) {
+    tiltValue = tilt
     state.somaConnected = false
     if (logInfoEnable) log.info "$device.label Requested Tilt Level is $tilt %"
     currentLevel = device.currentValue("level")
@@ -398,10 +381,9 @@ def setTiltLevel(tilt) {
             }
             if (json.result == "success") {
                 if (logEnable) log.debug "Command Success Response from SOMA Connect"
-                sendEvent(name: "tilt", value: value, isStateChange: true)
+                sendEvent(name: "tilt", value: tiltValue, isStateChange: true)
                 if (logInfoEnable) log.info "$device.label Tilt level set to $value %"
                 state.somaConnected = true
-                runIn(timeout,refresh)
             }
         }
     } catch (Exception e) {
@@ -410,192 +392,20 @@ def setTiltLevel(tilt) {
 }
 
 def tiltOpen(){
-    level = device.currentValue("level")
     tilt = device.currentValue("tilt")
-    if (level == 100){
-        if (tilt <75){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 90 && level < 100){
-        if (tilt <72){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 80 && level < 90){
-        if (tilt <70){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 70 && level < 80){
-        if (tilt <67){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 60 && level < 70){
-        if (tilt <65){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 50 && level < 60){
-        if (tilt <62){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 40 && level < 50){
-        if (tilt <60){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 30 && level < 40){
-        if (tilt <57){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 20 && level < 30){
-        if (tilt <55){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 10 && level < 20){
-        if (tilt <52){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
-    }
-    else if (level >= 0 && level < 10){
-        if (tilt <50){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(100)
-        }
+    if (tilt <50){
+        setTiltLevel(50)
+    }else{
+        setTiltLevel(100)
     }
 }
 
 def tiltClose(){
-    level = device.currentValue("level")
     tilt = device.currentValue("tilt")
-    if (level == 100){
-        if (tilt >75){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 90 && level < 100){
-        if (tilt >72){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 80 && level < 90){
-        if (tilt >70){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 70 && level < 80){
-        if (tilt >67){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 60 && level < 70){
-        if (tilt >65){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 50 && level < 60){
-        if (tilt >62){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 40 && level < 50){
-        if (tilt >60){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 30 && level < 40){
-        if (tilt >57){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 20 && level < 30){
-        if (tilt >55){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 10 && level < 20){
-        if (tilt >52){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-    else if (level >= 0 && level < 10){
-        if (tilt >50){
-            setTiltLevel(50)
-        }else{
-            setTiltLevel(0)
-        }
-    }
-}
-
-def getTilt() {
-    if (logEnable) log.debug "Checking Tilt Position"
-    try {
-    httpGet("http://" + connectIp + ":3000/get_shade_state/"  + mac) { resp ->
-        def json = (resp.data)
-        if (logEnable) log.debug "${json}"
-        if (json.find{ it.key == "closed_upwards" }){
-            shadePos = 50 + (json.position / 2)
-        }
-        else if (json.position == 0){
-            shadePos = 50
-        }
-        else if (json.position == 100){
-            shadePos = 0
-        
-        }else{
-            shadePos = (100 - json.position) /2
-        }
-        sendEvent(name: "tilt", value: shadePos)
-        if (logEnable) log.debug  "Tilt Position set to ${shadePos}"
-		}
-    } catch (Exception e) {
-        log.warn "Call to on failed: ${e.message}"
+    if (tilt >50){
+        setTiltLevel(50)
+    }else{
+        setTiltLevel(0)
     }
 }
 
@@ -608,6 +418,7 @@ def getBattery() {
         def batteryPercent = json.battery_percentage
         sendEvent(name: "battery", value: batteryPercent)
         if (logEnable) log.debug  "Battery level set to ${batteryPercent}"
+        if (logInfoEnable) log.info  "$device.label Battery level is ${batteryPercent} %"
     }
     } catch (Exception e) {
         log.warn "Call to on failed: ${e.message}"
@@ -616,5 +427,4 @@ def getBattery() {
 
 def refresh() {
     getBattery()
-    getTilt()
 }
