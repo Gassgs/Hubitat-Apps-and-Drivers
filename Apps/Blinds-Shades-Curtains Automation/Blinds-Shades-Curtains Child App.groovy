@@ -37,6 +37,7 @@
  *  V1.5.0  -       7-27-2021       Bug fixes and Improvements
  *  V1.6.0  -       8-15-2021       Added no change options for afternoon and dinner modes
  *  V1.7.0  -       8-27-2021       Fixed morning retriggering from motion and switches
+ *  V1.8.0  -       8-30-2021       Fixed unwanted extra changes triggered by Lux and contact changes.
  */
 
 import groovy.transform.Field
@@ -427,6 +428,8 @@ def initialize(){
 
 def getValues(){
     state.shadeActiveMode = true
+    state.changeOnLux = true
+    state.waitingToClose = false
     mode = location.currentMode as String
     state.earlyMorning = (mode == "Early_morning")
     state.day = (mode == "Day")
@@ -608,12 +611,14 @@ def getLux(){
     state.luxOk = avg >= luxThreshold
     state.luxLow = avg < luxLowThreshold
     if (state.luxOk && !state.shadeActiveMode){
+        state.changeOnLux = true
         logDebug (" lux above threshold setting mode position")
         setModePosition()
     }
-    if (state.luxLow && state.shadeActiveMode){
+    if (state.luxLow && state.shadeActiveMode && state.changeOnLux){
         logDebug (" lux below threshold and shade is still open ")
         setModePosition()
+        state.changeOnLux = false
     }
 }
 
@@ -642,10 +647,11 @@ def getContacts(){
             logDebug ("contactOpen"+contactList)
         }
     else{
-        state.windowOpen = false
-        runIn(timeout,setModePosition)
-        logDebug ("Windows all Closed")
+        if (!state.windowOpen && state.waitingToClose){
+            runIn(timeout,setModePosition)
+            logDebug ("Windows all Closed")
         }
+    }
 }
 
 def temperatureSensorsHandler(evt){
@@ -815,6 +821,7 @@ def shadesCloseCheck(){
     logDebug ("Shade Close Check")
     if (settings.contact && settings.temperatureSensors){
         if (state.windowOpen || state.temperatureNeg){
+        state.waitingToClose = true
         logDebug ("window open or temperature below threshold, not closing")
         }
         else if (state.luxLow){
@@ -827,6 +834,7 @@ def shadesCloseCheck(){
     }
     else if (settings.contact){
         if (state.windowOpen){
+        state.waitingToClose = true
         logDebug ("window open, not closing")
         }
         else if (state.luxLow){
@@ -863,6 +871,7 @@ def shadesCloseCheck(){
 def shadeClose(){
     logDebug ("shade closed")
     state.shadeActiveMode = false
+    state.waitingToClose = false
     if (settings.duration == 1 || settings.duration == 0){
         settings.shade.setPosition(0)
     }else{
