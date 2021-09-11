@@ -26,9 +26,11 @@
  *  V1.1.0  6-14-2021       improvments & added morning position option
  *  V1.2.0  6-17-2021       Seperate Tilt and Shade drivers
  *  V1.3.0  8-14-2021       Fixed opening/closing bug with no position change.
+ *  V1.4.0  9-01-2021       Improvements for Soma firmware 2.2.9 stop level correction
+ *  V1.5.0  9-09-2021       Improvements for windowShade attribute changes
  */
 
-def driverVer() { return "1.3" }
+def driverVer() { return "1.5" }
 
 
 
@@ -52,7 +54,7 @@ metadata {
         input name: "mac", type: "text", title: "Mac address of Tilt 2 device", required: true
         input name: "timeout", type: "number", title: "Time it takes to open or close", required: true, defaultValue: 5
         input name: "openPos", type: "number", title: "Default Open Postion", required: true, defaultValue: 50
-        input name: "morningPos",type: "number", title: "Postion to set for -Morning Position-", required: true, defaultValue: 30
+        input name: "morningPos",type: "number", title: "Morning Position", required: true, defaultValue: 30
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 }
 
@@ -76,6 +78,8 @@ def open(){
 
 def close() {
     if (logEnable) log.debug "Sending Close Command to [${settings.mac}]"
+    state.position = 0
+    posChange = device.currentValue("level")
     try {
        httpGet("http://" + connectIp + ":3000/close_shade/"  + mac) { resp ->
            def json = (resp.data)
@@ -86,10 +90,19 @@ def close() {
            if (json.result == "success") {
                if (logEnable) log.debug "Command Success Response from SOMA Connect"
                sendEvent(name: "windowShade", value: "closing", isStateChange: true)
-               sendEvent(name: "position", value: 0, isStateChange: true)
-               sendEvent(name: "level", value: 0, isStateChange: true)
-               sendEvent(name: "switch", value: "off", isStateChange: true)
-               runIn(timeout,refresh)          
+               if (posChange > 75){
+                   timeout = timeout * 1 as Integer
+               }
+               else if (posChange > 50 && posChange <= 75){
+                   timeout = timeout * 0.75 as Integer
+               }
+               else if (posChange > 25 && posChange <= 50){
+                   timeout = timeout * 0.50 as Integer
+               }
+               else if (posChange <= 25){
+                   timeout = timeout * 0.25 as Integer
+               }
+               runIn(timeout,refresh)         
             }
        }   
     } catch (Exception e) {
@@ -117,7 +130,7 @@ def stopPositionChange() {
            if (json.result == "success") {
                if (logEnable) log.debug "Command Success Response from SOMA Connect"
                sendEvent(name: "windowShade", value: "stopped", isStateChange: true)
-               runIn(2,refresh)          
+               runIn(1,getStopPosition)         
             }
        }   
     } catch (Exception e) {
@@ -131,6 +144,13 @@ def stopLevelChange() {
 
 def setPosition(value) {
     if (logEnable) log.debug "Sending Set Position Command to [${settings.mac}]"
+    state.position = value
+    currentLevel = device.currentValue("level")
+    if (value > currentLevel){
+        posChange = value - currentLevel
+    }else{
+        posChange = currentLevel - value
+    }
 
     value = value.toInteger()
     if (value <= 50){
@@ -151,18 +171,40 @@ def setPosition(value) {
             }
             if (json.result == "success") {
                 if (logEnable) log.debug "Command Success Response from SOMA Connect"
-                sendEvent(name: "position", value: value, isStateChange: true)
-                sendEvent(name: "level", value: value, isStateChange: true)
                 if (value == device.currentValue("level")){
-                    runIn(timeout,refresh)
+                    if (logEnable) log.debug "No change needed"
                 }
                 else if (value > device.currentValue("level")){
                     sendEvent(name: "windowShade", value: "opening", isStateChange: true)
-                    runIn(timeout,refresh) 
+                    if (posChange > 75){
+                        timeout = timeout * 1 as Integer
+                    }
+                    else if (posChange > 50 && posChange <= 75){
+                        timeout = timeout * 0.75 as Integer
+                    }
+                    else if (posChange > 25 && posChange <= 50){
+                        timeout = timeout * 0.50 as Integer
+                    }
+                    else if (posChange <= 25){
+                        timeout = timeout * 0.25 as Integer
+                    }
+                    runIn(timeout,refresh)
                 }
                 else{
                     sendEvent(name: "windowShade", value: "closing", isStateChange: true)
-                    runIn(timeout,refresh) 
+                    if (posChange > 75){
+                        timeout = timeout * 1 as Integer
+                    }
+                    else if (posChange > 50 && posChange <= 75){
+                        timeout = timeout * 0.75 as Integer
+                    }
+                    else if (posChange > 25 && posChange <= 50){
+                        timeout = timeout * 0.50 as Integer
+                    }
+                    else if (posChange <= 25){
+                        timeout = timeout * 0.25 as Integer
+                    }
+                    runIn(timeout,refresh)
                 }
             }
         }
@@ -193,6 +235,8 @@ def startLevelChange(direction) {
 
 def morningPosition() {
     if (logEnable) log.debug "Sending Set Moring Position Command to [${settings.mac}]"
+    state.position = morningPos
+    currentLevel = device.currentValue("level")
     
     def newPosition = 100 - morningPos
     
@@ -205,11 +249,14 @@ def morningPosition() {
             }
             if (json.result == "success") {
                 if (logEnable) log.debug "Command Success Response from SOMA Connect"
-                sendEvent(name: "position", value:morningPos, isStateChange: true)
-                sendEvent(name: "level", value:morningPos, isStateChange: true)
+                if (morningPos > device.currentValue("level")){
                 sendEvent(name: "windowShade", value: "opening",isStateChange: true)
-                sendEvent(name: "switch", value: "on", isStateChange: true)
-                runIn(timeout,refresh) 
+                runIn(timeout*2,refresh)
+                }
+                else{
+                sendEvent(name: "windowShade", value: "closing", isStateChange: true)
+                runIn(timeout*2,refresh)
+                }
             }
        }   
     } catch (Exception e) {
@@ -219,6 +266,45 @@ def morningPosition() {
 
 def getPosition() {
     if (logEnable) log.debug "Checking Shade Position"
+    shadeValue = state.position
+    try {
+    httpGet("http://" + connectIp + ":3000/get_shade_state/"  + mac) { resp ->
+        def json = (resp.data)
+        if (logEnable) log.debug "${json}"
+        if (json.find{ it.key == "closed_upwards" }){
+            shadePos = 50 + (json.position / 2)
+        }
+        else if (json.position == 0){
+            shadePos = 50
+        }
+        else if (json.position == 100){
+            shadePos = 0
+        
+        }else{
+            shadePos = (100 - json.position) /2
+        }
+        sendEvent(name: "position", value: shadeValue)
+        sendEvent(name: "level", value: shadeValue)
+        if (logEnable) log.debug  "Shade Position set to ${shadePos}"
+        if (shadePos == openPos){
+            sendEvent(name: "windowShade", value: "open",isStateChange: true)
+            sendEvent(name: "switch", value: "on", isStateChange: true)
+            } else if (shadePos == 0) {
+                sendEvent(name: "windowShade", value: "closed",isStateChange: true)
+                sendEvent(name: "switch", value: "off", isStateChange: true)
+			} else {
+                sendEvent(name: "windowShade", value: "partially open",isStateChange: true)
+                sendEvent(name: "switch", value: "on", isStateChange: true)
+			}
+		}
+    } catch (Exception e) {
+        log.warn "Call to on failed: ${e.message}"
+    }
+}
+
+def getStopPosition() {
+    if (logEnable) log.debug "Checking Shade Position"
+    unschedule(refresh)
     try {
     httpGet("http://" + connectIp + ":3000/get_shade_state/"  + mac) { resp ->
         def json = (resp.data)
