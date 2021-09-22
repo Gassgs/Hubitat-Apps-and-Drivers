@@ -1,6 +1,7 @@
 /** Zemismart
  *  Tuya Window Shade (v.0.1.0) Hubitat v1
  *  Tuya Window Shade (v.1.1.0) Hubitat v2 Gassgs
+ *  Tuya Window Shade (v.1.2.0) Hubitat v3 Improvements Gassgs
  *	Copyright 2020 iquix
  *
  *	Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -15,39 +16,37 @@
  https://github.com/iquix/Smartthings/blob/master/devicetypes/iquix/tuya-window-shade.src/tuya-window-shade.groovy
 
 
-https://raw.githubusercontent.com/shin4299/XiaomiSJ/master/devicetypes/shinjjang/zemismart-zigbee-blind.src/zemismart-zigbee-blind.groovy
-
  */
 
 import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
 import hubitat.helper.HexUtils
 
-def driverVer() { return "1.1" }
+def driverVer() { return "1.2" }
 
 metadata {
-	definition(name: "ZemiSmart Zigbee Blind", namespace: "ShinJjang", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
-		capability "Actuator"
-		capability "Window Shade"
-		capability "Switch Level"
-    capability "Switch"
+	definition(name: "ZemiSmart Zigbee/Tuya Window Covering", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
+	capability "Actuator"
+	capability "Window Shade"
+	capability "Switch Level"
+        capability "Change Level"
+        capability "Switch"
+        capability "Sensor"
 
 
-		command "pause"
-    command "presetPosition"
-
-    attribute "Direction", "enum", ["Reverse","Forward"]
-
-		fingerprint endpointId: "01", profileId: "0104", inClusters: "0000, 0003, 0004, 0005, 0006", outClusters: "0019", manufacturer: "_TYST11_wmcdj3aq", model: "mcdj3aq", deviceJoinName: "Zemismart Zigbee Blind"
-//mc changeed endpointId from 0x01 to 01
+	fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Shade"
+        fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Shade"
+        fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_cowvfni3",model:"owvfni3\u0000",deviceJoinName:"Zemismart Zigbee Shade"
+        fingerprint  profileId:"0104",inClusters:"0000,000A,0004,0005,EF00",outClusters:"0019",manufacturer:"_TZE200_cowvfni3",model:"TS0601",deviceJoinName: "Zemismart Zigbee Shade"
+        fingerprint  profileId:"0104",inClusters:"0000,000A,0004,0005,EF00",outClusters:"0019,000A",manufacturer:"_TZE200_zah67ekd",model:"TS0601",deviceJoinName: "Zemismart Zigbee Blind Drive"
+        
     }
 
 	preferences {
-        input "preset", "number", title: "Preset position", description: "Set the window shade preset position", defaultValue: 50, range: "0..100", required: false, displayDuringSetup: false
         input name: "Direction", type: "enum", title: "Direction Set", defaultValue: "00", options:["01": "Reverse", "00": "Forward"], displayDuringSetup: true
-	      input "logEnable", "bool", title: "Enable logging", required: true, defaultValue: true
+        input name: "logInfoEnable",type: "bool", title: "Enable info text logging",required: true, defaultValue: true
+	input name: "logEnable",type: "bool", title: "Enable debug logging", required: true, defaultValue: true
     }
-// removed tiles section as not used in Hubitat
 }
 
 private getCLUSTER_TUYA() { 0xEF00 }
@@ -57,7 +56,7 @@ private getSETDATA() { 0x00 }
 def parse(String description) {
 	if (description?.startsWith('catchall:') || description?.startsWith('read attr -')) {
 		Map descMap = zigbee.parseDescriptionAsMap(description)
-        //if(logEnable) log.debug "Pasred Map $descMap"
+        if(logEnable) log.debug "Pasred Map $descMap"
 		if (descMap?.clusterInt==CLUSTER_TUYA) {
 			if ( descMap?.command == "01" || descMap?.command == "02" ) {
 				def dp = zigbee.convertHexToInt(descMap?.data[3]+descMap?.data[2])
@@ -73,7 +72,9 @@ def parse(String description) {
                         	if(logEnable) log.debug "parsed closing"
                             levelEventMoving(0)
                         }
-                        else {log.debug "parsed else case $dp open/close/stop zigbee $data"}
+                        else {
+                            if (logEnable) log.debug "parsed else case $dp open/close/stop zigbee $data"
+                        }
                     	break;
 
 					case 1031: // 0x04 0x07: Confirm opening/closing/stopping (triggered from remote)
@@ -86,7 +87,9 @@ def parse(String description) {
                         	log.trace "remote opening"
                             levelEventMoving(100)
                         }
-                        else {log.debug "parsed else case $dp open/close/stop remote $data"}
+                        else {
+                            if (logEnable) log.debug "parsed else case $dp open/close/stop remote $data"
+                        }
                     	break;
 
 					case 514: // 0x02 0x02: Started moving to position (triggered from Zigbee)
@@ -98,7 +101,7 @@ def parse(String description) {
 					case 515: // 0x03: Arrived at position
                     	def pos = zigbee.convertHexToInt(descMap.data[9])
                         if(logEnable) log.debug description
-                    	log.info "arrived at position :"+pos
+                    	if(logInfoEnable) log.info "$device.label arrived at position :"+pos
                     	levelEventArrived(pos)
                         break;
 
@@ -130,23 +133,24 @@ private levelEventMoving(currentLevel) {
 private levelEventArrived(level) {
 	if (level == 0) {
     	sendEvent(name: "windowShade", value: "closed")
+        sendEvent(name: "switch", value: "off")
     } else if (level == 100) {
     	sendEvent(name: "windowShade", value: "open")
+        sendEvent(name: "switch", value: "on")
     } else if (level > 0 && level < 100) {
 		sendEvent(name: "windowShade", value: "partially open")
+        sendEvent(name: "switch", value: "on")
     } else {
     	sendEvent(name: "windowShade", value: "unknown")
         //return
     }
     sendEvent(name: "level", value: (level))
     sendEvent(name: "position", value: (level))
-    //To enable in GoggleHome
-    if (level < 100){ sendEvent(name: "switch", value: "on")}
-    else {sendEvent(name: "switch", value: "off")}
 }
 
 def close() {
-	if(logEnable) log.info "close()"
+	if(logEnable) log.debug "close()"
+    if(logInfoEnable) log.info "$device.label close()"
 	def currentLevel = device.currentValue("level")
     if (currentLevel == 0) {
     	sendEvent(name: "windowShade", value: "closed")
@@ -156,7 +160,8 @@ def close() {
 }
 
 def open() {
-	if(logEnable) log.info "open()"
+	if(logEnable) log.debug "open()"
+    if(logInfoEnable) log.info "$device.label open()"
     def currentLevel = device.currentValue("level")
     if (currentLevel == 100) {
     	sendEvent(name: "windowShade", value: "open")
@@ -166,13 +171,15 @@ def open() {
 }
 
 def pause() {
-	if(logEnable) log.info "pause()"
+	if(logEnable) log.debug "pause()"
+    if(logInfoEnable) log.info "$device.label pause()"
 	sendTuyaCommand("0104", "00", "0101")
 
 }
 
 def setLevel(data, rate = null) {
-	if(logEnable) log.info "setLevel("+data+")"
+	if(logEnable) log.debug "setLevel("+data+")"
+    if(logInfoEnable) log.info "$device.label setLevel("+data+")"
     def currentLevel = device.currentValue("level")
     if (currentLevel == data) {
     	sendEvent(name: "level", value: currentLevel)
@@ -183,27 +190,33 @@ def setLevel(data, rate = null) {
 }
 
 def setPosition(position){
-    if(logEnable) log.info "setPos to $position"
+    if(logEnable) log.debug "setPos to $position"
     setLevel(position, null)
 }
 
-def presetPosition() { //custom command preset
-    setLevel(preset ?: 50)
+def logsOff() {
+    log.warn "debug logging disabled..."
+    device.updateSetting("logEnable", [value: "false", type: "bool"])
 }
 
 def installed() {
-	sendEvent(name: "supportedWindowShadeCommands", value: JsonOutput.toJson(["open", "close", "pause"]), displayed: false)
+    log.info "installed..."
+    sendEvent(name: "supportedWindowShadeCommands", value: JsonOutput.toJson(["open", "close", "pause"]), displayed: false)
+    log.warn "debug logging is: ${logEnable == true}"
+    if (logEnable) runIn(3600, logsOff)
+	state.DriverVersion=driverVer()
 }
 
 def updated() {
 	def val = Direction
-    sendEvent([name:"Direction", value: (val == "00" ? "Forward" : "Reverse")])
 	DirectionSet(val)
+    log.warn "debug logging is: ${logEnable == true}"
+    if (logEnable) runIn(1800, logsOff)
     state.DriverVersion=driverVer()
 }
 
 def DirectionSet(Dval) {
-	if(logEnable) log.info "Direction set ${Dval} "
+	if(logEnable) log.debug "Direction set ${Dval} "
     sendTuyaCommand("05040001", Dval, "")
 }
 
@@ -229,6 +242,18 @@ def stopPositionChange(){
 
 def startPositionChange(direction) {
     if (direction == "open") {
+        open()
+    } else {
+       close()
+    }
+}
+
+def stopLevelChange(){
+    pause()
+}
+
+def startLevelChange(direction) {
+    if (direction == "up") {
         open()
     } else {
        close()
