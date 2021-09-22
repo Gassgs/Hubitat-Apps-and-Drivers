@@ -25,7 +25,7 @@ import hubitat.helper.HexUtils
 def driverVer() { return "1.2" }
 
 metadata {
-	definition(name: "ZemiSmart Zigbee/Tuya Window Covering", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
+	definition(name: "Zemismart Zigbee/Tuya Window Covering", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
 	capability "Actuator"
 	capability "Window Shade"
 	capability "Switch Level"
@@ -80,11 +80,11 @@ def parse(String description) {
 					case 1031: // 0x04 0x07: Confirm opening/closing/stopping (triggered from remote)
                     	def data = descMap.data[6]
                     	if (descMap.data[6] == "01") {
-                        	log.trace "remote closing"
+                        	if (logEnable) log.trace "remote closing"
                             levelEventMoving(0)
                         }
                         else if (descMap.data[6] == "00") {
-                        	log.trace "remote opening"
+                        	if (logEnable) log.trace "remote opening"
                             levelEventMoving(100)
                         }
                         else {
