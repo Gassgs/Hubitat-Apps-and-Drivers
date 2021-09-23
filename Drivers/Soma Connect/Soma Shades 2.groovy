@@ -28,9 +28,10 @@
  *  V1.3.0  8-14-2021       Fixed opening/closing bug with no position change.
  *  V1.4.0  9-01-2021       Improvements for Soma firmware 2.2.9 stop level correction
  *  V1.5.0  9-09-2021       Improvements for windowShade attribute changes
+ *  V1.6.0  9-21-2021       Changed Morning Position implementation and added info logging
  */
 
-def driverVer() { return "1.5" }
+def driverVer() { return "1.6" }
 
 
 
@@ -45,7 +46,7 @@ metadata {
         capability "Sensor"
         capability "Battery"
 
-        command "morningPosition"
+        command "setMorningPosition",[[name:"Position", type: "NUMBER",description: "Set Morning Position"]]
 
     }
 }
@@ -53,7 +54,7 @@ metadata {
         input name: "connectIp",type: "text", title: "Soma Connect IP Address", required: true
         input name: "mac",type: "text", title: "Mac address of Shade 2 device", required: true
         input name: "timeout",type: "number", title: "Time it takes to open or close", required: true, defaultValue: 10
-        input name: "morningPos",type: "number", title: "Morning Position", required: true, defaultValue: 50
+        input name: "logInfoEnable", type: "bool", title: "Enable info text logging", defaultValue: true
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 }
 
@@ -72,6 +73,7 @@ def updated() {
 
 def open() {
     if (logEnable) log.debug "Sending Open Command to [${settings.mac}]"
+    if (logInfoEnable) log.info  "$device.label Sending Open Command"
     state.position = 100
     currentLevel = device.currentValue("level")
     posChange = 100 - currentLevel
@@ -107,6 +109,7 @@ def open() {
 
 def close() {
     if (logEnable) log.debug "Sending Close Command to [${settings.mac}]"
+    if (logInfoEnable) log.info "$device.label Sending Close Command"
     state.position = 0
     posChange = device.currentValue("level")
     try {
@@ -149,6 +152,7 @@ def off() {
 
 def stopPositionChange() {
     if (logEnable) log.debug "Sending Stop Command to [${settings.mac}]"
+    if (logInfoEnable) log.info "$device.label Sending Stop Command"
     try {
        httpGet("http://" + connectIp + ":3000/stop_shade/"  + mac) { resp ->
            def json = (resp.data)
@@ -173,6 +177,7 @@ def stopLevelChange() {
 
 def setPosition(value) {
     if (logEnable) log.debug "Sending Set Position Command to [${settings.mac}]"
+    if (logInfoEnable) log.info "$device.label Sending Set Position Command $value %"
     state.position = value
     currentLevel = device.currentValue("level")
     if (value > currentLevel){
@@ -255,12 +260,21 @@ def startLevelChange(direction) {
     }
 }
 
-def morningPosition() {
+def setMorningPosition(value) {
     if (logEnable) log.debug "Sending Set Moring Position Command to [${settings.mac}]"
-    state.position = morningPos
+    if (logInfoEnable) log.info "$device.label Sending Set Morning Position Command $value %"
+    state.position = value
     currentLevel = device.currentValue("level")
     
-    def newPosition = 100 - morningPos
+    if (value > currentLevel){
+        posChange = value - currentLevel
+    }else{
+        posChange = currentLevel - value
+    }
+    
+    value = value.toInteger()
+    
+    def newPosition = 100 - value
     
     try {
        httpGet("http://" + connectIp + ":3000/set_shade_position/"  + mac + "/"+ newPosition + "?morning_mode=1") { resp ->
@@ -271,13 +285,37 @@ def morningPosition() {
             }
             if (json.result == "success") {
                 if (logEnable) log.debug "Command Success Response from SOMA Connect"
-                if (morningPos > device.currentValue("level")){
+                if (value > device.currentValue("level")){
                 sendEvent(name: "windowShade", value: "opening",isStateChange: true)
-                runIn(timeout*2,refresh)
+                    if (posChange > 75){
+                        timeout = timeout * 5 as Integer
+                    }
+                    else if (posChange > 50 && posChange <= 75){
+                        timeout = (timeout * 0.75) * 5 as Integer
+                    }
+                    else if (posChange > 25 && posChange <= 50){
+                        timeout = (timeout * 0.50) * 5 as Integer
+                    }
+                    else if (posChange <= 25){
+                        timeout = (timeout * 0.25) * 5 as Integer
+                    }
+                    runIn(timeout,refresh)
                 }
                 else{
                 sendEvent(name: "windowShade", value: "closing", isStateChange: true)
-                runIn(timeout*2,refresh)
+                    if (posChange > 75){
+                        timeout = timeout * 5 as Integer
+                    }
+                    else if (posChange > 50 && posChange <= 75){
+                        timeout = (timeout * 0.75) * 5 as Integer
+                    }
+                    else if (posChange > 25 && posChange <= 50){
+                        timeout = (timeout * 0.50) * 5 as Integer
+                    }
+                    else if (posChange <= 25){
+                        timeout = (timeout * 0.25) * 5 as Integer
+                    }
+                    runIn(timeout,refresh)
                 }
             }
        }   
@@ -350,6 +388,7 @@ def getBattery() {
         def batteryPercent = json.battery_percentage
         sendEvent(name: "battery", value: batteryPercent)
         if (logEnable) log.debug  "Battery level set to ${batteryPercent}"
+        if (logInfoEnable) log.info  "$device.label Battery level is ${batteryPercent}"
     }
     } catch (Exception e) {
         log.warn "Call to on failed: ${e.message}"
