@@ -19,6 +19,7 @@
  *  V1.2 Hubitat   added stop command
  *  V1.3 Hubitat   fixes and improvements
  *  V1.4 Hubitat   minor fixes
+ *  V1.5 Hubitat   added ability to toggle schedules
  *
  */
 import javax.crypto.Mac;
@@ -50,11 +51,13 @@ metadata {
         command "start"
         command "stop"
         command "pause"
+        command "toggleSchedule"
 
         attribute "status","string"
         attribute "network","string"
         attribute "charging","string"
         attribute "error","string"
+        attribute "schedule","string"
 	}
 }
 
@@ -159,6 +162,17 @@ def findMe() {
     //not working on D4 model
 	logDebug ("Executing 'findMe'")
     nucleoPOST("/messages", '{"reqId": "1","cmd": "findMe"}')
+}
+
+def toggleSchedule() {
+	logDebug ("Executing Toggle Schedule")
+    status = device.currentValue("schedule")
+    if (status == "enabled"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
+    }else{
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"enableSchedule"}')
+    }   
+    runIn(2, refresh)
 }
 
 def setCleaningMode(mode) {
@@ -354,6 +368,14 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"charging",value:"fully charged") 
                 }else{
                     sendEvent(name:"charging",value:result.details.isCharging as String)
+                }
+                scheduleStatus = result.details.isScheduleEnabled as String
+                logDebug ("Schedule Enabled - $scheduleStatus")
+                if (logInfo) log.info "$device.label Schedule Enabled - $scheduleStatus"
+                if (scheduleStatus == "true"){
+                    sendEvent(name:"schedule",value:"enabled") 
+                }else{
+                    sendEvent(name:"schedule",value:"disabled")
                 }
             }
             return response
