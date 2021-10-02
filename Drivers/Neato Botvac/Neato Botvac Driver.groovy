@@ -20,32 +20,41 @@
  *  V1.3 Hubitat   fixes and improvements
  *  V1.4 Hubitat   minor fixes
  *  V1.5 Hubitat   added ability to toggle schedules
+ *  V1.6 Hubitat   improved refresh schedule method
  *
  */
+
+def driverVer() { return "1.6" }
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 
-preferences
-{
-    input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
+preferences{
+    def refreshRate = [:]
+		refreshRate << ["5 min" : "Refresh every 5 minutes"]
+        refreshRate << ["10 min" : "Refresh every 10 minutes"]
+		refreshRate << ["15 min" : "Refresh every 15 minutes"]
+		refreshRate << ["30 min" : "Refresh every 30 minutes"]
+	input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
     input( "prefNavigationMode", "enum", options: ["standard", "extraCare", "deep"], title: "Navigation Mode", description: "Only supported on certain models", required: true, defaultValue: "standard" )
     input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
-    input("dockRefresh", "number", title: "How often to 'Refresh' while docked, in Minutes", defaultValue: 15, required: true )
-    input("runRefresh", "number", title: "How often to 'Refresh' while running, in Seconds", defaultValue: 60, required: true )
+    input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
+    input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
     input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
-    input(name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: true)
     input(name:"logInfo",type:"bool",title: "Enable Info logging",required: true,defaultValue: true)
+    input(name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: true)
+    
 }
 
 metadata {
 	definition (name: "Neato Botvac Connected Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung", ocfDeviceType: "oic.d.robotcleaner", mnmn: "SmartThingsCommunity", vid: "1b47ad78-269e-3c5c-a1a9-8c84d2a2ef05")	{
     	capability "Battery"
-	capability "Refresh"
-	capability "Switch"
+		capability "Refresh"
+		capability "Switch"
         capability "Actuator"
 
-	command "refresh"
+		command "refresh"
         command "returnToDock"
         command "findMe"  //(Not working on my D4)
         command "start"
@@ -64,13 +73,35 @@ metadata {
 def installed() {
 	logDebug ("Installed with settings: ${settings}")
 	initialize()
-    sendEvent(name: "checkInterval", value: 10 * 60 + 2 * 60, data: [protocol: "cloud"], displayed: false)
 }
 
 def updated() {
 	logDebug ("Updated with settings: ${settings}")
+    state.DriverVersion=driverVer()
+    
+        switch(dockRefresh) {
+		case "5 min" :
+			runEvery5Minutes(refresh)
+            logDebug ("refresh every 5 minutes schedule")
+            if (logInfo) log.info "$device.label refresh every 5 minutes schedule"
+			break
+        case "10 min" :
+			runEvery10Minutes(refresh)
+            logDebug ("refresh every 10 minutes schedule")
+            if (logInfo) log.info "$device.label refresh every 10 minutes schedule"
+			break
+		case "15 min" :
+			runEvery15Minutes(refresh)
+            logDebug ("refresh every 15 minutes schedule")
+            if (logInfo) log.info "$device.label refresh every 15 minutes schedule"
+			break
+		case "30 min" :
+			runEvery30Minutes(refresh)
+            logDebug ("refresh every 30 minutes schedule")
+            if (logInfo) log.info "$device.label refresh every 30 minutes schedule"
+            break
+	}
 	initialize()
-    sendEvent(name: "checkInterval", value: 10 * 60 + 2 * 60, data: [protocol: "cloud"], displayed: false)
 }
 
 def initialize() {
@@ -87,10 +118,7 @@ def refreshSch(){
         }else{
             state.paused = false
         }
-    if (state.isDocked){
-        logDebug ("$dockRefresh min refresh active")
-        runIn(dockRefresh*60,refresh)
-    }else{
+    if (!state.isDocked){
         logDebug ("$runRefresh second refresh active")
         runIn(runRefresh,refresh)
     }
