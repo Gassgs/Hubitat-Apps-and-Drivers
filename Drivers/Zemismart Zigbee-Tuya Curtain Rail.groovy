@@ -25,7 +25,7 @@ import hubitat.helper.HexUtils
 def driverVer() { return "1.2" }
 
 metadata {
-	definition(name: "Zemismart Zigbee/Tuya Window Covering", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
+	definition(name: "Zemismart Zigbee-Tuya Curtain Rail", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
 	capability "Actuator"
 	capability "Window Shade"
 	capability "Switch Level"
@@ -38,7 +38,6 @@ metadata {
         fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Shade"
         fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_cowvfni3",model:"owvfni3\u0000",deviceJoinName:"Zemismart Zigbee Shade"
         fingerprint  profileId:"0104",inClusters:"0000,000A,0004,0005,EF00",outClusters:"0019",manufacturer:"_TZE200_cowvfni3",model:"TS0601",deviceJoinName: "Zemismart Zigbee Shade"
-        fingerprint  profileId:"0104",inClusters:"0000,000A,0004,0005,EF00",outClusters:"0019,000A",manufacturer:"_TZE200_zah67ekd",model:"TS0601",deviceJoinName: "Zemismart Zigbee Blind Drive"
         
     }
 
