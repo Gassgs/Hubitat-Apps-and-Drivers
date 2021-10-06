@@ -29,9 +29,10 @@
  *  V1.4.0  9-01-2021       Improvements for Soma firmware 2.2.9 stop level correction
  *  V1.5.0  9-09-2021       Improvements for windowShade attribute changes
  *  V1.6.0  9-21-2021       Changed Morning Position implementation and added info logging
+ *  V1.7.0  10-5-2021       Changed Battery check to once per day at 4:00am (refresh command also checks battery level)
  */
 
-def driverVer() { return "1.6" }
+def driverVer() { return "1.7" }
 
 
 
@@ -69,6 +70,7 @@ def updated() {
     state.DriverVersion=driverVer()
     refresh()
     if (logEnable) runIn(1800, logsOff)
+    schedule('0 0 4 * * ?',getBattery)
 }
 
 def open() {
@@ -99,7 +101,7 @@ def open() {
                else if (posChange <= 25){
                    timeout = timeout * 0.25 as Integer
                }
-               runIn(timeout,refresh)       
+               runIn(timeout,getPosition)       
             }
        }   
     } catch (Exception e) {
@@ -134,7 +136,7 @@ def close() {
                else if (posChange <= 25){
                    timeout = timeout * 0.25 as Integer
                }
-               runIn(timeout,refresh)
+               runIn(timeout,getPosition)
             }
        }   
     } catch (Exception e) {
@@ -215,7 +217,7 @@ def setPosition(value) {
                     else if (posChange <= 25){
                         timeout = timeout * 0.25 as Integer
                     }
-                    runIn(timeout,refresh)
+                    runIn(timeout,getPosition)
                 }
                 else{
                     sendEvent(name: "windowShade", value: "closing", isStateChange: true)
@@ -231,7 +233,7 @@ def setPosition(value) {
                     else if (posChange <= 25){
                         timeout = timeout * 0.25 as Integer
                     }
-                    runIn(timeout,refresh)
+                    runIn(timeout,getPosition)
                 }
             }
         }
@@ -299,7 +301,7 @@ def setMorningPosition(value) {
                     else if (posChange <= 25){
                         timeout = (timeout * 0.25) * 5 as Integer
                     }
-                    runIn(timeout,refresh)
+                    runIn(timeout,getPosition)
                 }
                 else{
                 sendEvent(name: "windowShade", value: "closing", isStateChange: true)
@@ -315,7 +317,7 @@ def setMorningPosition(value) {
                     else if (posChange <= 25){
                         timeout = (timeout * 0.25) * 5 as Integer
                     }
-                    runIn(timeout,refresh)
+                    runIn(timeout,getPosition)
                 }
             }
        }   
@@ -397,7 +399,7 @@ def getBattery() {
 
 def refresh() {
     getBattery()
-    getPosition()
+    getStopPosition()
 }
 
 def installed() {
