@@ -23,9 +23,10 @@
  *  V1.0.0  7-02-2021       first run   
  *  V1.1.0  7-17-2021       Refresh schedule improvements
  *  V1.2.0  8-15-2021       Added option to pause refreshing
+ *  V1.3.0  10-9-2021       Fixed pause refreshing option
  */
 
-def driverVer() { return "1.1" }
+def driverVer() { return "1.3" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -100,6 +101,7 @@ def updated() {
         }
 	}
     if (paused){
+        unschedule(refresh)
         log.warn "device is paused and will not be refreshed"
     }
     if (logEnable) runIn(1800, logsOff)
