@@ -21,10 +21,11 @@
  *  V1.4 Hubitat   minor fixes
  *  V1.5 Hubitat   added ability to toggle schedules
  *  V1.6 Hubitat   improved refresh schedule method
+ *  V1.7 Hubitat   Removed Schedule toggle, added Schedule On and Off Commands
  *
  */
 
-def driverVer() { return "1.6" }
+def driverVer() { return "1.7" }
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -60,7 +61,8 @@ metadata {
         command "start"
         command "stop"
         command "pause"
-        command "toggleSchedule"
+        command "scheduleOn"
+        command "scheduleOff"
 
         attribute "status","string"
         attribute "network","string"
@@ -192,13 +194,24 @@ def findMe() {
     nucleoPOST("/messages", '{"reqId": "1","cmd": "findMe"}')
 }
 
-def toggleSchedule() {
-	logDebug ("Executing Toggle Schedule")
+def scheduleOn() {
+	logDebug ("Executing Schedule Enable")
+    status = device.currentValue("schedule")
+    if (status == "disabled"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"enableSchedule"}')
+    }else{
+        logDebug ("Schedules Are Already Enabled")   
+    }   
+    runIn(2, refresh)
+}
+
+def scheduleOff() {
+	logDebug ("Executing Schedule Disable")
     status = device.currentValue("schedule")
     if (status == "enabled"){
         nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
     }else{
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"enableSchedule"}')
+        logDebug ("Schedules Are Already Disabled")
     }   
     runIn(2, refresh)
 }
