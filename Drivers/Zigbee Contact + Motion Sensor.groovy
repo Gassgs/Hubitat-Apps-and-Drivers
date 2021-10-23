@@ -21,9 +21,10 @@
  *  V1.0.0  3-09-2021       Moddified to add Motion options
  *  V1.1.0  8-03-2021       "fixed" Battery reporting
  *  V1.2.0  8-22-2021       Added Battery change date and count
+ *  V1.3.0  10-23-2021      Added Motion timeout option
  */
 
-def driverVer() { return "1.2" }
+def driverVer() { return "1.3" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
@@ -32,25 +33,29 @@ metadata
 	definition(name: "Zigbee Contact + Motion Sensor", namespace: "Gassgs", author: "GaryG")
 	{
 		capability "Motion Sensor"
-        capability "Contact Sensor"
+        	capability "Contact Sensor"
 		capability "Configuration"
 		capability "Battery"
 		capability "Temperature Measurement"
 		capability "Refresh"
 		capability "Sensor"
         
-        command "batteryChanged"
+        	command "batteryChanged"
         
-        attribute "batteryVoltage","string"
+        	attribute "batteryVoltage","string"
 
-		fingerprint inClusters: "0000,0001,0003,0020,0402,0500,0B05", outClusters: "0019", manufacturer: "Ecolink", model: "4655BC0-R", deviceJoinName: "Ecolink Contact Sensor"
+	fingerprint inClusters: "0000,0001,0003,0020,0402,0500,0B05", outClusters: "0019", manufacturer: "Ecolink", model: "4655BC0-R", deviceJoinName: "Ecolink Contact Sensor"
         fingerprint inClusters: "0000,0001,0003,0402,0500,0020,0B05", outClusters: "0019", manufacturer: "Visonic", model: "MCT-340 E", deviceJoinName: "Visonic Contact Sensor"
 	}
 
 	preferences{
 		section{
 			input "tempOffset", "number", title: "Temperature Offset", range: "*..*", displayDuringSetup: false, type: "paragraph", element: "paragraph"
-            input "enableInfo", "bool", title: "Enable info logging?", defaultValue: true, required: false, multiple: false
+            		input "motionReset", "bool", title: "Enable motion timeout", defaultValue: false, required: true, submitOnChange: true
+            		if (motionReset){
+                		input "motionTimeout", "number", title: "Motion timeout in seconds", defaultValue: 60, required: true, multiple: false
+            		}
+            		input "enableInfo", "bool", title: "Enable info logging?", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "Enable debug logging?", defaultValue: false, required: false, multiple: false
 		}
 	}
@@ -195,12 +200,22 @@ private Map getMotionResult(value) {
         sendEvent(name:"motion",value:"active")
         sendEvent(name:"contact",value:"open")
         logInfo "$device.label Motion Active, Contact Open"
+        if (motionReset){
+            runIn(motionTimeout,resetMotion)
+        }
     }else{
+        unschedule(resetMotion)
         sendEvent(name:"motion",value:"inactive")
         sendEvent(name:"contact",value:"closed")
         logInfo "$device.label Motion Inactive, Contact Closed"
     }
 }
+
+def resetMotion(){
+    sendEvent(name:"motion",value:"inactive")
+    logInfo "$device.label Motion Timeout Done - Inactive"
+}
+    
 
 def refresh() {
 	logInfo "Refreshing Values"
@@ -221,7 +236,7 @@ def configure() {
 
 	configCmds +=
 		zigbee.batteryConfig() +
-		zigbee.temperatureConfig(30, 900)
+		zigbee.temperatureConfig(60, 3600)
 
 	return configCmds
 }
