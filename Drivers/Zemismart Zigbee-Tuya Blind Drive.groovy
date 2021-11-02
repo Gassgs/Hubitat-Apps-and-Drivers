@@ -1,8 +1,9 @@
 /** Zemismart
- *  Tuya Window Shade (v.0.1.0) Hubitat v1
- *  Tuya Window Shade (v.1.1.0) Hubitat v2 Gassgs
- *  Tuya Window Shade (v.1.2.0) Hubitat v3 Improvements Gassgs
- *  Tuya Window Shade (v.1.3.0) Hubitat v4 Blind Drive AM43 zb version Gassgs
+ *  Tuya Window Shade (v.0.1.0) Hubitat v0
+ *  Tuya Window Shade (v.1.1.0) Hubitat v1 Gassgs
+ *  Tuya Window Shade (v.1.2.0) Hubitat v2 Improvements Gassgs
+ *  Tuya Window Shade (v.1.3.0) Hubitat v3 Blind Drive AM43 zb version Gassgs
+ *  Tuya Window Shade (v.1.4.0) Hubitat v4 Added default speed option Gassgs
  *	Copyright 2020 iquix
  *
  *	Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -23,13 +24,13 @@ import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
 import hubitat.helper.HexUtils
 
-def driverVer() { return "1.3" }
+def driverVer() { return "1.4" }
 
 metadata {
 	definition(name: "Zemismart Zigbee-Tuya Blind Drive", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
-	capability "Actuator"
-	capability "Window Shade"
-	capability "Switch Level"
+		capability "Actuator"
+		capability "Window Shade"
+		capability "Switch Level"
         capability "Change Level"
         capability "Switch"
         capability "Sensor"
@@ -44,9 +45,10 @@ metadata {
 
 	preferences {
         input name: "Direction", type: "enum", title: "Direction Set", defaultValue: "00", options:["01": "Reverse", "00": "Forward"], displayDuringSetup: true
+        input name: "speedRestore",type: "bool", title: "Enable restoring default speed after each move",required: true, defaultValue: true
         input name: "defaultSpeed",type: "number", title: "Default Speed",required: true, defaultValue: 100
         input name: "logInfoEnable",type: "bool", title: "Enable info text logging",required: true, defaultValue: true
-	input name: "logEnable",type: "bool", title: "Enable debug logging", required: true, defaultValue: true
+	    input name: "logEnable",type: "bool", title: "Enable debug logging", required: true, defaultValue: true
     }
 }
 
@@ -142,19 +144,25 @@ private levelEventArrived(level) {
 	if (level <= 1) {
     	sendEvent(name: "windowShade", value: "closed")
         sendEvent(name: "switch", value: "off")
+        sendEvent(name: "level", value:"0")
+        sendEvent(name: "position", value: "0")
     } else if (level >= 99) {
     	sendEvent(name: "windowShade", value: "open")
         sendEvent(name: "switch", value: "on")
+        sendEvent(name: "level", value: "100")
+        sendEvent(name: "position", value: "100")
     } else if (level > 1 && level < 99) {
 		sendEvent(name: "windowShade", value: "partially open")
         sendEvent(name: "switch", value: "on")
+        sendEvent(name: "level", value: (level))
+        sendEvent(name: "position", value: (level))
     } else {
     	sendEvent(name: "windowShade", value: "unknown")
         //return
     }
-    sendEvent(name: "level", value: (level))
-    sendEvent(name: "position", value: (level))
-    runIn(1,setDefaultSpeed)
+    if (speedRestore){
+        runIn(1,setDefaultSpeed)
+    }
 }
 
 def setDefaultSpeed(){
