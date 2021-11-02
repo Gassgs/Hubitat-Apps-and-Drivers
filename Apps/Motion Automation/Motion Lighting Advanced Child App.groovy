@@ -23,7 +23,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 2/08/2021
+ *  Last Update: 10/18/2021
  *
  *  Changes:
  *
@@ -31,7 +31,7 @@
  *  V1.1.0  -       2-09-2021       added all modes
  *  V1.2.0  -       2-10-2021       improvements
  *  V1.3.0  -       2-11-2021       Added off/dim options and handler improvements
- *  V1.4.0  -       4-11-2021       Fixed level off duration when light already off        
+ *  V1.4.0  -       10-18-2021      Change lux level to only limit turning On, instead of Off and On
  */
 
 import groovy.transform.Field
@@ -291,7 +291,7 @@ preferences{
         input(
             name:"luxThreshold",
             type:"number",
-            title:"Lux needs to be below this level for actions to run",
+            title:"Lux needs to be below this level for lights to turn ON",
             required: false,
             defaultValue:"200",
             submitOnChange: true
@@ -440,19 +440,10 @@ def getInactiveMotion(){
 }
 def motionInactive(){
     logInfo("All Inactive")
-    if (settings.switch&&settings.luxSensors){
-        logInfo ("checking switch and lux values")
-        checkSwitchLuxOffLevel()
-    }
-    else if (settings.switch){
+    if (settings.switch){
         logInfo ("checking switch value")
         checkSwitchOffLevel()
-    }
-    else if (settings.luxSensors){
-        logInfo ("checking lux value")
-        checkLuxOffLevel()
-    }
-    else{
+    }else{
         lightsOffLevel()
     }
 }
@@ -462,10 +453,14 @@ def lightsOffLevel(){
     if (dimEnable){
         lightsDimLevel()
     }
-    else if (state.lightsSwitchOn){
+    else if (state.lightSwitchOn){
     logInfo ("Turning lights Off")
-    settings.light.setLevel("0",duration)
-    settings.light.off()
+        if (settings.duration != 0){
+            settings.light.setLevel("0",duration)
+            settings.light.off()
+        }else{
+            settings.light.off()
+        }
     }
 }
 
@@ -536,15 +531,6 @@ def checkSwitchLuxOnLevel(){
         logInfo ("switch or lux value false stopping")
     }
 }
-def checkSwitchLuxOffLevel(){
-    if(state.switchOk&&state.luxOk){
-        logInfo ("switch and lux values OK")
-        lightsOffLevel()
-    }
-    else{
-        logInfo ("switch or lux value false stopping")
-    }
-}
 
 def checkSwitchOnLevel(){
     if(state.switchOk){
@@ -569,15 +555,6 @@ def checkLuxOnLevel(){
     if(state.luxOk){
         logInfo ("lux value OK")
         lightsOnLevel()
-    }
-    else{
-        logInfo ("lux value false stopping")
-    }
-}
-def checkLuxOffLevel(){
-    if(state.luxOk){
-        logInfo ("lux value OK")
-        lightsOffLevel()
     }
     else{
         logInfo ("lux value false stopping")
