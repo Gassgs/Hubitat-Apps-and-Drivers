@@ -39,6 +39,7 @@
  *  V2.5.0  -       2-23-2021       Added panic option & cleanup
  *  V2.6.0  -       2-25-2021       Improved Keypad integration/HSM
  *  V2.7.0  -       6-30-2021       Improved update handling
+ *  V2.8.0  -       10-8-2021       Removed ecolink siren options
  */
 
 import groovy.transform.Field
@@ -113,19 +114,19 @@ preferences {
             )
     }
     section{
-        paragraph( "<div style='text-align:center'><b>Aeotec tone device options</b></div>"
+        paragraph( "<div style='text-align:center'><b>Aeotec Siren 6 device options</b></div>"
                   )
         input(
-            name:"chimeDevice1",
+            name:"chimeDevice",
             type:"capability.chime",
-            title: "<b>Aeotec</b> tone devices for notifications",
+            title: "<b>Aeotec</b> Siren 6 devices for sound notifications",
             multiple: true,
             required: false,
             submitOnChange: true
             )
         if (chimeDevice1){
         input(
-            name:"delaySound1",
+            name:"delaySound",
             type:"number",
             title:"Sound number to play for delays",
             required: true,
@@ -133,7 +134,7 @@ preferences {
             submitOnChange: true
             )
         input(
-            name:"armSound1",
+            name:"armSound",
             type:"number",
             title:"Sound number to play for armed",
             required: true,
@@ -141,7 +142,7 @@ preferences {
             submitOnChange: true
             )
          input(
-            name:"disarmSound1",
+            name:"disarmSound",
             type:"number",
             title:"Sound number to play for disarmed",
             required: true,
@@ -149,7 +150,7 @@ preferences {
             submitOnChange: true
             )
             input(
-            name:"waterSound1",
+            name:"waterSound",
             type:"number",
             title:"Sound number to play for water leak detection",
             required: true,
@@ -157,51 +158,7 @@ preferences {
             submitOnChange: true
             )
         }
-        paragraph( "<div style='text-align:center'><b>Ecolink tone device options</b></div>"
-            )
-        input(
-            name:"chimeDevice2",
-            type:"capability.chime",
-            title: "<b>Ecolink</b> tone device for notifications",
-            multiple: true,
-            required: false,
-            submitOnChange: true
-            )
-        if (chimeDevice2){
-        input(
-            name:"delaySound2",
-            type:"number",
-            title:"Sound number to play for delays",
-            required: true,
-            defaultValue: 4,
-            submitOnChange: true
-            )
-        input(
-            name:"armSound2",
-            type:"number",
-            title:"Sound number to play for armed",
-            required: true,
-            defaultValue: 2,
-            submitOnChange: true
-            )
-          input(
-            name:"disarmSound2",
-            type:"number",
-            title:"Sound number to play for disarmed",
-            required: true,
-            defaultValue: 2,
-            submitOnChange: true
-            )
-            input(
-            name:"waterSound2",
-            type:"number",
-            defaultValue: 3,
-            title:"Sound number to play for water leak detection",
-            required: true,
-            submitOnChange: true
-            )
-        }
-        if (chimeDevice1){
+        if (chimeDevice){
             paragraph( "<div style='text-align:center'><b>Delay options</b></div>"
                   )
             input(
@@ -427,36 +384,34 @@ def statusHandler(evt){
     if (state.armedNight){
         sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
-        settings.chimeDevice1.playSound(armSound1)
-        settings.chimeDevice2.playSound(armSound2)  
+        settings.chimeDevice.playSound(armSound)
+        runIn(2,stopChime)
     }
     if (state.armedAway){
         sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
-        settings.chimeDevice1.playSound(armSound1)
-        settings.chimeDevice2.playSound(armSound2)
+        settings.chimeDevice.playSound(armSound)
+        runIn(2,stopChime)
     }
     if (state.armedHome){
         sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
-        settings.chimeDevice1.playSound(armSound1)
-        settings.chimeDevice2.playSound(armSound2)
+        settings.chimeDevice.playSound(armSound)
+        runIn(2,stopChime)
     }
     if (state.disarmed){
         sendEvent(settings.hsmDevice,[name:"switch",value:"off"])
         settings.hsmDevice.clearAlert()
         settings.lights.setColorTemperature("2702")
-        settings.chimeDevice1.playSound(disarmSound1)
-        settings.chimeDevice2.playSound(disarmSound2)
-
+        settings.chimeDevice.playSound(disarmSound)
+        runIn(2,stopChime)
     }
     if (state.armingNight){
         logInfo ("arming security system, locking locks")
         settings.lock.lock()
         if (settings.chimeTimer != 0){
             logInfo ("playing arming delay sound")
-            settings.chimeDevice1.playSound(delaySound1)
-            settings.chimeDevice2.playSound(delaySound2)
+            settings.chimeDevice.playSound(delaySound)
             runIn(chimeTimer-1,stopChime)
         }else{
             logInfo ("no arming delay for night mode set")
@@ -467,8 +422,7 @@ def statusHandler(evt){
         settings.lock.lock()
         if (settings.chimeAwayTimer != 0){
             logInfo ("playing arming delay sound")
-            settings.chimeDevice1.playSound(delaySound1)
-            settings.chimeDevice2.playSound(delaySound2)
+            settings.chimeDevice.playSound(delaySound)
             runIn(chimeAwayTimer-1,stopChime)
         }else{
             logInfo ("no arming delay for away mode set")
@@ -479,8 +433,7 @@ def statusHandler(evt){
         settings.lock.lock()
         if (settings.chimeTimer != 0){
             logInfo ("playing arming delay sound")
-            settings.chimeDevice1.playSound(delaySound1)
-            settings.chimeDevice2.playSound(delaySound2)
+            settings.chimeDevice.playSound(delaySound)
             runIn(chimeTimer-1,stopChime)
         }else{
             logInfo ("no arming delay for home mode set")
@@ -490,8 +443,8 @@ def statusHandler(evt){
 
 def stopChime(){
     logInfo ("chime stopped")
-    settings.chimeDevice1.stop()
-    settings.chimeDevice2.stop()
+    settings.chimeDevice.stop()
+    settings.keypads.stop()
 }
 
 def stopFlash(){
@@ -513,6 +466,7 @@ def alertHandler(evt){
     if (state.cancelled){
         logInfo ("Canceling Alerts")
         sendEvent(settings.hsmDevice,[name:"alert",value:"ok"])
+        stopChime()
         
     }
     if (state.failedToArm){
@@ -521,24 +475,21 @@ def alertHandler(evt){
     }
     if (state.homeDelay){
         logInfo ("Home delayed intrusion alerts")
-        settings.chimeDevice1.playSound(delaySound1)
-        settings.chimeDevice2.playSound(delaySound2)
+        settings.chimeDevice.playSound(delaySound)
         settings.lightsFlash.flash()
         runIn(delayChime-1,stopChime)
         runIn(delayChime,stopFlash)
     }
     if (state.nightDelay){
         logInfo ("Night  delayed intrusion alerts")
-        settings.chimeDevice1.playSound(delaySound1)
-        settings.chimeDevice2.playSound(delaySound2)
+        settings.chimeDevice.playSound(delaySound)
         settings.lightsFlash.flash()
         runIn(delayChime-1,stopChime)
         runIn(delayChime,stopFlash)
     }
     if (state.awayDelay){
         logInfo ("Away delayed intrusion alerts")
-        settings.chimeDevice1.playSound(delaySound1)
-        settings.chimeDevice2.playSound(delaySound2)
+        settings.chimeDevice.playSound(delaySound)
         settings.lightsFlash.flash()
         runIn(delayAwayChime-1,stopChime)
         runIn(delayAwayChime,stopFlash)
@@ -549,8 +500,7 @@ def resetDisarmed(){
     logInfo ("resetting to disarmed after failed to arm")
     settings.hsmDevice.off()
     settings.keypads.disarm()
-    settings.chimeDevice1.playSound(disarmSound1)
-    settings.chimeDevice2.playSound(disarmSound2)
+    settings.chimeDevice.playSound(disarmSound)
 }
 
 def presenceHandler(evt){
@@ -599,14 +549,12 @@ def waterHandler(evt){
 }
 def waterLeakDetected(){
     if (state.night||state.away){
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
+        settings.chimeDevice.playSound(waterSound)
         settings.valveDevice.close()
         logInfo ("Leak Detected for longer than timeout limit, Mode is Away or Night, Closing water Valve")
     }
     else{
-        settings.chimeDevice1.playSound(waterSound1)
-        settings.chimeDevice2.playSound(waterSound2)
+        settings.chimeDevice.playSound(waterSound)
         logInfo ("Leak Detected for longer than timeout limit")
     }
 }
