@@ -18,6 +18,7 @@
     2021-02-23 Added shock cap for panic mode [0911] and stop GG
     2021-02-24 Added fingerprints for xfinity UE,TC,3400  GG
     2021-02-25 Added tone cap and show code options  GG
+    2021-07-29 Added Actuator cap  GG
 
 */
 
@@ -28,6 +29,7 @@ metadata {
     definition (name: "Xfinity Keypad", namespace: "Gassgs", author: "Mike Maxwell") {
 
         capability "Battery"
+        capability "Actuator"
         capability "Configuration"
         capability "Motion Sensor"
         capability "Sensor"
