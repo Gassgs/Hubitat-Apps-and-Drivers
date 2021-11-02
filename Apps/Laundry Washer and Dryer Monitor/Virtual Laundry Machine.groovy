@@ -19,6 +19,7 @@
  *    V1.0  1-20-2021   -       first run - Gassgs  
  *    V1.1  2-13-2021   -       removed acceleration cap, not needed
  *    V1.2  7-1-2021    -       improved update method
+ *    V1.3  10-8-2021   -       cleanup
  */
 
 metadata {
@@ -37,10 +38,12 @@ metadata {
 
 //doesn't function, device is for monitoring only
 def on(){
+    log.info "on pushed, doesn't do anything"
 }
 //used to turn off notifications and reset to "off"
 def off(){
     sendEvent(name:"switch",value:"off")
+    log.info "off pushed, setting to off"
 }
 //no function. device is for monitoring only
 def start(){
