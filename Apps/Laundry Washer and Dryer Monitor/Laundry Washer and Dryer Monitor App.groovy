@@ -24,7 +24,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 7/1/2021
+ *  Last Update: 10/26/2021
  *
  *  Changes:
  *
@@ -35,6 +35,8 @@
  *  V1.4.0 -        2-11-2021       Improved door/lid event handlers
  *  V1.5.0 -        2-18-2021       Redo -removed vibration sensors not reliable
  *  V1.6.0 -        7-1-2021        Changed update method and device driver
+ *  V1.7.0 -        10-23-2021      added notifications volume set "75"
+ *  V1.8.0 -        10-26-2021      added Smart TTS Device option, With Voice and Volume options
  */
 
 import groovy.transform.Field
@@ -112,26 +114,6 @@ preferences {
             )
     }
     section{
-        paragraph("<div style='text-align:center'><b>Washing complete notification options</b></div>"
-        )
-        input(
-            name:"washerNotificationDevices",
-            type:"capability.notification",
-            title:"Push notification device",
-            required: false,
-            multiple: true
-            )
-    }
-    section{
-        input(
-            name:"washerTtsDevices",
-            type:"capability.speechSynthesis",
-            title:"Choose TTS speaker(s)",
-            required: false,
-            multiple: true
-            )
-    }
-    section{
         paragraph("<div style='text-align:center'><b>Dryer options</b></div>"
         )
         input(
@@ -185,24 +167,53 @@ preferences {
             )
     }
     section{
-        paragraph("<div style='text-align:center'><b>Dryer complete notification options</b></div>"
-        )
-        input(
-            name:"dryerNotificationDevices",
-            type:"capability.notification",
-            title:"Push Notification device",
-            required: false,
-            multiple: true
+        paragraph(
+            title:"TTS Options",
+            required: true,
+            "<div style='text-align:center'><b>TTS Smart Device Options</b></div>"
             )
-    }
-    section{
         input(
-            name:"dryerTtsDevices",
+            name:"ttsDevice",
             type:"capability.speechSynthesis",
-            title:"Choose TTS speaker(s)",
-            required: false,
-            multiple: true
+            title: "TTS Smart notification device",
+            multiple: false,
+            required: true,
+            submitOnChange: true
             )
+        input(
+            name:"volume",
+            type:"number",
+            title:"Volume level for message",
+            defaultValue: 80,
+            required: true,
+            submitOnChange: true
+            )
+            def voiceOptions = [:]
+            voiceOptions << ["Nicole" : "Nicole, Female, Australian English"]
+            voiceOptions << ["Russell" : "Russell, Male, Australian English"]
+	    voiceOptions << ["Amy" : "Amy, Female, British English"]
+            voiceOptions << ["Emma" : "Emma, Female, British English"]
+            voiceOptions << ["Brian" : "Brian, Male, British English"]
+            voiceOptions << ["Aditi" : "Aditi, Female, Indian English"]
+            voiceOptions << ["Raveena" : "Raveena, Female, Indian English"]
+	    voiceOptions << ["Ivy" : "Ivy, Female, US English"]
+            voiceOptions << ["Joanna" : "Joanna, Female, US English"]
+            voiceOptions << ["Kendra" : "Kendra, Female, US English"]
+            voiceOptions << ["Kimberly" : "Kimberly, Female, US English"]
+            voiceOptions << ["Salli" : "Salli, Female, US English"]
+            voiceOptions << ["Joey" : "Joey, Male, US English"]
+            voiceOptions << ["Justin" : "Justin, Male, US English"]
+            voiceOptions << ["Matthew" : "Matthew, Male, US English"]
+            voiceOptions << ["Penelope" : "Penelope, Female, US Spanish"]
+            voiceOptions << ["Miguel" : "Miguel, Male, US Spanish"]
+            voiceOptions << ["Geraint" : "Geraint, Male, Welsh English"]
+        input (
+            name:"voice",
+            type:"enum", 
+            title: "Voice Options",
+            options: voiceOptions,
+            defaultValue: "Amy"
+            ) 
     }
     section{
         input(
@@ -308,8 +319,7 @@ def washerNotifications(){
 def sendWasherMsg(){
     if (state.washerSwitchOn&&state.washerIdle){
         logInfo ("sending washer done message")
-        settings.washerNotificationDevices.deviceNotification("The washer is done, please move the wet laundry to the dryer to stop these messages")
-        settings.washerTtsDevices.speak("The Washer is done please move the wet laundry to the dryer")
+        settings.ttsDevice.speak("The Washer is done please move the wet laundry to the dryer to stop these messages",settings.volume as Integer,settings.voice as String)
         runIn(15*60,washerNotifications)
     }
     else{
@@ -388,8 +398,7 @@ def dryerNotifications(){
 def sendDryerMsg(){
     if (state.dryerSwitchOn&&state.dryerIdle){
         logInfo ("sending dryer notifications")
-        settings.dryerNotificationDevices.deviceNotification("The laundry in the dryer is now dry")
-        settings.dryerTtsDevices.speak("The laundry in the dryer is now dry")
+        settings.ttsDevice.speak("The laundry in the dryer is now dry",settings.volume as Integer,settings.voice as String)
         logInfo ("sending again in 30 minutes")
         runIn(30 *60,sendDryerMsg2)
     }
@@ -401,8 +410,7 @@ def sendDryerMsg(){
 def sendDryerMsg2(){
     if (state.dryerSwitchOn&&state.dryerIdle){
         logInfo ("sending dryer notifications 2")
-        settings.dryerNotificationDevices.deviceNotification("The laundry in the dryer can be put away now")
-        settings.dryerTtsDevices.speak("The laundry in the dryer is dry and can be put away")
+        settings.ttsDevice.speak("The laundry in the dryer is dry and can be put away",settings.volume as Integer,settings.voice as String)
         sendEvent(settings.dryer,[name:"switch",value:"off"])
         logInfo ("dryer cycle complete")
     }
