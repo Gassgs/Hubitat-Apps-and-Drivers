@@ -29,7 +29,7 @@ def driverVer() { return "1.3" }
  
 metadata {
 	definition (name: "Tasker Mobile Presence", namespace: "Gassgs", author: "Gary G") {
-	    capability "Presence Sensor"
+	capability "Presence Sensor"
         capability "Sensor"
         capability "Power Source"
         capability "Actuator"
@@ -48,7 +48,7 @@ metadata {
 	}
     
     preferences {
-		input name: "ipAddress",type: "string",title: "Phone IP Address",required: true	
+	input name: "ipAddress",type: "string",title: "Phone IP Address",required: true	
         input name: "timeoutMinutes",type: "number",title: "Timeout Minutes",required: true,defaultValue: 3
         input name: "enableDevice",type: "bool",title: "Enable Device?",required: true,defaultValue: true
         input name: "infoEnable", type: "bool", title: "Enable Info Text logging", defaultValue: true
