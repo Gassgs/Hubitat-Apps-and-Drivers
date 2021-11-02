@@ -39,7 +39,9 @@
  *  V1.7.0  -       8-27-2021       Fixed morning retriggering from motion and switches
  *  V1.8.0  -       8-30-2021       Fixed unwanted extra changes triggered by Lux and contact changes.
  *  V1.9.0  -       9-22-2021       Fixed resume position door handler + added Set Morning position option for Soma devices.
- *  V2.0.0  -       10-4-2021       Added Set Speed option for Zemismart AM43-zb blind drive devices.
+ *  V2.0.0  -       10-4-2021       Added Set Speed option for Zemismart AM43-zb blind drive devices, Changed Shadeactive initialized state.
+ *  V2.1.0  -       10-15-2021      Added option to close window covering when home goes into Away mode.
+ *  V2.2.0  -       10-26-2021      Bug fixes and improvements for setSpeed and Away mode, organization improved
  */
 
 import groovy.transform.Field
@@ -262,8 +264,16 @@ preferences{
         paragraph(
         title: "Away Mode",
         required: true,
-    	"<div style='text-align:center'><b>Away Mode sets day position when lux above threshold and closes when lux below threshold</b></div>"
+    	"<div style='text-align:center'><b>When in Away Mode, window covering will close when lux is below threshold</b></div>"
      	)
+        input(
+            name:"awayClose",
+            type:"bool",
+            title:"<b>Enable to close</b> window covering when home goes into Away Mode",
+            defaultValue:"false",
+            required: true,
+            submitOnChange: true
+        )
         }
     section{
         input(
@@ -455,7 +465,6 @@ def initialize(){
 }
 
 def getValues(){
-    state.shadeActiveMode = true
     state.changeOnLux = true
     state.waitingToClose = false
     mode = location.currentMode as String
@@ -476,6 +485,11 @@ def getValues(){
         shadeStatus = settings.shade.currentValue("switch")
         state.shadeOpen = (shadeStatus == "on")
         state.shadeClosed = (shadeStatus == "off")
+        if (state.shadeOpen){
+            state.shadeActiveMode = true
+        }else{
+            state.shadeActiveMode = false
+        }
     }
     if (settings.openSwitch){
         status = settings.openSwitch.currentValue("switch")
@@ -767,6 +781,7 @@ def setModePosition(){
         }
     }
     if (state.dinner){
+        state.shadeActiveMode = true
         currentPos = shade.currentValue("position") as Integer
         logDebug ("current position is $currentPos, dinner position is $dinnerPos")
         if (currentPos == dinnerPos){
@@ -886,37 +901,49 @@ def setModePosition(){
             }
         }   
     }
-    if (state.away){ 
-        if (state.luxOk){
-            logDebug ("setting position $dayPos for mode- Away")
-            state.shadeActiveMode = true
-            if (settings.somaMorningPos){
-                settings.shade.setMorningPosition(dayPos)
-            }
-            else if (settings.setSpeed){
-                settings.shade.setSpeed(speed)
-                settings.shade.setPosition(dayPos)
-            }
-            else if (settings.duration == 1 || settings.duration == 0){
-                settings.shade.setPosition(dayPos)
+    if (state.away){
+        currentPos = shade.currentValue("position") as Integer
+        if (awayClose){
+            if (currentPos == 0){
+                logDebug ("Currrent Position is already at 0, no change needed")
             }else{
-                settings.shade.setLevel(dayPos,duration)
+                logDebug ("Home in Away mode closing Shade")
+                state.shadeActiveMode = false
+                if (settings.somaMorningPos){
+                    settings.shade.setMorningPosition(0)
+                }
+                else if (settings.setSpeed){
+                    settings.shade.setSpeed(speed)
+                    settings.shade.setPosition(0)
+                }
+                else if (settings.duration == 1 || settings.duration == 0){
+                    settings.shade.setPosition(0)
+                }else{
+                    settings.shade.setLevel(0,duration)
+                }
             }
         }
-        if (state.luxLow){
-            logDebug ("Lux below threshold checking to close for day Away mode")
-            state.shadeActiveMode = false
-            if (settings.somaMorningPos){
-                settings.shade.setMorningPosition(0)
-            }
-            else if (settings.setSpeed){
-                settings.shade.setSpeed(speed)
-                settings.shade.setPosition(0)
-            }
-            else if (settings.duration == 1 || settings.duration == 0){
-                settings.shade.setPosition(0)
+        else if (state.luxOk){
+            logDebug ("Lux OK, no change needed for Away mode")
+        }
+        else if (state.luxLow){
+            if (currentPos == 0){
+                logDebug ("Currrent Position is already at 0, no change needed")
             }else{
-                settings.shade.setLevel(0,duration)
+                logDebug ("Lux below threshold checking to close for day Away mode")
+                state.shadeActiveMode = false
+                if (settings.somaMorningPos){
+                    settings.shade.setMorningPosition(0)
+                }
+                else if (settings.setSpeed){
+                    settings.shade.setSpeed(speed)
+                    settings.shade.setPosition(0)
+                }
+                else if (settings.duration == 1 || settings.duration == 0){
+                    settings.shade.setPosition(0)
+                }else{
+                    settings.shade.setLevel(0,duration)
+                }
             }
         }
     }
@@ -975,19 +1002,24 @@ def shadesCloseCheck(){
 
 def shadeClose(){
     logDebug ("shade closed")
+    currentPos = shade.currentValue("position") as Integer
     state.shadeActiveMode = false
     state.waitingToClose = false
-    if (settings.somaMorningPos){
-        settings.shade.setMorningPosition(0)
-    }
-    else if (settings.setSpeed){
-        settings.shade.setSpeed(speed)
-        settings.shade.setPosition(0)
-    }
-    else if (settings.duration == 1 || settings.duration == 0){
-        settings.shade.setPosition(0)
+    if (currentPos == 0){
+        logDebug ("Currrent Position is already at 0, no change needed")
     }else{
-        settings.shade.setLevel(0,duration)
+        if (settings.somaMorningPos){
+            settings.shade.setMorningPosition(0)
+        }
+        else if (settings.setSpeed){
+            settings.shade.setSpeed(speed)
+            settings.shade.setPosition(0)
+        }
+        else if (settings.duration == 1 || settings.duration == 0){
+            settings.shade.setPosition(0)
+        }else{
+            settings.shade.setLevel(0,duration)
+        }
     }
 }
 
