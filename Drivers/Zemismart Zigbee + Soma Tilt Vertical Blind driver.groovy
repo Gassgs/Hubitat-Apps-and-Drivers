@@ -23,21 +23,22 @@
  *  V1.3.0  8-26-2021       Added Tilt limits to prevent overtightening.
  *  V1.4.0  8-28-2021       Added short delays when opening from closed, as a safety precaution.
  *  V1.5.0  8-30-2021       Added range limiting for set tilt based on position and tilt open/close commands.
+ *  V1.6.0  10-27-2021      Changed Battery Check to once per day at 6:00am
  */
 
 import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
 import hubitat.helper.HexUtils
 
-def driverVer() { return "1.5" }
+def driverVer() { return "1.6" }
 
 metadata {
-	definition(name: "Zigbee + Soma Tilt Vertical Blinds", namespace: "Gassgs", author: "Gary G") {
-	capability "Actuator"
-	capability "Window Shade"
+	definition(name: "Zemismart + Soma Tilt Vertical Blinds", namespace: "Gassgs", author: "Gary G") {
+		capability "Actuator"
+		capability "Window Shade"
         capability "WindowBlind"
         capability "Change Level"
-	capability "Switch Level"
+		capability "Switch Level"
         capability "Switch"
         capability "Refresh"
         capability "Battery"
@@ -55,7 +56,7 @@ metadata {
         input name: "mac",type: "text", title: "Mac address of Tilt 2 device", required: true
         input name: "Direction", type: "enum", title: "Direction Set", defaultValue: "00", options:["01": "Reverse", "00": "Forward"], displayDuringSetup: true
         input "logInfoEnable", "bool", title: "Enable info text logging", required: true, defaultValue: true
-	input "logEnable", "bool", title: "Enable debug logging", required: true, defaultValue: true
+	    input "logEnable", "bool", title: "Enable debug logging", required: true, defaultValue: true
     }
 }
 
@@ -289,7 +290,7 @@ def updated() {
 	DirectionSet(val)
     state.DriverVersion=driverVer()
     refresh()
-    runEvery30Minutes(refresh)
+    schedule('0 0 6 * * ?',getBattery)
 }
 
 def DirectionSet(Dval) {
@@ -408,6 +409,7 @@ def tiltClose(){
         setTiltLevel(0)
     }
 }
+
 
 def getBattery() {
     if (logEnable) log.debug "Checking Battery Level"
