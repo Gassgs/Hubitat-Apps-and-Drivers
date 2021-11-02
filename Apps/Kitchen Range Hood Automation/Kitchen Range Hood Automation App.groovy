@@ -22,11 +22,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 2/15/2021
+ *  Last Update: 10/21/2021
  *
  *  Changes:
  *
  *  V1.0.0      -       2-15-2021       First run
+ *  V1.1.0      -       10-21-2021      Improvements and fixes
  *
  */
 
@@ -196,44 +197,38 @@ preferences{
               )
         input(
             name:"hoodSensor",
-            type:"capability.relativeHumidityMeasurement",
-            title: "Range Hood temperature and humidity sensor",
+            type:"capability.temperatureMeasurement",
+            title: "Range Hood temperature sensor",
             multiple: true,
             required: true,
             submitOnChange: true
             )
-            if(hoodSensor){
-            paragraph "<b>Current hood sensor humidity reading is ${hoodHumidity()}%</b>"
-        }
             if(hoodSensor){
             paragraph "<b>Current hood sensor temperature reading is ${hoodTemperature()}</b>"
         }
         input(
             name:"baselineSensors",
-            type:"capability.relativeHumidityMeasurement",
-            title: "Baseline temperature and humidity sensor(s)",
+            type:"capability.temperatureMeasurement",
+            title: "Baseline temperature sensor(s)",
             required: true,
             multiple: true,
             submitOnChange: true
             )
             if(baselineSensors){
-            paragraph "<b>Current baseline humidity average is ${baselineHumidity()}%</b>"
-        }
-            if(baselineSensors){
             paragraph "<b>Current baseline temperature average is ${baselineTemperature()}</b>"
         }
         input(
-            name:"tempThreshold",
+            name:"tempOnThreshold",
             type:"number",
-            title:"The Temperature threshold above baseline to trigger on-off",
+            title:"The Temperature threshold above baseline to trigger ON",
             defaultValue: 8,
             submitOnChange: true
         )
         input(
-            name:"humThreshold",
+            name:"tempOffThreshold",
             type:"number",
-            title:"The Humidity threshold above baseline to trigger on-off",
-            defaultValue: 5,
+            title:"The Temperature threshold above baseline to trigger OFF",
+            defaultValue: 7,
             submitOnChange: true
         )
     }
@@ -273,12 +268,11 @@ def updated(){
 	unschedule()
     unsubscribe()
 	initialize()
+    getValues()
 }
 
 def initialize(){
-	subscribe(settings.hoodSensor, "humidity", hoodSensorHumidityHandler)
     subscribe(settings.hoodSensor, "temperature", hoodSensorTemperatureHandler)
-    subscribe(settings.baselineSensors, "humidity", baselineHumidityHandler)
     subscribe(settings.baselineSensors, "temperature", baselineTemperatureHandler)
     subscribe(settings.fanSwitch, "switch",  fanSwitchHandler)
     subscribe(settings.light, "switch",  lightSwitchHandler)
@@ -286,8 +280,29 @@ def initialize(){
     subscribe(settings.activeMotionSensors, "motion.active",  activeMotionHandler)
     subscribe(settings.inactiveMotionSensors, "motion",  inactiveMotionHandler)
     subscribe(location, "mode", modeEventHandler)
-    //run something  ---get humidity and temp
     logInfo ("subscribed to sensor events")
+}
+
+def getValues(){
+    state.timerFan = false
+    mode = location.currentMode as String
+    state.earlyMorning = (mode == "Early_morning")
+    state.day = (mode == "Day")
+    state.afternoon = (mode == "Afternoon")
+    state.dinner = (mode == "Dinner")
+    state.evening = (mode == "Evening")
+    state.lateEvening = (mode == "Late_evening")
+    state.night = (mode == "Night")
+    state.away = (mode == "Away")
+    if (settings.switch){
+        status = settings.switch.currentValue("switch")
+        state.switchOk = (status == "on")
+    }
+    if (settings.fanSwitch){
+        status = settings.fanSwitch.currentValue("switch")
+        state.fanSwitchOn = (status == "on")
+        state.fanSwitchOff = (status == "off")
+    }
 }
 
 def modeEventHandler(evt){
@@ -400,7 +415,7 @@ def hoodTemperature(){
     return roundedAverage(settings.hoodSensor, {it.currentTemperature}, 1)
 }
 def getHoodTemperature(){
-    logInfo ("Current temperature average is ${hoodTemperature()}")
+	logInfo ("Current temperature average is ${hoodTemperature()}")
     tempHumidityFanHandler()
 }
 
@@ -411,29 +426,7 @@ def baselineTemperature(){
     return roundedAverage(settings.baselineSensors, {it.currentTemperature}, 1)
 }
 def getBaselineTemperature(){
-    logInfo ("Current baseline temperature is ${baselineTemperature()}")
-    tempHumidityFanHandler()
-}
-
-def hoodSensorHumidityHandler(evt){
-    getHoodHumidity()
-}
-def hoodHumidity(){
-    return roundedAverage(settings.hoodSensor, {it.currentHumidity}, 1)
-}
-def getHoodHumidity(){
-    logInfo("Current hood humidity is ${hoodHumidity()}%")
-    tempHumidityFanHandler()
-}
-
-def baselineHumidityHandler(evt){
-    getBaselineHumidity()
-}
-def baselineHumidity(){
-    return roundedAverage(settings.baselineSensors, {it.currentHumidity}, 1)
-}
-def getBaselineHumidity(){
-    logInfo("Current baseline humidity  is ${baselineHumidity()}%")
+	logInfo ("Current baseline temperature is ${baselineTemperature()}")
     tempHumidityFanHandler()
 }
 
@@ -442,31 +435,29 @@ def fanSwitchHandler(evt){
     logInfo ("Fan Switch $evt.value")
     state.fanSwitchOn = (evt.value == "on")
     state.fanSwitchOff = (evt.value == "off")
-    if (state.fanSwitchOn&&state.tempHumidityFanOff){
+    if (state.fanSwitchOn && state.goodTemperature){
+        state.timerFan = true
+        logInfo ("Auto Fan on, turning off in $autoOff minutes")
         runIn(autoOff*60,autoFanOff)
     }
 }
 
 def tempHumidityFanHandler(){
-    hoodHumidity = hoodHumidity()
     hoodTemperature = hoodTemperature()
-    baselineHumidity = baselineHumidity()
     baselineTemperature = baselineTemperature()
-    fanHumidityThreshold = (baselineHumidity + humThreshold)
-    fanTemperatureThreshold = (baselineTemperature + tempThreshold)
-    state.highHumidity = (hoodHumidity > fanHumidityThreshold)
-    state.goodHumidity = (hoodHumidity <= fanHumidityThreshold)
-    state.highTemperature = (hoodTemperature > fanTemperatureThreshold)
-    state.goodTemperature = (hoodTemperature <= fanTemperatureThreshold)
-    if (state.highHumidity||state.highTemperature){
-        logInfo ("temp or humidity above threshold")
-        state.tempHumidityFanOff = false
+    fanTemperatureOnThreshold = (baselineTemperature + tempOnThreshold)
+    fanTemperatureOffThreshold = (baselineTemperature + tempOffThreshold)
+    state.highTemperature = (hoodTemperature > fanTemperatureOnThreshold)
+    state.goodTemperature = (hoodTemperature <= fanTemperatureOffThreshold)
+    if (state.highTemperature){
+        logInfo ("temperature above threshold")
         turnFanOn()
     }
-    if (state.goodHumidity&&state.goodTemperature){
-        logInfo ("temp and humidity below threshold")
-        state.tempHumidityFanOff = true
-        turnFanOff()
+    if (state.goodTemperature){
+        logInfo ("temperature below threshold")
+        if (! state.timerFan){
+            turnFanOff()
+        }
     }
 }
 
@@ -493,6 +484,7 @@ def turnFanOff(){
 def autoFanOff(){
     logInfo ("auto off timer expired, turning fan Off")
     settings.fanSwitch.off()
+    state.timerFan = false
 }
 
 void logInfo(String msg){
