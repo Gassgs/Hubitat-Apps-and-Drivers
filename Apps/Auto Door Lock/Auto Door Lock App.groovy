@@ -21,13 +21,15 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 2/16/2021
+ *  Last Update: 10/26/2021
  *
  *  Changes:
  *
  *  V1.0.0      -       2-16-2021       First run
  *  V1.1.0      -       2-17-2021       Logic improvements
  *  V1.2.0      -       2-19-2021       added notifications
+ *  V1.3.0      -       10-21-2021      added notifications volume set "75"
+ *  V1.4.0      -       10-26-2021      added Smart TTS Device option, With Voice and Volume options
  */
 
 import groovy.transform.Field
@@ -173,22 +175,53 @@ preferences{
      	)
     }
     section{
+        paragraph(
+            title:"TTS Options",
+            required: true,
+            "<div style='text-align:center'><b>TTS Smart Device Options</b></div>"
+            )
         input(
-            name:"textDevices",
-            type:"capability.notification",
-            title: "Push notification devices",
-            multiple: true,
-            required: false,
-            submitOnChange: true
-            )
-            input(
-            name:"ttsDevices",
+            name:"ttsDevice",
             type:"capability.speechSynthesis",
-            title: "TTS speaker notification devices",
-            multiple: true,
-            required: false,
+            title: "TTS Smart notification device",
+            multiple: false,
+            required: true,
             submitOnChange: true
             )
+        input(
+            name:"volume",
+            type:"number",
+            title:"Volume level for message",
+            defaultValue: 75,
+            required: true,
+            submitOnChange: true
+            )
+            def voiceOptions = [:]
+            voiceOptions << ["Nicole" : "Nicole, Female, Australian English"]
+            voiceOptions << ["Russell" : "Russell, Male, Australian English"]
+		    voiceOptions << ["Amy" : "Amy, Female, British English"]
+            voiceOptions << ["Emma" : "Emma, Female, British English"]
+            voiceOptions << ["Brian" : "Brian, Male, British English"]
+            voiceOptions << ["Aditi" : "Aditi, Female, Indian English"]
+            voiceOptions << ["Raveena" : "Raveena, Female, Indian English"]
+		    voiceOptions << ["Ivy" : "Ivy, Female, US English"]
+            voiceOptions << ["Joanna" : "Joanna, Female, US English"]
+            voiceOptions << ["Kendra" : "Kendra, Female, US English"]
+            voiceOptions << ["Kimberly" : "Kimberly, Female, US English"]
+            voiceOptions << ["Salli" : "Salli, Female, US English"]
+            voiceOptions << ["Joey" : "Joey, Male, US English"]
+            voiceOptions << ["Justin" : "Justin, Male, US English"]
+            voiceOptions << ["Matthew" : "Matthew, Male, US English"]
+            voiceOptions << ["Penelope" : "Penelope, Female, US Spanish"]
+            voiceOptions << ["Miguel" : "Miguel, Male, US Spanish"]
+            voiceOptions << ["Geraint" : "Geraint, Male, Welsh English"]
+        input (
+            name:"voice",
+            type:"enum", 
+            title: "Voice Options",
+            options: voiceOptions,
+            defaultValue: "Amy"
+            ) 
     }
     section{
         input(
@@ -323,7 +356,7 @@ def lockDoor(){
     logInfo ("locking door if closed")
     if (state.doorClosed){
         settings.lock.lock()
-        runIn(5,checkLock)
+        runIn(8,checkLock)
     }
     else if (state.doorOpen){
         unschedule (lockDoor)
@@ -334,7 +367,8 @@ def lockDoor(){
 def checkLock(){
     if (state.locked)
     logInfo ("door closed and locked")
-    else {
+
+    else if (state.unLocked){
         logInfo ("lock did not lock, sending error Msg")
         checkLockError()
     }
@@ -343,32 +377,28 @@ def checkLock(){
 def unlockedCheck(){
     if (state.unlocked){
         logInfo ("Lock has been unlocked longer than timeout threshold sending Msg")
-        settings.textDevices.deviceNotification("Front Door Lock has been unlocked for $unlockedTimeout minutes please check front door")
-        settings.ttsDevices.speak("Front Door lock has been unlocked for $unlockedTimeout minutes please check front door")
+        settings.ttsDevice.speak("Front Door lock has been unlocked for $unlockedTimeout minutes please check front door",settings.volume as Integer,settings.voice as String)
     }
 }
 
 def doorOpenCheck(){
     if (state.doorOpen ){
         logInfo ("Door has been open longer than timeout threshold sending Msg")
-        settings.textDevices.deviceNotification("Front Door has been open for $doorOpenTimeout minutes please check door")
-        settings.ttsDevices.speak("Front Door has been open for $doorOpenTimeout minutes please check door")
+        settings.ttsDevice.speak("Front Door has been open for $doorOpenTimeout minutes please check door",settings.volume as Integer,settings.voice as String)
     }
 }
 
 def lockError(){
     if (state.locked&&state.doorOpen){
         logInfo ("Lock is locked but the door is still open sending Msg")
-        settings.textDevices.deviceNotification("Lock ERROR! the Lock is locked but the front door is still open")
-        settings.ttsDevices.speak("Lock ERROR! the Lock is locked but the front door is still open, please check the front door")
+        settings.ttsDevice.speak("Lock ERROR! the Lock is locked but the front door is still open, please check the front door",settings.volume as Integer,settings.voice as String)
     }
 }
 
 def checkLockError(){
     if (state.unlocked){
         logInfo ("Lock was not able to lock - the lock could be jammed-  sending Msg")
-        settings.textDevices.deviceNotification("Lock ERROR! the Lock was not able to lock - the lock could be jammed-")
-        settings.ttsDevices.speak("Lock ERROR! the Lock was not able to lock - the lock could be jammed-, please check the front door")
+        settings.ttsDevice.speak("Lock ERROR! the Lock was not able to lock - the lock could be jammed-, please check the front door",settings.volume as Integer,settings.voice as String)
     }
 }
 
