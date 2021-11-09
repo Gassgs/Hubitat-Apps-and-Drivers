@@ -19,6 +19,7 @@
     2021-02-24 Added fingerprints for xfinity UE,TC,3400  GG
     2021-02-25 Added tone cap and show code options  GG
     2021-07-29 Added Actuator cap  GG
+    2021-11-08 Fix for "-200 " battery level on Xfinity TC Keypad  GG
 
 */
 
@@ -626,7 +627,7 @@ private getTemperatureResult(valueRaw){
 }
 
 private getBatteryResult(rawValue) {
-    if (rawValue == null) return
+    if (rawValue == null || rawValue == 0 ) return
     if (logEnable) log.debug "getBatteryResult: ${rawValue}"
     def descriptionText
     def value
