@@ -1,7 +1,7 @@
 /*
- *  Tasmota Aquarium w/ Tasmota Sonoff RF Bridge & Tasmota Auto Fish Feeder
+ *  Tasmota Aquarium w/ Tasmota Sonoff RF Bridge & Tasmota Fish Feeder
  *
- * RF Controlled Light, Tasmota Auto Fish Feeder with added Temperature Probe
+ * RF Controlled Light, Tasmota Fish Feeder with added Temperature Probe
  *
  * Calls URIs with HTTP GET forSonOff RF Bridge  Aquarium Light Control
  * Tasmota Automatic Fish Feeder with Counter and Temperature Sensor
@@ -26,7 +26,7 @@
  * BluLow  AAB04D0408021C03C0064A17203818080818081818180808180808081818080808081808180818080808080818080808080808180818080808181808080808180808081818081808081818180818082955
  * BluHigh AAB04D0408021C03CA064017663818080818081818180808180808081818080808081808180818080808081818180808080808180818080808181808080808180808081818080818081808080818082955
  */
-def driverVer() { return "1.2" }
+def driverVer() { return "1.3" }
 
 metadata {
     definition(name: "Tasmota Aquarium", namespace: "Gassgs ", author: "Gary G") {
@@ -58,9 +58,9 @@ preferences {
 		refreshRate << ["15 min" : "Refresh every 15 minutes"]
 		refreshRate << ["30 min" : "Refresh every 30 minutes"]
 		input "sonoffIP", "text", title: "Sonoff RF Bridge IP Address", required: true
-        input name: "rfoffenabled", type: "bool" , title: "Send RF Raw Off", defaultValue: true
-        input "feederIP", "text", title: "Tasmota Feeder IP Address", required: false // true
+        input "feederIP", "text", title: "Tasmota Feeder IP Address", required: true
         input ("refresh_Rate", "enum", title: "Device Refresh Rate", options: refreshRate, defaultValue: "15 min")
+        input name: "rfoffenabled", type: "bool" , title: "Send RF Raw Off", defaultValue: true
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
         input name: "infoEnable", type: "bool", title: "Enable info logging", defaultValue: true
     }
@@ -110,7 +110,15 @@ def parse(String description) {
 }
 
 def feedFish(){
-    date = new Date()
+    now = new Date()
+    dateFormat = new java.text.SimpleDateFormat("EE MMM d")
+    timeFormat = new java.text.SimpleDateFormat("h:mm a")
+
+    newDate = dateFormat.format(now)
+    newTime = timeFormat.format(now)
+    
+    timeStamp = newDate + " " + newTime as String
+    
     if (logEnable) log.debug "Sending Feed Command to $device.label"
     try {
        httpGet("http://" + feederIP + "/cm?cmnd=Power%20On") { resp ->
@@ -121,8 +129,8 @@ def feedFish(){
            }
            if (json.POWER == "ON") {
                if (logEnable) log.debug "Command Success response from Device"
-               sendEvent(name: "lastFeeding", value: "$date")
-               if (infoEnable) log.info "$device.label Fish feed $date"
+               sendEvent(name: "lastFeeding", value: "$timeStamp")
+               if (infoEnable) log.info "$device.label Fish feed $timeStamp"
                runIn(10,refresh)          
             }
        }   
