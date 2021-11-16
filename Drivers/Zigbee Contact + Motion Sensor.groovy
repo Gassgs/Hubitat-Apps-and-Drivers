@@ -22,9 +22,10 @@
  *  V1.1.0  8-03-2021       "fixed" Battery reporting
  *  V1.2.0  8-22-2021       Added Battery change date and count
  *  V1.3.0  10-23-2021      Added Motion timeout option
+ *  V1.4.0  11-15-2021      Improved format for battery changed data and battery level
  */
 
-def driverVer() { return "1.3" }
+def driverVer() { return "1.4" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
@@ -33,29 +34,29 @@ metadata
 	definition(name: "Zigbee Contact + Motion Sensor", namespace: "Gassgs", author: "GaryG")
 	{
 		capability "Motion Sensor"
-        	capability "Contact Sensor"
+        capability "Contact Sensor"
 		capability "Configuration"
 		capability "Battery"
 		capability "Temperature Measurement"
 		capability "Refresh"
 		capability "Sensor"
         
-        	command "batteryChanged"
+        command "batteryChanged"
         
-        	attribute "batteryVoltage","string"
+        attribute "batteryVoltage","string"
 
-	fingerprint inClusters: "0000,0001,0003,0020,0402,0500,0B05", outClusters: "0019", manufacturer: "Ecolink", model: "4655BC0-R", deviceJoinName: "Ecolink Contact Sensor"
+		fingerprint inClusters: "0000,0001,0003,0020,0402,0500,0B05", outClusters: "0019", manufacturer: "Ecolink", model: "4655BC0-R", deviceJoinName: "Ecolink Contact Sensor"
         fingerprint inClusters: "0000,0001,0003,0402,0500,0020,0B05", outClusters: "0019", manufacturer: "Visonic", model: "MCT-340 E", deviceJoinName: "Visonic Contact Sensor"
 	}
 
 	preferences{
 		section{
 			input "tempOffset", "number", title: "Temperature Offset", range: "*..*", displayDuringSetup: false, type: "paragraph", element: "paragraph"
-            		input "motionReset", "bool", title: "Enable motion timeout", defaultValue: false, required: true, submitOnChange: true
-            		if (motionReset){
-                		input "motionTimeout", "number", title: "Motion timeout in seconds", defaultValue: 60, required: true, multiple: false
-            		}
-            		input "enableInfo", "bool", title: "Enable info logging?", defaultValue: true, required: false, multiple: false
+            input "motionReset", "bool", title: "Enable motion timeout", defaultValue: false, required: true, submitOnChange: true
+            if (motionReset){
+                input "motionTimeout", "number", title: "Motion timeout in seconds", defaultValue: 60, required: true, multiple: false
+            }
+            input "enableInfo", "bool", title: "Enable info logging?", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "Enable debug logging?", defaultValue: false, required: false, multiple: false
 		}
 	}
@@ -169,8 +170,8 @@ private Map translateZoneStatus(ZoneStatus zs) {
 
 def getBatteryResult(rawValue) {
 	def batteryVolts = $rawValue
-	def minVolts = 2.0
-	def maxVolts = 3.0
+	def minVolts = 1.9
+	def maxVolts = 2.9
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
     sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
@@ -181,8 +182,8 @@ def getBatteryResult(rawValue) {
 
 def batteryEvent(rawValue) {
 	def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
-	def minVolts = 20
-	def maxVolts = 30
+	def minVolts = 19
+	def maxVolts = 29
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
 	if (batteryValue > 0){
@@ -242,8 +243,16 @@ def configure() {
 }
 
 def batteryChanged(){
-    date = new Date()
-    state.batteryChanged = "$date"
+    now = new Date()
+    dateFormat = new java.text.SimpleDateFormat("EE MMM d YYYY")
+    timeFormat = new java.text.SimpleDateFormat("h:mm a")
+
+    newDate = dateFormat.format(now)
+    newTime = timeFormat.format(now)
+    
+    timeStamp = newDate + " " + newTime as String
+    
+    state.batteryChanged = "$timeStamp"
     state.batteryChangedDays = 0
     initialize()
 }
