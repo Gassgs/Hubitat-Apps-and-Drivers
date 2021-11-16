@@ -18,7 +18,8 @@
  *  Change History:
  *
  *    V1.0  10-24-2021   -       first run - Gassgs
- *    V1.2  10-28-2021   -       Added last message attibute for dashboards - Gassgs 
+ *    V1.2  10-28-2021   -       Added last message attibute for dashboards - Gassgs
+ *    V1.3  11-14-2021   -       Added date info to last message attribute - Gassgs
  *  
  */
 
@@ -40,11 +41,20 @@ metadata {
 }
         
 def speak(string,volume = "null",voice = "null"){
+    now = new Date()
+    dateFormat = new java.text.SimpleDateFormat("EE MMM d")
+    timeFormat = new java.text.SimpleDateFormat("h:mm a")
+
+    newDate = dateFormat.format(now)
+    newTime = timeFormat.format(now)
+    
+    timeStamp = newDate + " " + newTime as String
+    
     if (logInfo) log.info "$device.label Text - $string - Volume $volume - Voice $voice"
     sendEvent(name:"message",value:string)
-    sendEvent(name:"lastMessage",value:string)
     sendEvent(name:"volume",value:volume)
     sendEvent(name:"voice",value:voice)
+    sendEvent(name:"lastMessage",value: timeStamp + " -- " + string)
     runIn(2,clearMsg)
 }
 
@@ -53,3 +63,4 @@ def clearMsg(){
     sendEvent(name:"volume",value:"clear")
     sendEvent(name:"voice",value:"clear")
 }
+    
