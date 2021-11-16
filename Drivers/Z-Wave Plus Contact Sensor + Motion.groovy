@@ -19,23 +19,24 @@
  *  V1.0.0  3-09-2021       Moddified to add motion options
  *  V1.1.0  7-09-2021       Removed unused states  
  *  V1.2.0  8-22-2021       Added Battery change date and count
+ *  V1.3.0  11-15-2021      improved format for battery changed data
  */
 
-def driverVer() { return "1.2" }
+def driverVer() { return "1.3" }
 
 metadata {
 	definition (
 		name: "Z-Wave Plus Contact Sensor + Motion", namespace: "Gassgs", author: "SmartThings"
 	) {
-	capability "Sensor"
-	capability "Contact Sensor"
-	capability "Configuration"
-	capability "Battery"
-	capability "Tamper Alert"
-        capability "Motion Sensor"
-	capability "Refresh"
+		capability "Sensor"
+		capability "Contact Sensor"
+		capability "Configuration"
+		capability "Battery"
+		capability "Tamper Alert"
+         	capability "Motion Sensor"
+		capability "Refresh"
         
-        command "batteryChanged"
+        	command "batteryChanged"
 
         fingerprint inClusters: "0x86,0x72"
 	fingerprint mfr:"0109", prod:"2001", model:"0106", deviceJoinName: "Monoprice Door/Window Sensor"
@@ -67,8 +68,16 @@ def updated() {
 }
 
 def batteryChanged(){
-    date = new Date()
-    state.batteryChanged = "$date"
+    now = new Date()
+    dateFormat = new java.text.SimpleDateFormat("EE MMM d YYYY")
+    timeFormat = new java.text.SimpleDateFormat("h:mm a")
+
+    newDate = dateFormat.format(now)
+    newTime = timeFormat.format(now)
+    
+    timeStamp = newDate + " " + newTime as String
+    
+    state.batteryChanged = "$timeStamp"
     state.batteryChangedDays = 0
     updated()
 }
