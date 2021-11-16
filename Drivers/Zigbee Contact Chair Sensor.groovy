@@ -21,9 +21,10 @@
  *
  *  V1.0.0  8-15-2021       Added Chair driver option
  *  V1.1.0  8-22-2021       Added Battery change date and count
+ *  V1.2.0  11-15-2021      Improved Battery reporting and change date format
  */
 
-def driverVer() { return "1.1" }
+def driverVer() { return "1.2" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
@@ -166,8 +167,8 @@ private Map translateZoneStatus(ZoneStatus zs) {
 
 def getBatteryResult(rawValue) {
 	def batteryVolts = $rawValue
-	def minVolts = 2.0
-	def maxVolts = 3.0
+	def minVolts = 1.9
+	def maxVolts = 2.9
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
     sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
@@ -178,8 +179,8 @@ def getBatteryResult(rawValue) {
 
 def batteryEvent(rawValue) {
 	def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
-	def minVolts = 20
-	def maxVolts = 30
+	def minVolts = 19
+	def maxVolts = 29
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
 	if (batteryValue > 0){
@@ -227,14 +228,22 @@ def configure() {
 
 	configCmds +=
 		zigbee.batteryConfig() +
-		zigbee.temperatureConfig(30, 900)
+		zigbee.temperatureConfig(120, 7200)
 
 	return configCmds
 }
 
 def batteryChanged(){
-    date = new Date()
-    state.batteryChanged = "$date"
+    now = new Date()
+    dateFormat = new java.text.SimpleDateFormat("EE MMM d YYYY")
+    timeFormat = new java.text.SimpleDateFormat("h:mm a")
+
+    newDate = dateFormat.format(now)
+    newTime = timeFormat.format(now)
+    
+    timeStamp = newDate + " " + newTime as String
+    
+    state.batteryChanged = "$timeStamp"
     state.batteryChangedDays = 0
     initialize()
 }
