@@ -21,9 +21,10 @@
  *  V1.0.0  2-15-2021       Moddified for hubitat
  *  V1.1.0  8-03-2021       "fixed" Battery reporting
  *  V1.2.0  8-22-2021       Added Battery change date and count
+ *  V1.3.0  11-15-2021      improved format for battery changed data
  */
 
-def driverVer() { return "1.2" }
+def driverVer() { return "1.3" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
@@ -258,8 +259,16 @@ def configure() {
 }
 
 def batteryChanged(){
-    date = new Date()
-    state.batteryChanged = "$date"
+    now = new Date()
+    dateFormat = new java.text.SimpleDateFormat("EE MMM d YYYY")
+    timeFormat = new java.text.SimpleDateFormat("h:mm a")
+
+    newDate = dateFormat.format(now)
+    newTime = timeFormat.format(now)
+    
+    timeStamp = newDate + " " + newTime as String
+    
+    state.batteryChanged = "$timeStamp"
     state.batteryChangedDays = 0
     initialize()
 }
