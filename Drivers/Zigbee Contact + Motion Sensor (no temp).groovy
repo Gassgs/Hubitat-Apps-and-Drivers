@@ -21,9 +21,10 @@
  *  V1.0.0  8-10-2021       Added "no temp version" 
  *  V1.1.0  8-22-2021       Added Battery change date and count
  *  V1.2.0  11-15-2021      Improved Battery reporting and change date format
+ *  V1.3.0  11-15-2021      Fixed Battery reporting conflict
  */
 
-def driverVer() { return "1.2" }
+def driverVer() { return "1.3" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
@@ -112,10 +113,14 @@ def parse(String description)
         logInfo "$device.label battery voltage $map.value"
         getBatteryResult(map.value)
 	}
+    else if (map.name == "battery") //added for the sengled battery error value with decimal
+	{
+        logDebug "$device.label battery $map.value Logged - not sent to attribute to avoid conflicting reports"
+	}
     
     logDebug "Parse returned $map"
 
-	def result = map ? createEvent(map) : [:]
+	//def result = map ? createEvent(map) : [:]  // disabled sending to attribute for sengled contact sensors
 
 	return result
 }
@@ -143,6 +148,7 @@ def getBatteryResult(rawValue) {
 }
 
 def batteryEvent(rawValue) {
+    log.trace "$device.label $rawValue for battery percent battery event"
 	def batteryVolts = (rawValue / 10).setScale(2, BigDecimal.ROUND_HALF_UP)
 	def minVolts = 19
 	def maxVolts = 29
@@ -151,8 +157,8 @@ def batteryEvent(rawValue) {
 	if (batteryValue > 0){
 		sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
 		sendEvent("name": "batteryVoltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
-		if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
-		if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
+		logInfo "$device.displayName battery changed to $batteryValue%"
+		logInfo "$device.displayName voltage changed to $batteryVolts volts"
 	}
 
 	return
@@ -228,9 +234,9 @@ def initialize(){
     if (state.batteryChangedDays != null){
         schedule('0 0 6 * * ?',addDay)
     }
-	if (enableTrace || enableDebug){
+	if (enableDebug){
 		logInfo "Verbose logging has been enabled for the next 30 minutes."
-		runIn(1800, logsOff)
+		//runIn(1800, logsOff)
 	}
 }
 
