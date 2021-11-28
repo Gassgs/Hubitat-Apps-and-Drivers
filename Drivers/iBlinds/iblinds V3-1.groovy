@@ -16,6 +16,7 @@
  *		Update Chance H, 06-11-21 - Add Fingerprint for V3.10+, Add Parameters 7 - 11 for V3.06+
  *      Update Gassgs, Gary G, 10-06-21 - Start Position Change Open/Close commands, Fixed Position Attribute, Fixed update when button pushed
  *      Update Gassgs, Gary G, 10-11-21 - Added stop command while blind is moving over a duration
+ *      Update Gassgs, Gary G, 11-22-21 - Fixed Battery level attribute update
  *
  */
 metadata {
@@ -223,6 +224,7 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 	}
 	createEvent(map)
     if (logInfoEnable) log.info "$device.label battery level $map.value %"
+    sendEvent(name: "battery", value: "$map.value") 
 }
 
 
@@ -283,9 +285,10 @@ def refresh() {
 
 def getBattery() {
     if (logEnable) log.debug  "Battery Get..."
-    def cmd = []
-    cmd << new hubitat.device.HubAction(zwave.batteryV1.batteryGet().format())
-    sendHubCommand(cmd)
+    zwave.batteryV1.batteryGet().format()
+    //def cmd = []
+    //cmd << new hubitat.device.HubAction(zwave.batteryV1.batteryGet().format())
+    //sendHubCommand(cmd)
     
 }
 
