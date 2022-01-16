@@ -1,5 +1,5 @@
 /**
- *  Neato (Connect)
+ *  Neato Botvac Connected Series
  *
  *  Copyright 2016,2017,2018,2019,2020 Alex Lee Yuk Cheung
  *
@@ -16,18 +16,19 @@
  *	V1.0 Hubitat
  *	V1.1 Hubitat
  *	V1.2 Hubitat fixes and improvements
+ *	V1.3 General improvements and cleanup, added alerts and ability to clear them - 01/15/2022
  */
 
  
 definition(
-    name: "Neato (Connect)",
+    name: "Neato Botvac Connected Series",
     namespace: "alyc100",
     author: "Alex Lee Yuk Cheung",
     description: "Integration to Neato Robotics Connected Series robot vacuums",
     category: "",
-    iconUrl: "https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
-    iconX2Url: "https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
-    iconX3Url: "https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
+    iconUrl: "", //"https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
+    iconX2Url: "", //"https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
+    iconX3Url: "",//"https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
     oauth: true,
     singleInstance: true)
 
@@ -270,7 +271,7 @@ def displayMessageAsHtml(message) {
 		</head>
 		<body>
 				<div class="container">
-						<img src="https://s3.amazonaws.com/smartapp-icons/Partner/support/st-logo%402x.png" alt="SmartThings logo" />
+                        <img src="https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/Neato%20Botvac/Hubitat.png" alt="Hubitat logo"
 						<img src="https://s3.amazonaws.com/smartapp-icons/Partner/support/connected-device-icn%402x.png" alt="connected device icon" />
 						<img src="https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png" alt="neato icon" width="205" />
 						${message}
@@ -279,6 +280,7 @@ def displayMessageAsHtml(message) {
 		</html>
 		"""
 	render contentType: 'text/html', data: html
+    //<img src="https://s3.amazonaws.com/smartapp-icons/Partner/support/st-logo%402x.png" alt="SmartThings logo" />   -- replaced w/ hubitat logo
 }
 
 private refreshAuthToken() {
@@ -316,7 +318,8 @@ private refreshAuthToken() {
 				if (atomicState.reAttempt <= 3) {
 					runIn(reAttemptPeriod, "refreshAuthToken")
 				} else {
-					messageHandler(notificationMessage, true)
+                    log.debug "$notificationMessage"
+					//messageHandler(notificationMessage, true)
                     atomicState.authToken = null
 					atomicState.reAttempt = 0
                     
@@ -460,7 +463,8 @@ def devicesList() {
 			if (atomicState.reAttempt <= 3) {
 				runIn(reAttemptPeriod, "refreshAuthToken")
 			} else {
-				messageHandler(notificationMessage, true)
+                log.debug "$notificationMessage"
+				//messageHandler(notificationMessage, true)
                 atomicState.authToken = null
 				atomicState.reAttempt = 0
 			}
@@ -541,7 +545,7 @@ def getApiEndpoint()         { return "https://apps.neatorobotics.com" }
 def getSmartThingsClientId() { return appSettings?.clientId }
 def beehiveURL(path = '/') 	 { return "https://beehive.neatocloud.com${path}" }
 private def textVersion() {
-    def text = "<b>Neato (Connect)\nHubitat Version: 1.2</b>"
+    def text = "<b>Neato Botvac Connected Series\nHubitat Version: 1.3</b>"
 }
 
 private def textCopyright() {
