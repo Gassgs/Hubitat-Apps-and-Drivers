@@ -1,6 +1,6 @@
 /**
- *  Neato Botvac Connected Series
- *
+ *  Neato Botvac Connected Series  
+ * 
  *  Copyright 2017,2018,2019,2020 Alex Lee Yuk Cheung
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -22,10 +22,11 @@
  *  V1.5 Hubitat   added ability to toggle schedules
  *  V1.6 Hubitat   improved refresh schedule method
  *  V1.7 Hubitat   Removed Schedule toggle, added Schedule On and Off Commands
+ *  V1.8 Hubitat   Added Clear alert Command, fixes and cleanup
  *
  */
 
-def driverVer() { return "1.7" }
+def driverVer() { return "1.8" }
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -43,21 +44,23 @@ preferences{
     input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
     input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
     input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
+    input(name:"clearEnable",type:"bool",title: "Enable to automatically clear alerts",required:false,defaultValue: false)
     input(name:"logInfo",type:"bool",title: "Enable Info logging",required: true,defaultValue: true)
     input(name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: true)
     
 }
 
 metadata {
-	definition (name: "Neato Botvac Connected Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung", ocfDeviceType: "oic.d.robotcleaner", mnmn: "SmartThingsCommunity", vid: "1b47ad78-269e-3c5c-a1a9-8c84d2a2ef05")	{
+	definition (name: "Neato Botvac Connected Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung")	{
     	capability "Battery"
 		capability "Refresh"
 		capability "Switch"
         capability "Actuator"
 
 		command "refresh"
+        command "clearAlert"
         command "returnToDock"
-        command "findMe"  //(Not working on my D4)
+        command "findMe"  //(Only works on D7 model)
         command "start"
         command "stop"
         command "pause"
@@ -65,9 +68,12 @@ metadata {
         command "scheduleOff"
 
         attribute "status","string"
+        attribute "mode","string"
+        attribute "navigation","string"
         attribute "network","string"
         attribute "charging","string"
         attribute "error","string"
+        attribute "alert","string"
         attribute "schedule","string"
 	}
 }
@@ -132,16 +138,26 @@ def on() {
     	nucleoPOST("/messages", '{"reqId":"1", "cmd":"resumeCleaning"}')
     }
     else{
-    	def modeParam = 1
-        def navParam = 1
-        def catParam = 2
-        if (isTurboCleanMode()) modeParam = 2
-        if (isExtraCareNavigationMode()) navParam = 2
-        if (isDeepNavigationMode()) {
-        	modeParam = 2
+        if (prefCleaningMode == "eco"){
+            modeParam = 1
+        }else{
+            modeParam = 2
+        }
+        if (prefPersistentMapMode == "off"){
+            catParam = 2
+        }else{
+            catParam = 4
+        }
+        if (prefNavigationMode == "standard"){
+            navParam = 1
+        }
+        else if (prefNavigationMode == "extraCare"){
+            navParam = 2
+        }
+        else if (prefNavigationMode == "deep"){
+            modeParam = 2
             navParam = 3
         }
-        if (isPersistentMapMode()) catParam = 4
         switch (state.houseCleaning) {
             case "basic-1":
                	nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": 2, "mode": ' + modeParam + ', "modifier": 1}}')
@@ -189,9 +205,9 @@ def returnToDock() {
 }
 
 def findMe() {
-    //not working on D4 model
+    //Only works on D7 model
 	logDebug ("Executing 'findMe'")
-    nucleoPOST("/messages", '{"reqId": "1","cmd": "findMe"}')
+    nucleoPOST("/messages", '{"reqId": "1","cmd":"findMe"}')
 }
 
 def scheduleOn() {
@@ -216,28 +232,10 @@ def scheduleOff() {
     runIn(2, refresh)
 }
 
-def setCleaningMode(mode) {
-	if ( mode == "eco" || mode == "turbo" ) {
-    	state.startCleaningMode = mode
-    } else {
-    	log.error("Unsupported cleaning mode: [${mode}]")
-    }
-}
-
-def setNavigationMode(mode) {
-	if ( mode == "deep" || mode == "extraCare" || mode == "standard") {
-    	state.startNavigationMode = mode
-	} else {
-    	log.error("Unsupported navigation mode: [${mode}]")
-    }
-}
-
-def setPersistentMapMode(mode) {
-	if ( mode == "on" || mode == "off" ) {
-    	state.startPersistentMapMode = mode
-	} else {
-    	log.error("Unsupported persistent map mode: [${mode}]")
-    }
+def clearAlert(){
+    logDebug ("Clearing current alert")
+    resp = nucleoPOST("/messages", '{"reqId":"1", "cmd":"dismissCurrentAlert"}')
+    runIn(2,refresh)
 }
 
 def poll() {
@@ -251,38 +249,6 @@ def refresh() {
     }
 	poll()
     refreshSch()
-}
-
-private def isTurboCleanMode() {
-	def result = true
-    if ((state.startCleaningMode == "unsupported") || (state.startCleaningMode != null && state.startCleaningMode == "eco" && settings.prefCleaningMode == "webcore") || (settings.prefCleaningMode == "eco")) {
-    	result = false
-    }
-    result
-}
-
-private def isExtraCareNavigationMode() {
-	def result = false
-    if ((state.startNavigationMode == "unsupported") || (state.startNavigationMode != null && state.startNavigationMode == "extraCare" && settings.prefCleaningMode == "webcore") || (settings.prefNavigationMode == "extraCare")) {
-    	result = true
-    }
-    result
-}
-
-private def isDeepNavigationMode() {
-	def result = false
-    if ((state.startNavigationMode == "unsupported") || (state.startNavigationMode != null && state.startNavigationMode == "deep" && settings.prefCleaningMode == "webcore") || (settings.prefNavigationMode == "deep"))  {
-    	result = true
-    }
-    result
-}
-
-private def isPersistentMapMode() {
-	def result = false
-    if ((state.startPersistentMapMode == "unsupported") || (settings.prefPersistentMapMode == "on") || (state.startPersistentMapMode != null && state.startPersistentMapMode == "on")) {
-    	result = true
-    }
-    result
 }
 
 def nucleoPOST(path, body) {
@@ -318,6 +284,36 @@ def nucleoPOST(path, body) {
                 }else{
                     state.batteryFull = false
                 }
+                mode = result.cleaning.mode as Integer
+                if (mode == 1){
+                    logDebug ("Cleaning mode is eco")
+                    sendEvent(name:"mode",value:"eco")
+                }
+                else if (mode == 2){
+                    logDebug ("Cleaning mode is eco")
+                    sendEvent(name:"mode",value:"turbo")
+                }else{
+                    logDebug ("Cleaning mode unknown")
+                    if (logInfo) log.info "$device.label cleaning mode unknown"
+                    sendEvent(name:"mode",value:"unknown")
+                }
+                navMode = result.cleaning.navigationMode as Integer
+                if (navMode == 1){
+                    logDebug ("Navigation mode is standard")
+                    sendEvent(name:"navigation",value:"standard")
+                }
+                else if (navMode == 2){
+                    logDebug ("Navigaton mode is extraCare")
+                    sendEvent(name:"navigation",value:"extraCare")
+                }
+                else if (navMode == 3){
+                    logDebug ("Navigation mode is Deep")
+                    sendEvent(name:"navigation",value:"deep")
+                }else{
+                    logDebug ("Navigation mode unknown")
+                    if (logInfo) log.info "$device.label navigation mode unknown"
+                    sendEvent(name:"navigation",value:"unknown")
+                }
             }
             if (result.find{ it.key == "action" }){
                 if (result.action == 4) {
@@ -327,6 +323,9 @@ def nucleoPOST(path, body) {
                     state.returningToDock = false
                     logDebug ("returningToDock = false" )
                 }
+            }
+            if (result.find{ it.key == "availableServices" }){
+                state.houseCleaning = result.availableServices.houseCleaning     
             }
             if (result.find{ it.key == "state" }){
                 sendEvent(name:"network",value:"connected")
@@ -384,6 +383,20 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"error",value:errorCode)
                 }
             }
+            if (result.find{ it.key == "alert" }){
+                alertText = result.alert as String
+                if (alertText == null){
+                    logDebug ("No Alerts")
+                    sendEvent(name:"alert",value:"clear")
+                }else{
+                    logDebug ("Alert is -  $alertText")
+                    if (logInfo) log.info "$device.label alert - $alertText"
+                    sendEvent(name:"alert",value:alertText)
+                    if (clearEnable){
+                        runIn(5,clearAlert)
+                    }
+                }
+            }
             if (result.find{ it.key == "details" }){
                 docked = result.details.isDocked as String
                 if (docked == "true") {
@@ -418,7 +431,9 @@ def nucleoPOST(path, body) {
                 }else{
                     sendEvent(name:"schedule",value:"disabled")
                 }
+ 
             }
+               
             return response
 		}
 	} catch (groovyx.net.http.HttpResponseException e) {
