@@ -316,7 +316,7 @@ def scheduleOff() {
 
 def clearAlert(){
     logDebug ("Clearing current alert")
-    resp = nucleoPOST("/messages", '{"reqId":"1", "cmd":"dismissCurrentAlert"}')
+    nucleoPOST("/messages", '{"reqId":"1", "cmd":"dismissCurrentAlert"}')
     runIn(2,refresh)
 }
 
