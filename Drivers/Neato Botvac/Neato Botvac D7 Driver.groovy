@@ -39,11 +39,9 @@ preferences{
         refreshRate << ["10 min" : "Refresh every 10 minutes"]
 		refreshRate << ["15 min" : "Refresh every 15 minutes"]
 		refreshRate << ["30 min" : "Refresh every 30 minutes"]
-	input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
-    input( "prefNavigationMode", "enum", options: ["standard", "extraCare", "deep"], title: "Navigation Mode", description: "Only supported on certain models", required: true, defaultValue: "standard" )
-    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
     input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
     input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
+    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
     input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
     input(name:"clearEnable",type:"bool",title: "Enable to automatically clear alerts",required:false,defaultValue: false)
     input(name:"logInfo",type:"bool",title: "Enable Info logging",required: true,defaultValue: true)
@@ -67,9 +65,21 @@ metadata {
         command "pause"
         command "scheduleOn"
         command "scheduleOff"
+        command "setPowerMode", [[name:"Set Power Mode", type: "ENUM",description: "Set Power Mode", constraints: ["eco", "turbo"]]]
+        command "setNavigationMode", [[name:"Set Navigation Mode", type: "ENUM",description: "Set Navigation Mode", constraints: ["standard", "extraCare","deep"]]]
+        //command "getZones"
         
         def zones = []
         zones << "Home"   // add custom rooms and zones names below - replace "Home" with your zone names, example | zones << "Living Room" |  -- (optional for D7 model only) 
+        zones << "Living Room"
+        zones << "Kitchen"
+        zones << "Zone 1"
+        zones << "Hallway"
+        zones << "Bathroom"
+        zones << "Master Bedroom"
+        zones << "Ethan's Room"
+        zones << "Spare Room"
+        zones << "Zone 2"
         
         command "cleanZone",[[name:"cleanZone", type: "ENUM",description: "Clean Zone", constraints: zones]]
 
@@ -93,6 +103,12 @@ def installed() {
 def updated() {
 	logDebug ("Updated with settings: ${settings}")
     state.DriverVersion=driverVer()
+    if (state.pwrMode == null){
+        state.pwrMode = "turbo"
+    }
+    if (state.navMode == null){
+        state.navMode = "standard"
+    }
     
         switch(dockRefresh) {
 		case "5 min" :
@@ -130,9 +146,9 @@ def refreshSch(){
     def currentState = device.currentValue("status")
     if (currentState == "paused"){
         state.paused = true
-        }else{
-            state.paused = false
-        }
+    }else{
+        state.paused = false
+    }
     if (!state.isDocked){
         logDebug ("$runRefresh second refresh active")
         runIn(runRefresh,refresh)
@@ -143,31 +159,59 @@ def cleanZone(zone){
     // dont't change this first one //
     if (zone == "Home"){
         on()
+        return
     }
-    if (prefCleaningMode == "eco"){
+    if (state.pwrMode == "eco"){
         modeParam = 1
     }else{
         modeParam = 2
     }
-    if (prefNavigationMode == "standard"){
+    if (state.navMode == "standard"){
         navParam = 1
     }
-    else if (prefNavigationMode == "extraCare"){
+    else if (state.navMode == "extraCare"){
         navParam = 2
     }
-    else if (prefNavigationMode == "deep"){
+    else if (state.navMode == "deep"){
         modeParam = 2
         navParam = 3
     }
     /* add custom rooms and zones with this format below - Replace boundry id:" " -  with correct value--- (optional for D7 model only)
 
     if (zone == "Living Room"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + modeParam +', "boundaryId":"bd213c5b-fdd0-4ecd-870a-42a6d123ed2f"}}')
-    } 
+        // nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + modeParam +', "boundaryId":"bd213c5b-fdd0-4ecd-870a-42a6d123ed2f"}}')
+    }   *///////////
 
-    */////////////
-
+    
+    if (zone == "Living Room"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"bd213c5b-fdd0-4ecd-870a-42a6dd5fed2f"}}')
+    }
+    if (zone == "Kitchen"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"39b75e2f-c203-40c2-a072-664094824512"}}')
+    }
+    if (zone == "Zone 1"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"c7e0edca-a818-4ad1-9be2-bd311b2c7634"}}')
+    }
+    if (zone == "Hallway"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"4bd04283-e192-41cd-909e-808763e4dfe0"}}')
+    }
+    if (zone == "Bathroom"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"df5f2e90-e695-4419-a80f-4c9ca550b50b"}}')
+    }
+    if (zone == "Ethan's Room"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"ce82b137-4b64-4d21-bb06-f71347507eab"}}')
+    }
+    if (zone == "Master Bedroom"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"8936c968-66f8-4523-85fe-089c15c34e38"}}')
+    }
+    if (zone == "Zone 2"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"81338410-964c-4958-9ebd-521612939aae"}}')
+    }
+    if (zone == "Spare Room"){
+        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"9d333131-bf75-44e6-92fd-37190951b89c"}}')
+    }
     logDebug ("Executing 'Clean Zone  -- $zone'")
+    runIn(2, refresh)
 }
 
 def on() {
@@ -176,23 +220,23 @@ def on() {
     	nucleoPOST("/messages", '{"reqId":"1", "cmd":"resumeCleaning"}')
     }
     else{
-        if (prefCleaningMode == "eco"){
-            modeParam = 1
-        }else{
-            modeParam = 2
-        }
         if (prefPersistentMapMode == "off"){
             catParam = 2
         }else{
             catParam = 4
         }
-        if (prefNavigationMode == "standard"){
+        if (state.pwrMode == "eco"){
+            modeParam = 1
+        }else{
+            modeParam = 2
+        }
+        if (state.navMode == "standard"){
             navParam = 1
         }
-        else if (prefNavigationMode == "extraCare"){
+        else if (state.navMode == "extraCare"){
             navParam = 2
         }
-        else if (prefNavigationMode == "deep"){
+        else if (state.navMode == "deep"){
             modeParam = 2
             navParam = 3
         }
@@ -274,6 +318,30 @@ def clearAlert(){
     logDebug ("Clearing current alert")
     resp = nucleoPOST("/messages", '{"reqId":"1", "cmd":"dismissCurrentAlert"}')
     runIn(2,refresh)
+}
+
+def setPowerMode(mode){
+    if (mode == "turbo"){
+        state.pwrMode = "turbo"
+    }
+    else if (mode == "eco" && state.navMode != "deep"){
+        state.pwrMode = "eco"
+    }else{
+        logDebug "cannot set Eco mode when navigaion mode is set to Deep"
+    }
+}
+
+def setNavigationMode(mode){
+    if (mode == "standard"){
+        state.navMode = "standard"
+    }
+    else if (mode == "extraCare"){
+        state.navMode = "extraCare"
+    }
+    else if (mode == "deep"){
+        state.navMode = "deep"
+        state.pwrMode = "turbo"
+    }
 }
 
 def poll() {
