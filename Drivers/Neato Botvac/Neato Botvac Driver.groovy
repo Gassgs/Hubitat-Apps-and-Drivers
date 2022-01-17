@@ -34,10 +34,10 @@ import java.security.InvalidKeyException;
 
 preferences{
     def refreshRate = [:]
-		refreshRate << ["5 min" : "Refresh every 5 minutes"]
+	refreshRate << ["5 min" : "Refresh every 5 minutes"]
         refreshRate << ["10 min" : "Refresh every 10 minutes"]
-		refreshRate << ["15 min" : "Refresh every 15 minutes"]
-		refreshRate << ["30 min" : "Refresh every 30 minutes"]
+	refreshRate << ["15 min" : "Refresh every 15 minutes"]
+	refreshRate << ["30 min" : "Refresh every 30 minutes"]
     input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
     input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
     input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
@@ -51,11 +51,11 @@ preferences{
 metadata {
 	definition (name: "Neato Botvac Connected Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung")	{
     	capability "Battery"
-		capability "Refresh"
-		capability "Switch"
+	capability "Refresh"
+	capability "Switch"
         capability "Actuator"
 
-		command "refresh"
+	command "refresh"
         command "clearAlert"
         command "returnToDock"
         command "findMe"  //(Only works on D7 model)
@@ -85,13 +85,13 @@ def installed() {
 
 def updated() {
 	logDebug ("Updated with settings: ${settings}")
-    state.DriverVersion=driverVer()
-    if (state.pwrMode == null){
-        state.pwrMode = "turbo"
-    }
-    if (state.navMode == null){
-        state.navMode = "standard"
-    }
+	state.DriverVersion=driverVer()
+	if (state.pwrMode == null){
+		state.pwrMode = "turbo"
+	}
+	if (state.navMode == null){
+		state.navMode = "standard"
+	}
     
         switch(dockRefresh) {
 		case "5 min" :
@@ -99,7 +99,7 @@ def updated() {
             logDebug ("refresh every 5 minutes schedule")
             if (logInfo) log.info "$device.label refresh every 5 minutes schedule"
 			break
-        case "10 min" :
+        	case "10 min" :
 			runEvery10Minutes(refresh)
             logDebug ("refresh every 10 minutes schedule")
             if (logInfo) log.info "$device.label refresh every 10 minutes schedule"
@@ -205,37 +205,37 @@ def off() {
 
 def returnToDock() {
 	logDebug ("Executing 'return to dock'")
-    nucleoPOST("/messages", '{"reqId":"1", "cmd":"sendToBase"}')
-    sendEvent(name:"status",value:"returning to dock")
-    runIn(25, refresh)
+	nucleoPOST("/messages", '{"reqId":"1", "cmd":"sendToBase"}')
+	sendEvent(name:"status",value:"returning to dock")
+	runIn(25, refresh)
 }
 
 def findMe() {
     //Only works on D7 model
 	logDebug ("Executing 'findMe'")
-    nucleoPOST("/messages", '{"reqId": "1","cmd":"findMe"}')
+	nucleoPOST("/messages", '{"reqId": "1","cmd":"findMe"}')
 }
 
 def scheduleOn() {
 	logDebug ("Executing Schedule Enable")
-    status = device.currentValue("schedule")
-    if (status == "disabled"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"enableSchedule"}')
-    }else{
-        logDebug ("Schedules Are Already Enabled")   
-    }   
-    runIn(2, refresh)
+	status = device.currentValue("schedule")
+	if (status == "disabled"){
+		nucleoPOST("/messages", '{"reqId":"1", "cmd":"enableSchedule"}')
+	}else{
+		logDebug ("Schedules Are Already Enabled")   
+	}   
+	runIn(2, refresh)
 }
 
 def scheduleOff() {
 	logDebug ("Executing Schedule Disable")
-    status = device.currentValue("schedule")
-    if (status == "enabled"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
-    }else{
-        logDebug ("Schedules Are Already Disabled")
-    }   
-    runIn(2, refresh)
+	status = device.currentValue("schedule")
+	if (status == "enabled"){
+		nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
+	}else{
+		logDebug ("Schedules Are Already Disabled")
+	}   
+	runIn(2, refresh)
 }
 
 def clearAlert(){
