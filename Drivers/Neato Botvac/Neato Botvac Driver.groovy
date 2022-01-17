@@ -38,11 +38,9 @@ preferences{
         refreshRate << ["10 min" : "Refresh every 10 minutes"]
 		refreshRate << ["15 min" : "Refresh every 15 minutes"]
 		refreshRate << ["30 min" : "Refresh every 30 minutes"]
-	input( "prefCleaningMode", "enum", options: ["turbo", "eco"], title: "Cleaning Mode", description: "Only supported on certain models", required: true, defaultValue: "turbo" )
-    input( "prefNavigationMode", "enum", options: ["standard", "extraCare", "deep"], title: "Navigation Mode", description: "Only supported on certain models", required: true, defaultValue: "standard" )
-    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
     input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
     input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
+    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
     input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
     input(name:"clearEnable",type:"bool",title: "Enable to automatically clear alerts",required:false,defaultValue: false)
     input(name:"logInfo",type:"bool",title: "Enable Info logging",required: true,defaultValue: true)
@@ -66,6 +64,8 @@ metadata {
         command "pause"
         command "scheduleOn"
         command "scheduleOff"
+        command "setPowerMode", [[name:"Set Power Mode", type: "ENUM",description: "Set Power Mode", constraints: ["eco", "turbo"]]]
+        command "setNavigationMode", [[name:"Set Navigation Mode", type: "ENUM",description: "Set Navigation Mode", constraints: ["standard", "extraCare","deep"]]]
 
         attribute "status","string"
         attribute "mode","string"
@@ -86,6 +86,12 @@ def installed() {
 def updated() {
 	logDebug ("Updated with settings: ${settings}")
     state.DriverVersion=driverVer()
+    if (state.pwrMode == null){
+        state.pwrMode = "turbo"
+    }
+    if (state.navMode == null){
+        state.navMode = "standard"
+    }
     
         switch(dockRefresh) {
 		case "5 min" :
@@ -123,9 +129,9 @@ def refreshSch(){
     def currentState = device.currentValue("status")
     if (currentState == "paused"){
         state.paused = true
-        }else{
-            state.paused = false
-        }
+    }else{
+        state.paused = false
+    }
     if (!state.isDocked){
         logDebug ("$runRefresh second refresh active")
         runIn(runRefresh,refresh)
@@ -138,23 +144,23 @@ def on() {
     	nucleoPOST("/messages", '{"reqId":"1", "cmd":"resumeCleaning"}')
     }
     else{
-        if (prefCleaningMode == "eco"){
-            modeParam = 1
-        }else{
-            modeParam = 2
-        }
         if (prefPersistentMapMode == "off"){
             catParam = 2
         }else{
             catParam = 4
         }
-        if (prefNavigationMode == "standard"){
+        if (state.pwrMode == "eco"){
+            modeParam = 1
+        }else{
+            modeParam = 2
+        }
+        if (state.navMode == "standard"){
             navParam = 1
         }
-        else if (prefNavigationMode == "extraCare"){
+        else if (state.navMode == "extraCare"){
             navParam = 2
         }
-        else if (prefNavigationMode == "deep"){
+        else if (state.navMode == "deep"){
             modeParam = 2
             navParam = 3
         }
@@ -191,7 +197,7 @@ def stop() {
 
 def off() {
     if (offEnable) {
-    returnToDock()
+        returnToDock()
     }else{
         pause()
     }
@@ -236,6 +242,30 @@ def clearAlert(){
     logDebug ("Clearing current alert")
     resp = nucleoPOST("/messages", '{"reqId":"1", "cmd":"dismissCurrentAlert"}')
     runIn(2,refresh)
+}
+
+def setPowerMode(mode){
+    if (mode == "turbo"){
+        state.pwrMode = "turbo"
+    }
+    else if (mode == "eco" && state.navMode != "deep"){
+        state.pwrMode = "eco"
+    }else{
+        logDebug "cannot set Eco mode when navigaion mode is set to Deep"
+    }
+}
+
+def setNavigationMode(mode){
+    if (mode == "standard"){
+        state.navMode = "standard"
+    }
+    else if (mode == "extraCare"){
+        state.navMode = "extraCare"
+    }
+    else if (mode == "deep"){
+        state.navMode = "deep"
+        state.pwrMode = "turbo"
+    }
 }
 
 def poll() {
