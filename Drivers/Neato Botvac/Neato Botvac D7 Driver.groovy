@@ -83,6 +83,9 @@ metadata {
         
         command "cleanZone",[[name:"cleanZone", type: "ENUM",description: "Clean Zone", constraints: zones]]
 
+        
+        //command "vacuumZone",[[name:"vacuumZone", type: "ENUM",description: "Vacuum Zone", options: '[$rooms]']]
+
         attribute "status","string"
         attribute "mode","string"
         attribute "navigation","string"
@@ -491,8 +494,9 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"error",value:"clear")
                 }else{
                     logDebug ("Error is -  $errorCode")
-                    if (logInfo) log.info "$device.label error - $errorCode"
-                    sendEvent(name:"error",value:errorCode)
+                    errorMsg = result.error.replaceAll('_',' ').capitalize()
+                    if (logInfo) log.info "$device.label error - $errorMsg"
+                    sendEvent(name:"error",value:errorMsg)
                 }
             }
             if (result.find{ it.key == "alert" }){
@@ -502,8 +506,9 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"alert",value:"clear")
                 }else{
                     logDebug ("Alert is -  $alertText")
-                    if (logInfo) log.info "$device.label alert - $alertText"
-                    sendEvent(name:"alert",value:alertText)
+                    alertMsg = result.error.replaceAll('_',' ').capitalize()
+                    if (logInfo) log.info "$device.label error - $alertMsg"
+                    sendEvent(name:"alert",value:alertMsg)
                     if (clearEnable){
                         runIn(5,clearAlert)
                     }
@@ -547,9 +552,12 @@ def nucleoPOST(path, body) {
             }
             if (result.find{ it.key == "data" }){
                 if (result.data.boundaries != null){
-                    ids = result.data.boundaries.id
-                    names = result.data.boundaries.name
-                    logDebug "-  $ids   --and--   $names" 
+                    //result.data.boundaries.findAll { it.name }.each {
+                        //log.warn "$it.name:$it.id" }
+                    def rooms = [:]
+                    result.data.boundaries.findAll { it.name }.each { rooms[it.name] = it.id }
+                    log.warn "$rooms"
+                    //state.rooms = "$rooms"
                 }
             }
             
