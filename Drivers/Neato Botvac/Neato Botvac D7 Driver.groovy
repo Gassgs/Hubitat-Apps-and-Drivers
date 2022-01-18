@@ -506,7 +506,7 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"alert",value:"clear")
                 }else{
                     logDebug ("Alert is -  $alertText")
-                    alertMsg = result.error.replaceAll('_',' ').capitalize()
+                    alertMsg = result.alert.replaceAll('_',' ').capitalize()
                     if (logInfo) log.info "$device.label error - $alertMsg"
                     sendEvent(name:"alert",value:alertMsg)
                     if (clearEnable){
