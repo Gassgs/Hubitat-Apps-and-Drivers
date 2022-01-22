@@ -26,9 +26,9 @@ definition(
     author: "Alex Lee Yuk Cheung",
     description: "Integration to Neato Robotics Connected Series robot vacuums",
     category: "",
-    iconUrl: "", //"https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
-    iconX2Url: "", //"https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
-    iconX3Url: "",//"https://raw.githubusercontent.com/alyc100/SmartThingsPublic/master/smartapps/alyc100/neato_icon.png",
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: "",
     oauth: true,
     singleInstance: true)
 
@@ -280,7 +280,6 @@ def displayMessageAsHtml(message) {
 		</html>
 		"""
 	render contentType: 'text/html', data: html
-    //<img src="https://s3.amazonaws.com/smartapp-icons/Partner/support/st-logo%402x.png" alt="SmartThings logo" />   -- replaced w/ hubitat logo
 }
 
 private refreshAuthToken() {
@@ -319,7 +318,6 @@ private refreshAuthToken() {
 					runIn(reAttemptPeriod, "refreshAuthToken")
 				} else {
                     log.debug "$notificationMessage"
-					//messageHandler(notificationMessage, true)
                     atomicState.authToken = null
 					atomicState.reAttempt = 0
                     
@@ -415,7 +413,6 @@ def addBotvacs() {
                 name: state.botvacDevices[device],
 				label: state.botvacDevices[device]
 			]
-            //childDevice = addChildDevice(app.namespace, "Neato Botvac Connected Series", device, null, data)
             childDevice = addChildDevice("alyc100","Neato Botvac Connected Series", device, null, data)
             childDevice.refresh()
            
@@ -464,7 +461,6 @@ def devicesList() {
 				runIn(reAttemptPeriod, "refreshAuthToken")
 			} else {
                 log.debug "$notificationMessage"
-				//messageHandler(notificationMessage, true)
                 atomicState.authToken = null
 				atomicState.reAttempt = 0
 			}
