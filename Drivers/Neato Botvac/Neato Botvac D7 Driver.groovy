@@ -35,10 +35,10 @@ import java.security.InvalidKeyException;
 
 preferences{
     def refreshRate = [:]
-		refreshRate << ["5 min" : "Refresh every 5 minutes"]
+	refreshRate << ["5 min" : "Refresh every 5 minutes"]
         refreshRate << ["10 min" : "Refresh every 10 minutes"]
-		refreshRate << ["15 min" : "Refresh every 15 minutes"]
-		refreshRate << ["30 min" : "Refresh every 30 minutes"]
+	refreshRate << ["15 min" : "Refresh every 15 minutes"]
+	refreshRate << ["30 min" : "Refresh every 30 minutes"]
     input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
     input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
     input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
@@ -52,11 +52,11 @@ preferences{
 metadata {
 	definition (name: "Neato Botvac D7 Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung")	{
     	capability "Battery"
-		capability "Refresh"
-		capability "Switch"
+	capability "Refresh"
+	capability "Switch"
         capability "Actuator"
 
-		command "refresh"
+	command "refresh"
         command "clearAlert"
         command "returnToDock"
         command "findMe"  //(Only works on D7 model)
@@ -67,24 +67,13 @@ metadata {
         command "scheduleOff"
         command "setPowerMode", [[name:"Set Power Mode", type: "ENUM",description: "Set Power Mode", constraints: ["eco", "turbo"]]]
         command "setNavigationMode", [[name:"Set Navigation Mode", type: "ENUM",description: "Set Navigation Mode", constraints: ["standard", "extraCare","deep"]]]
-        //command "getZones"
+        command "zones"
         
         def zones = []
         zones << "Home"   // add custom rooms and zones names below - replace "Home" with your zone names, example | zones << "Living Room" |  -- (optional for D7 model only) 
-        zones << "Living Room"
-        zones << "Kitchen"
-        zones << "Zone 1"
-        zones << "Hallway"
-        zones << "Bathroom"
-        zones << "Master Bedroom"
-        zones << "Ethan's Room"
-        zones << "Spare Room"
-        zones << "Zone 2"
         
-        command "cleanZone",[[name:"cleanZone", type: "ENUM",description: "Clean Zone", constraints: zones]]
 
-        
-        //command "vacuumZone",[[name:"vacuumZone", type: "ENUM",description: "Vacuum Zone", options: '[$rooms]']]
+        command "cleanZone",[[name:"cleanZone", type: "ENUM",description: "Clean Zone", constraints: zones]]
 
         attribute "status","string"
         attribute "mode","string"
@@ -179,40 +168,13 @@ def cleanZone(zone){
         modeParam = 2
         navParam = 3
     }
-    /* add custom rooms and zones with this format below - Replace boundry id:" " -  with correct value--- (optional for D7 model only)
+    /* add custom rooms and zones with this format below - Replace roomId = " " -  with correct value--- (optional for D7 model only)
 
     if (zone == "Living Room"){
-        // nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + modeParam +', "boundaryId":"bd213c5b-fdd0-4ecd-870a-42a6d123ed2f"}}')
-    }   *///////////
+        roomId = "bd213c5b-fdd0-4ecd-870a-42a6dd5fed2f"
+    }                                                   *///////////
 
-    
-    if (zone == "Living Room"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"bd213c5b-fdd0-4ecd-870a-42a6dd5fed2f"}}')
-    }
-    if (zone == "Kitchen"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"39b75e2f-c203-40c2-a072-664094824512"}}')
-    }
-    if (zone == "Zone 1"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"c7e0edca-a818-4ad1-9be2-bd311b2c7634"}}')
-    }
-    if (zone == "Hallway"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"4bd04283-e192-41cd-909e-808763e4dfe0"}}')
-    }
-    if (zone == "Bathroom"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"df5f2e90-e695-4419-a80f-4c9ca550b50b"}}')
-    }
-    if (zone == "Ethan's Room"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"ce82b137-4b64-4d21-bb06-f71347507eab"}}')
-    }
-    if (zone == "Master Bedroom"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"8936c968-66f8-4523-85fe-089c15c34e38"}}')
-    }
-    if (zone == "Zone 2"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"81338410-964c-4958-9ebd-521612939aae"}}')
-    }
-    if (zone == "Spare Room"){
-        nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"9d333131-bf75-44e6-92fd-37190951b89c"}}')
-    }
+    nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"'+roomId+'"}}')
     logDebug ("Executing 'Clean Zone  -- $zone'")
     runIn(2, refresh)
 }
@@ -574,23 +536,43 @@ def nucleoPOST(path, body) {
 ////////////////////////////////WIP///////////////////////////////
 
 
-def getMapId(){
-    try {
-    	def resp
-        resp = parent.beehiveGET("/users/me/robots/GPC26620-B07E11B6F936/maps") //${device.deviceNetworkId.tokenize("|")[0]}/maps")
-        log.warn "$resp"
-    }
-    catch (ex) {
-		log.error "getMapHTML Exception:", ex
+def zones(){
+    def resp2 = parent.beehiveGET("/users/me/robots/${device.deviceNetworkId.tokenize("|")[0]}/persistent_maps")
+    def mapId = resp2.data[0].id
+    nucleoPOST2("/messages", '{"reqId": "1", "cmd": "getMapBoundaries", "params": {"mapId": "' + mapId + '"}}')
+    if (debugEnable) log.debug("map ID = ${mapId}")
+}
+
+def nucleoPOST2(path, body) {
+	try {
+		if (debugEnable) log.debug("Beginning API POST: ${nucleoURL(path)}, ${body}")
+		def date = new Date().format("EEE, dd MMM yyyy HH:mm:ss z", TimeZone.getTimeZone('GMT'))
+		httpPostJson(uri: nucleoURL(path), body: body, headers: nucleoRequestHeaders(date, getHMACSignature(date, body)) ) {response ->
+			parent.logResponse(response)
+            def resp = (response.data)
+            def status = (response.status)
+            def result = resp
+            if (result.find{ it.key == "data" }){
+                if (result.data.boundaries != null){
+                    
+                    result.data.boundaries.findAll { it.name }.each { 
+                    log.trace "$it.name = $it.id" }
+                   
+                    
+                    def rooms = [:]
+                    result.data.boundaries.findAll { it.name }.each { rooms[it.name] = it.id }
+                    if (debugEnable) log.debug "$rooms"
+                    
+                }
+            }
+            
+            return response
+		}
+	} catch (groovyx.net.http.HttpResponseException e) {
+		parent.logResponse(e.response)
+		return e.response
 	}
 }
-
-def getZones(){
-    logDebug ("Executing 'Get Zones'")
-    resp = nucleoPOST("/messages", '{"reqId":"1", "cmd":"getMapBoundaries","params":{"mapId":"2022-01-14T20:21:06Z"}}')
-}
-
-
 
 /////////////////////////////WIP//////////////////////
 
