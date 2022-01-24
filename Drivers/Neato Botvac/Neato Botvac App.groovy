@@ -16,7 +16,7 @@
  *	V1.0 Hubitat
  *	V1.1 Hubitat
  *	V1.2 Hubitat fixes and improvements
- *	V1.3 General improvements and cleanup, added alerts and ability to clear them - 01/15/2022
+ *	V1.3 General improvements and cleanup
  */
 
  
