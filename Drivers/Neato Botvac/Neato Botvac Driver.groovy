@@ -37,7 +37,7 @@ import java.security.InvalidKeyException;
 preferences{
     def refreshRate = [:]
 	refreshRate << ["5 min" : "Refresh every 5 minutes"]
-    	refreshRate << ["10 min" : "Refresh every 10 minutes"]
+    refreshRate << ["10 min" : "Refresh every 10 minutes"]
 	refreshRate << ["15 min" : "Refresh every 15 minutes"]
 	refreshRate << ["30 min" : "Refresh every 30 minutes"]
     input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
@@ -53,11 +53,11 @@ preferences{
 metadata {
 	definition (name: "Neato Botvac Connected Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung")	{
     	capability "Battery"
-	capability "Refresh"
-	capability "Switch"
+	    capability "Refresh"
+	    capability "Switch"
         capability "Actuator"
 
-	command "refresh"
+	    command "refresh"
         command "clearAlert"
         command "returnToDock"
         command "findMe"  //(Only works on D7 model)
@@ -425,7 +425,7 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"error",value:"clear")
                 }else{
                     logDebug ("Error is -  $errorCode")
-                    errorMsg = "Error. " + result.error.replaceAll('_',' ').capitalize()
+                    errorMsg = "Error. " + result.error.replaceAll('_',' ').replaceAll('batt','battery').replaceAll('gen','robot was').replaceAll('hw','hardware').replaceAll('maint',' ').replaceAll('nav','navigation error, ').capitalize()
                     if (logInfo) log.info "$device.label error - $errorMsg"
                     sendEvent(name:"error",value:errorMsg)
                 }
@@ -437,7 +437,7 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"alert",value:"clear")
                 }else{
                     logDebug ("Alert is -  $alertText")
-                    alertMsg = "Alert. " + result.alert.replaceAll('_',' ').capitalize()
+                    alertMsg = "Alert. " + result.alert.replaceAll('_',' ').replaceAll('maint','time for').replaceAll('nav',' ').replaceAll('sched','schedule').capitalize()
                     if (logInfo) log.info "$device.label error - $alertMsg"
                     sendEvent(name:"alert",value:alertMsg)
                     if (clearEnable){
