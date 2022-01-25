@@ -228,23 +228,13 @@ def findMe() {
 
 def scheduleOn() {
 	logDebug ("Executing Schedule Enable")
-	status = device.currentValue("schedule")
-	if (status == "disabled"){
-		nucleoPOST("/messages", '{"reqId":"1", "cmd":"enableSchedule"}')
-	}else{
-		logDebug ("Schedules Are Already Enabled")   
-	}   
+	nucleoPOST("/messages", '{"reqId":"1", "cmd":"enableSchedule"}')  
 	runIn(2, refresh)
 }
 
 def scheduleOff() {
 	logDebug ("Executing Schedule Disable")
-	status = device.currentValue("schedule")
-	if (status == "enabled"){
-		nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
-	}else{
-		logDebug ("Schedules Are Already Disabled")
-	}   
+    	nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
 	runIn(2, refresh)
 }
 
