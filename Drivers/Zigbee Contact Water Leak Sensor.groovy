@@ -22,9 +22,10 @@
  *  V1.1.0  8-03-2021       "fixed" Battery reporting
  *  V1.2.0  8-22-2021       Added Battery change date and count
  *  V1.3.0  11-15-2021      Improved Battery reporting and change date format
+ *  V1.4.0  01-03-2022      Option for ecolink sensors to have battery calculated based on days since battery changed(they always report 100%)
  */
 
-def driverVer() { return "1.3" }
+def driverVer() { return "1.4" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
@@ -50,6 +51,7 @@ metadata
 	preferences{
 		section{
 			input "tempOffset", "number", title: "Temperature Offset", range: "*..*", displayDuringSetup: false, type: "paragraph", element: "paragraph"
+            input "ecolinkEnable", "bool", title: "Ecolink battery reporting", defaultValue: false, required: false, multiple: false
             input "enableInfo", "bool", title: "Enable info logging?", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "Enable debug logging?", defaultValue: false, required: false, multiple: false
 		}
@@ -168,9 +170,11 @@ def getBatteryResult(rawValue) {
 	def maxVolts = 2.9
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
-    sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
     logInfo "$device.label battery $batteryValue%"
-
+    if (!ecolinkEnable){
+        sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
+    }
+    
 	return
 }
 
@@ -181,10 +185,12 @@ def batteryEvent(rawValue) {
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
 	if (batteryValue > 0){
-		sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
-		sendEvent("name": "batteryVoltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
-		if (infoLogging) log.info "$device.displayName battery changed to $batteryValue%"
-		if (infoLogging) log.info "$device.displayName voltage changed to $batteryVolts volts"
+        logInfo "$device.displayName battery changed to $batteryValue%"
+		logInfo "$device.displayName voltage changed to $batteryVolts volts"
+        sendEvent("name": "batteryVoltage", "value": batteryVolts, "unit": "volts", "displayed": true, isStateChange: true)
+        if (!ecolinkEnable){
+            sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
+        }
 	}
 
 	return
@@ -242,6 +248,44 @@ def batteryChanged(){
 def addDay(){
     if (state.batteryChangedDays != null){
     state.batteryChangedDays = state.batteryChangedDays + 1
+        if (ecolinkEnable){
+            if (state.batteryChangedDays >= 360){
+                sendEvent("name": "battery", "value": 0, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 330 && state.batteryChangedDays < 360 ){
+                sendEvent("name": "battery", "value": 10, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 300 && state.batteryChangedDays < 330 ){
+                sendEvent("name": "battery", "value": 20, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 270 && state.batteryChangedDays < 300 ){
+                sendEvent("name": "battery", "value": 30, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 240 && state.batteryChangedDays < 270 ){
+                sendEvent("name": "battery", "value": 40, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 210 && state.batteryChangedDays < 240 ){
+                sendEvent("name": "battery", "value": 50, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 180 && state.batteryChangedDays < 210 ){
+                sendEvent("name": "battery", "value": 60, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 150 && state.batteryChangedDays < 180 ){
+                sendEvent("name": "battery", "value": 70, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 120 && state.batteryChangedDays < 150 ){
+                sendEvent("name": "battery", "value": 80, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 90 && state.batteryChangedDays < 120 ){
+                sendEvent("name": "battery", "value": 90, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays >= 60 && state.batteryChangedDays < 90 ){
+                sendEvent("name": "battery", "value": 95, "unit": "%", "displayed": true, isStateChange: true)
+            }
+            else if (state.batteryChangedDays < 60 ){
+                sendEvent("name": "battery", "value": 100, "unit": "%", "displayed": true, isStateChange: true)
+            }
+        }       
     }
 }
 
