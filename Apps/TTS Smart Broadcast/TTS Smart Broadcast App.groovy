@@ -21,12 +21,17 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 10/24/2021
+ *  Last Update: 12/11/2021
  *
  *  Changes:
  *
  *  V1.0.0      -       10-24-2021      First run
  *  V1.1.0      -       10-26-2021      Added default Volume and Voice options
+ *  V1.2.0      -       11-07-2021      Added [HTML] pushover bold and big settings for text
+ *  V1.3.0      -       11-23-2021      Added Stop command removed volume options (not working) (coded in per device)
+ *  V1.4.0      -       12-11-2021      Improvements and fixes. added send to "home" pushover devices only when ON or Online
+ *  V1.5.0      -       12-14-2021      temp fix for issue with 1st gen nest hubs cutting off begining. (removed 12/16)
+ *  V1.6.0      -       12-31-2021      Added garage smart area and send TTS to glasses through tasker
  *
  *
  */
@@ -77,18 +82,10 @@ preferences{
             submitOnChange: true
               )
         input(
-            name:"pushCriticalDevices",
+            name:"pushCriticalMobileDevices",
             type:"capability.notification",
-            title: "<b>Push Devices</b> for message output",
+            title: "<b>Pushover Mobile Devices</b> for message output",
             multiple: true,
-            required: true,
-            submitOnChange: true
-            )
-        input(
-            name:"criticalVolume",
-            type:"number",
-            title: "<b>Volume Level</b> for critical messages",
-            multiple: false,
             required: true,
             submitOnChange: true
             )
@@ -249,7 +246,7 @@ preferences{
             required: true,
             submitOnChange: true
               )
-        if (bedroomTts){
+        if (spareRoomTts){
         input(
             name:"spareRoomSensor",
             type:"capability.motionSensor",
@@ -261,68 +258,32 @@ preferences{
             }        
     }
     section{
-        
         paragraph(
-        title: "Volume per mode",
+        title: "Garage",
         required: true,
-    	"<div style='text-align:center'><b>Volume Levels Per Mode</b></div>"
+    	"<div style='text-align:center'>Garage</div>"
      	)
+            
         input(
-            name:"earlyMorningVolume",
-            type:"number",
-            title: "<b>Early Morning</b> Volume Level",
-            defaultValue: 50,
+            name:"garageTts",
+            type:"capability.speechSynthesis",
+            title: "<b>Garage TTS Device</b> For messages while occupied",
+            multiple: false,
             required: true,
             submitOnChange: true
               )
+        if (garageTts){
         input(
-            name:"dayVolume",
-            type:"number",
-            title: "<b>Day</b> Volume Level",
-            defaultValue: 70,
+            name:"garageSensor",
+            type:"capability.motionSensor",
+            title: "<b>Garage Motion Sensor</b>",
+            multiple: false,
             required: true,
             submitOnChange: true
               )
-        input(
-            name:"afternoonVolume",
-            type:"number",
-            title: "<b>Afternoon</b> Volume Level",
-            defaultValue: 80,
-            required: true,
-            submitOnChange: true
-              )
-        input(
-            name:"dinnerVolume",
-            type:"number",
-            title: "<b>Dinner</b> Volume Level",
-            defaultValue: 80,
-            required: true,
-            submitOnChange: true
-              )
-        input(
-            name:"eveningVolume",
-            type:"number",
-            title: "<b>Evening</b> Volume Level",
-            defaultValue: 80,
-            required: true,
-            submitOnChange: true
-              )
-        input(
-            name:"lateEveningVolume",
-            type:"number",
-            title: "<b>Late Evening</b> Volume Level",
-            defaultValue: 70,
-            required: true,
-            submitOnChange: true
-              )
-        input(
-            name:"nightVolume",
-            type:"number",
-            title: "<b>Night</b> Volume Level",
-            defaultValue: 50,
-            required: true,
-            submitOnChange: true
-              )
+            }
+    }
+    section{
         def voiceOptions = [:]
             voiceOptions << ["Nicole" : "Nicole, Female, Australian English"]
             voiceOptions << ["Russell" : "Russell, Male, Australian English"]
@@ -353,30 +314,120 @@ preferences{
     section{
         
         paragraph(
-        title: "Push Devices -HOME-",
+        title: "Pushover Devices -HOME-",
         required: true,
-    	"<div style='text-align:center'><b>Push Devices -HOME-</b></div>"
+    	"<div style='text-align:center'><b>Pushover Devices -HOME-</b></div>"
      	)
         input(
-            name:"smartPushHome",
+            name:"galaxyChromebook",
             type:"capability.notification",
-            title: "<b>Push Home Devices</b> For all messages",
+            title: "<b>Galaxy Chromebook 2</b> For push messages",
             multiple: true,
             required: true,
             submitOnChange: true
               )
+        if(galaxyChromebook){
+            input(
+            name:"galaxyChromebookSwitch",
+            type:"capability.switch",
+            title: "<b>Galaxy Chromebook 2 On/Off Switch</b>",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
+        }
+        input(
+            name:"livingroomTv",
+            type:"capability.notification",
+            title: "<b>Living Room TV</b> For push messages",
+            multiple: true,
+            required: true,
+            submitOnChange: true
+              )
+        if(livingroomTv){
+            input(
+            name:"livingroomTvSwitch",
+            type:"capability.switch",
+            title: "<b>Living Room TV On/Off Switch</b>",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
+        }
+        input(
+            name:"basementTv",
+            type:"capability.notification",
+            title: "<b>Basement TV</b> For push messages",
+            multiple: true,
+            required: true,
+            submitOnChange: true
+              )
+        if(basementTv){
+            input(
+            name:"basementTvSwitch",
+            type:"capability.switch",
+            title: "<b>Basement TV On/Off Switch</b>",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
+        }
+        input(
+            name:"bedroomTv",
+            type:"capability.notification",
+            title: "<b>Bedroom TV</b> For push messages",
+            multiple: true,
+            required: true,
+            submitOnChange: true
+              )
+        if(bedroomTv){
+            input(
+            name:"bedroomTvSwitch",
+            type:"capability.switch",
+            title: "<b>Bedroom TV On/Off Switch</b>",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
+        }
+        input(
+            name:"ethanRoomTv",
+            type:"capability.notification",
+            title: "<b>Ethan's Room TV</b> For push messages",
+            multiple: true,
+            required: true,
+            submitOnChange: true
+              )
+        if(ethanRoomTv){
+            input(
+            name:"ethanRoomTvSwitch",
+            type:"capability.switch",
+            title: "<b>Ethan's Room TV On/Off Switch</b>",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
+        }
     }
     section{
         
         paragraph(
-        title: "Push Devices -Mobile-",
+        title: "Pushover Devices -Mobile-",
         required: true,
-    	"<div style='text-align:center'><b>Push Devices -MOBILE-</b></div>"
+    	"<div style='text-align:center'><b>Pushover Devices -MOBILE-</b></div>"
      	)
         input(
             name:"garyPush",
             type:"capability.notification",
             title: "<b>Gary's Mobile Device</b> For messages when away from home",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
+        input(
+            name:"garyPushHome",
+            type:"capability.notification",
+            title: "<b>Gary's Mobile Device</b> For messages when at home or driving",
             multiple: false,
             required: true,
             submitOnChange: true
@@ -446,26 +497,77 @@ def initialize(){
     subscribe(settings.ttsCriticalDevice, "voice", criticalVoiceHandler)
 	subscribe(settings.ttsSmartDevice, "voice", smartVoiceHandler)
     subscribe(settings.garyPresence, "presence", garyPresenceHandler)
+    subscribe(settings.garyPresence, "inCar", garyCarHandler)
     subscribe(settings.lynettePresence, "presence", lynettePresenceHandler)
     subscribe(settings.kitchenSensor, "motion", kitchenMotionHandler)
     subscribe(settings.basementSensor, "motion", basementMotionHandler)
     subscribe(settings.bedroomSensor, "motion", bedroomMotionHandler)
     subscribe(settings.spareRoomSensor, "motion", spareRoomMotionHandler)
+    subscribe(settings.garageSensor, "motion", garageMotionHandler)
+    subscribe(settings.galaxyChromebookSwitch, "switch", galaxyChromebookSwitchHandler)
+    subscribe(settings.livingroomTvSwitch, "switch", livingroomTvSwitchHandler)
+    subscribe(settings.basementTvSwitch, "switch", basementTvSwitchHandler)
+    subscribe(settings.bedroomTvSwitch, "switch", bedroomTvSwitchHandler)
+    subscribe(settings.ethanRoomTvSwitch, "switch", ethanRoomTvSwitchHandler)
     subscribe(location, "mode", modeEventHandler)
+    state.away = false
     logInfo ("subscribed to sensor events")
 }
 
 def modeEventHandler(evt){
     mode = evt.value
-    state.earlyMorning = (mode == "Early_morning")
-    state.day = (mode == "Day")
-    state.afternoon = (mode == "Afternoon")
-    state.dinner = (mode == "Dinner")
-    state.evening = (mode == "Evening")
-    state.lateEvening = (mode == "Late_evening")
-    state.night = (mode == "Night")
     state.away = (mode == "Away")
     logInfo ("$app.label mode status $mode")
+}
+
+def galaxyChromebookSwitchHandler(evt){
+    if (evt.value == "on"){
+        state.galaxyChromebookOn = true
+        logInfo ("$app.label Galaxy Chromebook 2 On")
+    }else{
+        state.galaxyChromebookOn = false
+        logInfo ("$app.label Galaxy Chromebook 2 Off")
+    }
+}
+
+def livingroomTvSwitchHandler(evt){
+    if (evt.value == "on"){
+        state.livingroomTvOn = true
+        logInfo ("$app.label Living Room TV On")
+    }else{
+        state.livingroomTvOn = false
+        logInfo ("$app.label Living Room TV Off")
+    }
+}
+
+def basementTvSwitchHandler(evt){
+    if (evt.value == "on"){
+        state.basementTvOn = true
+        logInfo ("$app.label Basement TV On")
+    }else{
+        state.basementTvOn = false
+        logInfo ("$app.label Basement TV Off")
+    }
+}
+
+def bedroomTvSwitchHandler(evt){
+    if (evt.value == "on"){
+        state.bedroomTvOn = true
+        logInfo ("$app.label Bedroom TV On")
+    }else{
+        state.bedroomTvOn = false
+        logInfo ("$app.label Bedroom TV Off")
+    }
+}
+
+def ethanRoomTvSwitchHandler(evt){
+    if (evt.value == "on"){
+        state.ethansTvOn = true
+        logInfo ("$app.label Ethan's TV On")
+    }else{
+        state.ethansTvOn = false
+        logInfo ("$app.label Ethan's TV Off")
+    }
 }
 
 def criticalMsgHandler(evt){
@@ -495,15 +597,36 @@ def sendCriticalMsg(){
     msg = state.criticalMsg as String
     voice = state.criticalVoice as String
     logInfo ("sending tts message $msg at volume $criticalVolume % with Voice $voice")
-    settings.ttsCriticalDevices.speak(msg,criticalVolume as Integer,voice)
-    settings.ttsCriticalDevices.setVolume(settings.criticalVolume as Integer)
-    settings.pushCriticalDevices.deviceNotification(msg)
-    runIn(7,resetCriticalDevices)
+    settings.ttsCriticalDevices.speak(msg,90,voice)
+    settings.ttsCriticalDevices.setVolume(90)
+    settings.pushCriticalMobileDevices.deviceNotification(msg as String)
+    if (state.galaxyChromebookOn){
+        settings.galaxyChromebook.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Galaxy Chromebook 2")
+    }
+    if (state.livingroomTvOn){
+        settings.livingroomTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Living Room TV")
+    }
+    if (state.basementTvOn){
+        settings.basementTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Basement TV")
+    }
+    if (state.bedroomTvOn){
+        settings.bedroomTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to  Bedroom TV")
+    }
+    if (state.ethansTvOn){
+        settings.ethanRoomTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Ethan's Room TV")
+    }
+    runIn(15,resetCriticalDevices)
 }
 
 def resetCriticalDevices(){
-    settings.ttsCriticalDevices.setVolume(60)
-    logInfo ("Critical Devices Volume reset to 60%")
+    settings.ttsCriticalDevices.setVolume(80)
+    logInfo ("Critical Devices reset")
+    settings.ttsCriticalDevices.stop()
 }
 
 def garyPresenceHandler(evt){
@@ -513,6 +636,16 @@ def garyPresenceHandler(evt){
     }else{
         state.garyAway = false
         logInfo ("$app.label Gary Presence Home")
+    }
+}
+
+def garyCarHandler(evt){
+    if (evt.value == "true"){
+        state.garyInCar = true
+        logInfo ("$app.label Gary in Car True")
+    }else{
+        state.garyInCar = false
+        logInfo ("$app.label Gary in Car False")
     }
 }
 
@@ -555,6 +688,14 @@ def spareRoomMotionHandler(evt){
         state.spareRoomActive = true
     }else{
         state.spareRoomActive = false
+    }
+}
+
+def garageMotionHandler(evt){
+    if (evt.value == "active"){
+        state.garageActive = true
+    }else{
+        state.garageActive = false
     }
 }
 
@@ -602,102 +743,119 @@ def sendMsg(){
         sendAwayMessage()
         return
     }
-    else if (state.volumeRequested){
-        modeVolume = state.smartVolume as Integer
-    }
-    else if (state.earlyMorning){
-        modeVolume = settings.earlyMorningVolume
-    }
-    else if (state.day){
-        modeVolume = settings.dayVolume
-    }
-    else if (state.afternoon){
-        modeVolume = settings.afternoonVolume
-    }
-    else if (state.dinner){
-        modeVolume = settings.dinnerVolume
-    }
-    else if (state.evening){
-        modeVolume = settings.eveningVolume
-    }
-    else if (state.lateEvening){
-        modeVolume = settings.lateEveningVolume
-    }
-    else if (state.night){
-        modeVolume = settings.nightVolume
-    }
     logInfo ("sending TTS message $msg at volume $modeVolume % with Voice $voice")
     if (state.kitchenActive){
         logInfo ("Kitchen Active - sending TTS message")
-        settings.kitchenTts.speak(msg,modeVolume as Integer,voice)
-        settings.kitchenTts.setVolume(modeVolume as Integer)
-        runIn(7,resetKitchen)
+        settings.kitchenTts.speak(msg,70,voice)
+        settings.kitchenTts.setVolume(70)
+        runIn(15,resetKitchen)
     }
     if (state.basementActive){
         logInfo ("Basement Active - sending TTS message")
-        settings.basementTts.speak(msg,modeVolume as Integer,voice)
-        settings.basementTts.setVolume(modeVolume as Integer)
-        runIn(7,resetBasement)
+        settings.basementTts.speak(msg,90,voice)
+        settings.basementTts.setVolume(90)
+        runIn(15,resetBasement)
     }
     if (state.bedroomActive){
         logInfo ("Bedroom Active - sending TTS message")
-        settings.bedroomTts.speak(msg,modeVolume as Integer,voice)
-        settings.bedroomTts.setVolume(modeVolume as Integer)
-        runIn(7,resetBedroom)
+        settings.bedroomTts.speak(msg,90,voice)
+        settings.bedroomTts.setVolume(90)
+        runIn(15,resetBedroom)
     }
     if (state.spareRoomActive){
         logInfo ("Spare Room Active - sending TTS message")
-        settings.spareRoomTts.speak(msg,modeVolume as Integer,voice)
-        settings.spareRoomTts.setVolume(modeVolume as Integer)
-        runIn(7,resetSpareRoom)
+        settings.spareRoomTts.speak(msg,80,voice)
+        settings.spareRoomTts.setVolume(80)
+        runIn(15,resetSpareRoom)
+    }
+    if (state.garageActive){
+        logInfo ("Garage Active - sending TTS message")
+        settings.garageTts.speak(msg,80,voice)
+        settings.garageTts.setVolume(80)
+        runIn(15,resetGarage)
     }
     logInfo ("Living Room always - sending TTS message")
-    settings.livingRoomTts.speak(msg,modeVolume as Integer,voice)
-    settings.livingRoomTts.setVolume(modeVolume as Integer)
-    runIn(7,resetLivingRoom)
+    settings.livingRoomTts.speak(msg,90,voice)
+    settings.livingRoomTts.setVolume(90)
+    runIn(15,resetLivingRoom)
     
-    settings.smartPushHome.deviceNotification(msg)
+    //settings.smartPushHome.deviceNotification("[HTML]<b><big>" + msg as String)
     logInfo ("Sending Push message to home devices")
-    if (state.garyAway){
-        settings.garyPush.deviceNotification(msg)
-        logInfo ("Sending Push message to Gary's Phone")
+    if (state.galaxyChromebookOn){
+        settings.galaxyChromebook.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Galaxy Chromebook 2")
+    }
+    if (state.livingroomTvOn){
+        settings.livingroomTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Living Room TV")
+    }
+    if (state.basementOn){
+        settings.basementTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Basement TV")
+    }
+    if (state.bedroomTvOn){
+        settings.bedroomTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Bedroom TV")
+    }
+    if (state.ethansTvOn){
+        settings.ethanRoomTv.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Ethan's Room TV")
+    }
+    if (state.garyAway && !state.garyInCar){
+        settings.garyPush.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Gary's Phone")
+    }
+    if (!state.garyAway || state.garyInCar){
+        settings.garyPushHome.deviceNotification(msg as String)
+        logInfo ("$app.label Sending Push message to Gary's Phone For TTS to Glasses or Car Stereo")
     }
     if (state.lynetteAway){
-        settings.lynettePush.deviceNotification(msg)
-        logInfo ("Sending Push message to Lynette's Phone")
+        settings.lynettePush.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Lynette's Phone")
     }
 }
 
 def resetKitchen(){
-    logInfo ("Kitchen Volume reset to 60%")
+    logInfo ("Kitchen Volume reset")
     settings.kitchenTts.setVolume(60)
+    settings.kitchenTts.stop()
 }
 
 def resetBasement(){
-    logInfo ("Basement Volume reset to 60%")
-    settings.basementTts.setVolume(60)
+    logInfo ("Basement Volume reset")
+    settings.basementTts.setVolume(80)
+    settings.basementTts.stop()
 }
 
 def resetBedroom(){
-    logInfo ("Bedroom Volume reset to 60%")
-    settings.bedroomTts.setVolume(60)
+    logInfo ("Bedroom Volume reset")
+    settings.bedroomTts.setVolume(90)
+    settings.bedroomTts.stop()
 }
 
 def resetSpareRoom(){
-    logInfo ("Spare Room Volume reset to 60%")
-    settings.spareRoomTts.setVolume(60)
+    logInfo ("Spare Room Volume reset")
+    settings.spareRoomTts.setVolume(80)
+    settings.spareRoomTts.stop()
+}
+
+def resetGarage(){
+    logInfo ("Garage Volume reset")
+    settings.garageTts.setVolume(80)
+    settings.garageTts.stop()
 }
 
 def resetLivingRoom(){
-    logInfo ("Living Room Volume reset to 60%")
-    settings.livingRoomTts.setVolume(60)
+    logInfo ("Living Room Volume reset")
+    settings.livingRoomTts.setVolume(90)
+    settings.livingRoomTts.stop()
 }
     
 def sendAwayMessage(){
     logInfo ("Everyone Away, sending messages to Phones instead")
     msg = state.smartMsg as String
-    settings.garyPush.deviceNotification(msg)
-    settings.lynettePush.deviceNotification(msg)
+    settings.garyPush.deviceNotification("[HTML]<b><big>" + msg as String)
+    settings.lynettePush.deviceNotification("[HTML]<b><big>" + msg as String)
 }
 
 void logInfo(String msg){
