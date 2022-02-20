@@ -1,4 +1,6 @@
-/** Zemismart
+/** Zemismart Tuya/Zigbee Curtain Motor Driver
+ *  for Model ZM79E-DT  ZM79-Z
+ *
  *  Tuya Window Shade (v.0.1.0) Hubitat v1
  *  Tuya Window Shade (v.1.1.0) Hubitat v2 Gassgs
  *  Tuya Window Shade (v.1.2.0) Hubitat v3 Improvements Gassgs
@@ -25,16 +27,16 @@ import hubitat.helper.HexUtils
 def driverVer() { return "1.2" }
 
 metadata {
-	definition(name: "Zemismart Zigbee-Tuya Curtain Rail", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
-	capability "Actuator"
-	capability "Window Shade"
-	capability "Switch Level"
+	definition(name: "Zemismart Zigbee-Tuya Curtain Rail", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix") {
+		capability "Actuator"
+		capability "Window Shade"
+		capability "Switch Level"
         capability "Change Level"
         capability "Switch"
         capability "Sensor"
 
 
-	fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Shade"
+		fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Shade"
         fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_wmcdj3aq",model:"mcdj3aq",deviceJoinName:"Zemismart Zigbee Shade"
         fingerprint  profileId:"0104",inClusters:"0000,0003,0004,0005,0006",outClusters:"0019",manufacturer:"_TYST11_cowvfni3",model:"owvfni3\u0000",deviceJoinName:"Zemismart Zigbee Shade"
         fingerprint  profileId:"0104",inClusters:"0000,000A,0004,0005,EF00",outClusters:"0019",manufacturer:"_TZE200_cowvfni3",model:"TS0601",deviceJoinName: "Zemismart Zigbee Shade"
@@ -44,7 +46,7 @@ metadata {
 	preferences {
         input name: "Direction", type: "enum", title: "Direction Set", defaultValue: "00", options:["01": "Reverse", "00": "Forward"], displayDuringSetup: true
         input name: "logInfoEnable",type: "bool", title: "Enable info text logging",required: true, defaultValue: true
-	input name: "logEnable",type: "bool", title: "Enable debug logging", required: true, defaultValue: true
+	    input name: "logEnable",type: "bool", title: "Enable debug logging", required: true, defaultValue: true
     }
 }
 
