@@ -1,4 +1,6 @@
-/** Zemismart
+/** Zemismart Tuya/Zigbee Blind Driver
+ *  for Model AM43-ZB
+ *
  *  Tuya Window Shade (v.0.1.0) Hubitat v0
  *  Tuya Window Shade (v.1.1.0) Hubitat v1 Gassgs
  *  Tuya Window Shade (v.1.2.0) Hubitat v2 Improvements Gassgs
@@ -27,7 +29,7 @@ import hubitat.helper.HexUtils
 def driverVer() { return "1.4" }
 
 metadata {
-	definition(name: "Zemismart Zigbee-Tuya Blind Drive", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix", ocfDeviceType: "oic.d.blind", vid: "generic-shade") {
+	definition(name: "Zemismart Zigbee-Tuya Blind Drive", namespace: "ShinJjang/Gassgs", author: "ShinJjang-iquix") {
 		capability "Actuator"
 		capability "Window Shade"
 		capability "Switch Level"
@@ -45,8 +47,10 @@ metadata {
 
 	preferences {
         input name: "Direction", type: "enum", title: "Direction Set", defaultValue: "00", options:["01": "Reverse", "00": "Forward"], displayDuringSetup: true
-        input name: "speedRestore",type: "bool", title: "Enable restoring default speed after each move",required: true, defaultValue: true
-        input name: "defaultSpeed",type: "number", title: "Default Speed",required: true, defaultValue: 100
+        input name: "speedRestore",type: "bool", title: "Enable restoring default speed after each move",required: true, defaultValue: false
+        if (speedRestore){
+            input name: "defaultSpeed",type: "number", title: "Default Speed",required: true, defaultValue: 100
+        }
         input name: "logInfoEnable",type: "bool", title: "Enable info text logging",required: true, defaultValue: true
 	    input name: "logEnable",type: "bool", title: "Enable debug logging", required: true, defaultValue: true
     }
@@ -130,7 +134,7 @@ private levelEventMoving(currentLevel) {
 	def lastLevel = device.currentValue("level")
 	if(logEnable) log.debug "levelEventMoving - currentLevel: ${currentLevel} lastLevel: ${lastLevel}"
 	if (lastLevel == "undefined" || currentLevel == lastLevel) { //Ignore invalid reports
-		log.debug "Ignore invalid reports"
+		if(logEnable) log.debug "Ignore invalid reports"
 	} else {
 		if (lastLevel < currentLevel) {
 			sendEvent([name:"windowShade", value: "opening"])
