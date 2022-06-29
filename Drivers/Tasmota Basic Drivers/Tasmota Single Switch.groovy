@@ -25,9 +25,10 @@
  *  V1.3.0  10-09-2021       Fixed pause refreshing option
  *  V1.4.0  05-18-2022       Added motion capability
  *  V1.5.0  06-01-2022       Adding rule integration for syned updates, Many changes and improvments
+ *  V1.6.0  06-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
  */
 
-def driverVer() { return "1.5" }
+def driverVer() { return "1.6" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -42,7 +43,6 @@ metadata {
         
         command "toggle"
         
-        attribute "status","string"
         attribute "wifi","string"
         
     }
@@ -219,7 +219,6 @@ def refresh() {
            def json = (resp.data)
             if (logEnable) log.debug "${json}"
                if (json.containsKey("StatusSTS")){
-                   sendEvent(name:"status",value:"online")
                    if (logEnable) log.debug "PWR status found"
                    status = json.StatusSTS.POWER as String
                    signal = json.StatusSTS.Wifi.Signal as String
@@ -237,7 +236,7 @@ def refresh() {
                    }
            }
         }catch (Exception e) {
-            sendEvent(name:"status",value:"offline")
+            sendEvent(name:"wifi",value:"offline")
             log.warn "Call to on failed: ${e.message}"
         }
     }
