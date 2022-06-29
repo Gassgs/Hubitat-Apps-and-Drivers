@@ -17,6 +17,7 @@
  *
  * 
  *  V1.0.0  06-03-2022       first run
+ *  V1.1.0  06-22-2022       added toogle command
  *  
  * 
  */
@@ -27,6 +28,8 @@ metadata {
         capability "Sensor"
         capability "Motion Sensor"
         capability "Switch"
+        
+        command "toggle"
     }   
     preferences {
         input name: "logInfoEnable", type: "bool", title: "Enable text info logging", defaultValue: true
@@ -41,6 +44,15 @@ def on() {
 def off() {
      if(logInfoEnable)log.info "$device.label Off - Inactive"
     parent.childOff("$device.deviceNetworkId")
+}
+
+def toggle(){
+    status = device.currentValue("switch")
+    if (status == "on"){
+        off()
+    }else{
+        on()
+    }
 }
 
 def installed() {
