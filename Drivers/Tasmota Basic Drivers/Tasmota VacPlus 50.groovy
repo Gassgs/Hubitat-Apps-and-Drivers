@@ -27,11 +27,11 @@
  *  V1.3.0  5-30-2022       Sending post LAN messages to parse instead. No maker API needed
  *  V1.4.0  5-31-2022       Improved "refresh"
  *  V1.5.0  6-03-2022       Automated rule setup process
- *  V1.6.0  6-04-2022       todo....Tank OK/Full rule setup and test -- Add timer function ---
+ *  V1.6.0  6-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
  * 
  */
 
-def driverVer() { return "1.5" }
+def driverVer() { return "1.6" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -53,7 +53,6 @@ metadata {
         attribute "ionizer","string"
         attribute "mode","string"
         attribute "humiditySetpoint","number"
-        attribute "status","string"
         attribute "wifi","string"
         
     }
@@ -402,7 +401,6 @@ def refresh() {
                 def json = (resp.data)
                 if (json) {
                     if (logEnable) log.debug "${json}"
-                    sendEvent(name:"status",value:"online")
                 }
                 if (json.containsKey("StatusSTS")){
                     signal = json.StatusSTS.Wifi.Signal
@@ -436,7 +434,7 @@ def refresh() {
                }
            }
     } catch (Exception e) {
-            sendEvent(name:"status",value:"offline")
+            sendEvent(name:"wifi",value:"offline")
             log.warn "Call to on failed: ${e.message}"
         }
     }
