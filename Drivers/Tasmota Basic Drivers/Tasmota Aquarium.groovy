@@ -34,9 +34,10 @@
  *  V1.2.0  07-17-2021       Added last level for light On
  *  V1.3.0  08-15-2021       Improved time date format
  *  V1.4.0  06-05-2022       Added rule integration for syned updates, Many changes and improvments
+ *  V1.5.0  06-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
  *
  */
-def driverVer() { return "1.4" }
+def driverVer() { return "1.5" }
 
 metadata {
     definition(name: "Tasmota Aquarium", namespace: "Gassgs ", author: "Gary G") {
@@ -56,7 +57,6 @@ metadata {
         attribute "lastFeeding","string"
         attribute "feedCounter","string"
         attribute "wifi","string"
-        attribute "status","string"
     }
 }
 
@@ -251,7 +251,6 @@ def refresh() {
            def json = (resp.data)
             if (logEnable) log.debug "${json}"
                if (json.containsKey("StatusSNS")){
-                   sendEvent(name:"status",value:"online")
                    if (logEnable) log.debug "DS18B20 temperature found"
                    temp = json.StatusSNS.DS18B20.Temperature
                    count = json.StatusSNS.COUNTER.C1
@@ -270,7 +269,7 @@ def refresh() {
                }
            }
     } catch (Exception e) {
-            sendEvent(name:"status",value:"offline")
+            sendEvent(name:"wifi",value:"offline")
             log.warn "Call to on failed: ${e.message}"
         }
     }
