@@ -26,9 +26,11 @@
  *  V1.4.0  05-18-2022       Added motion capability
  *  V1.5.0  06-01-2022       Adding rule integration for syned updates, Many changes and improvments
  *  V1.6.0  06-03-2022       Addding child devices for Powerstrip
+ *  V1.7.0  06-22-2022       Addding outlet controls from parent device
+ *  V1.8.0  06-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
  */
 
-def driverVer() { return "1.6" }
+def driverVer() { return "1.8" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -39,13 +41,16 @@ metadata {
         capability "Refresh"
         capability "Sensor"
         
+        command "outlet1", [[name:"Relay", type: "ENUM",description: "relay", constraints: ["On", "Off",]]]
+        command "outlet2", [[name:"Relay", type: "ENUM",description: "relay", constraints: ["On", "Off",]]]
+        command "outlet3", [[name:"Relay", type: "ENUM",description: "relay", constraints: ["On", "Off",]]]
+        command "outlet4", [[name:"Relay", type: "ENUM",description: "relay", constraints: ["On", "Off",]]]
+        
         attribute "switch1","string"
         attribute "switch2","string"
         attribute "switch3","string"
         attribute "switch4","string"
-        attribute "status","string"
-        attribute "wifi","string"
-        
+        attribute "wifi","string"  
     }
 }
     preferences {
@@ -258,7 +263,7 @@ def parse(LanMessage){
         else if (json.contains("0")){
             if (logEnable) log.debug "Found the value 0"
             if (logInfo) log.info "$device.label - Switch 4 is Off"
-            sendEvent(name:"switch1",value:"off")
+            sendEvent(name:"switch4",value:"off")
             if (childDevice4) {
                 childDevice4.sendEvent(name: "switch", value:"off")
                 childDevice4.sendEvent(name: "motion", value:"inactive")
@@ -302,17 +307,49 @@ def off(value) {
 }
 
 def childOn(data){
-    log.trace "Switch On $data"
+    if (logEnable) log.debug  "Switch On $data"
     dataNew = ("$data"[-1]) as Integer
-    log.trace "$dataNew"
+    if (logEnable) log.debug  "$dataNew"
     on("$dataNew")
 }
 
 def childOff(data){
-    log.trace "Switch Off $data"
+    if (logEnable) log.debug  "Switch Off $data"
     dataNew = ("$data"[-1]) as Integer
-    log.trace "$dataNew"
+    if (logEnable) log.debug  "$dataNew"
     off("$dataNew")
+}
+
+def outlet1(data){
+    if (data == "On"){
+        on(1)
+    }else{
+        off(1)
+    }
+}
+
+def outlet2(data){
+    if (data == "On"){
+        on(2)
+    }else{
+        off(2)
+    }
+}
+
+def outlet3(data){
+    if (data == "On"){
+        on(3)
+    }else{
+        off(3)
+    }
+}
+
+def outlet4(data){
+    if (data == "On"){
+        on(4)
+    }else{
+        off(4)
+    }
 }
 
 def refresh() {
@@ -323,7 +360,6 @@ def refresh() {
            def json = (resp.data)
             if (logEnable) log.debug "${json}"
                if (json.containsKey("StatusSTS")){
-                   sendEvent(name:"status",value:"online")
                    if (logEnable) log.debug "PWR status found"
                    signal = json.StatusSTS.Wifi.Signal as String
                    if (logEnable) log.debug "Wifi signal strength $signal db"
@@ -383,7 +419,7 @@ def refresh() {
                }
            }
         }catch (Exception e) {
-            sendEvent(name:"status",value:"offline")
+            sendEvent(name:"wifi",value:"offline")
             log.warn "Call to on failed: ${e.message}"
         }
     }
