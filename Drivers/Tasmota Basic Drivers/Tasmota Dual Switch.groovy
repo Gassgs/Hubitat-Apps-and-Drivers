@@ -26,9 +26,11 @@
  *  V1.4.0  05-18-2022       Added motion capability
  *  V1.5.0  06-01-2022       Adding rule integration for syned updates, Many changes and improvments
  *  V1.6.0  06-03-2022       Addding child devices for dual switch
+ *  V1.7.0  06-22-2022       Addding relay controls from parent device
+ *  V1.8.0  06-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
  */
 
-def driverVer() { return "1.6" }
+def driverVer() { return "1.8" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -39,9 +41,11 @@ metadata {
         capability "Refresh"
         capability "Sensor"
         
+        command "relay1", [[name:"Relay", type: "ENUM",description: "relay", constraints: ["On", "Off",]]]
+        command "relay2", [[name:"Relay", type: "ENUM",description: "relay", constraints: ["On", "Off",]]]
+        
         attribute "switch1","string"
         attribute "switch2","string"
-        attribute "status","string"
         attribute "wifi","string"
         
     }
@@ -267,6 +271,22 @@ def childOff(data){
     off("$dataNew")
 }
 
+def relay1(data){
+    if (data == "On"){
+        on(1)
+    }else{
+        off(1)
+    }
+}
+
+def relay2(data){
+    if (data == "On"){
+        on(2)
+    }else{
+        off(2)
+    }
+}
+
 def refresh() {
     if(settings.deviceIp){
         if (logEnable) log.debug "Refreshing Device Status - [${settings.deviceIp}]"
@@ -275,7 +295,6 @@ def refresh() {
            def json = (resp.data)
             if (logEnable) log.debug "${json}"
                if (json.containsKey("StatusSTS")){
-                   sendEvent(name:"status",value:"online")
                    if (logEnable) log.debug "PWR status found"
                    signal = json.StatusSTS.Wifi.Signal as String
                    if (logEnable) log.debug "Wifi signal strength $signal db"
@@ -309,7 +328,7 @@ def refresh() {
                }
            }
         }catch (Exception e) {
-            sendEvent(name:"status",value:"offline")
+            sendEvent(name:"wifi",value:"offline")
             log.warn "Call to on failed: ${e.message}"
         }
     }
@@ -325,4 +344,3 @@ def installed() {
 def uninstalled() {
     deleteChildren()
 }
-
