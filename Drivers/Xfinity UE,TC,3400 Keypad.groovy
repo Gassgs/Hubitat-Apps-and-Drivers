@@ -20,6 +20,8 @@
     2021-02-25 Added tone cap and show code options  GG
     2021-07-29 Added Actuator cap  GG
     2021-11-08 Fix for "-200 " battery level on Xfinity TC Keypad  GG
+    2022-06-29 Fix for motion getting stuck on "active"  GG
+
 
 */
 
@@ -640,14 +642,14 @@ private getBatteryResult(rawValue) {
     sendEvent(name:"battery", value:value, descriptionText:descriptionText, unit: "%", isStateChange: true)
 }
 
-private getMotionResult(value) {
+private getMotionResult(value){
     if (logEnable) log.debug "getMotionResult: ${value}"
     if (device.currentValue("motion") != "active") {
-        runIn(10,motionOff)
         def descriptionText = "${device.displayName} is ${value}"
         if (txtEnable) log.info "${descriptionText}"
         sendEvent(name: "motion",value: value,descriptionText: "${descriptionText}")
     }
+    runIn(10,motionOff)
 }
 
 def motionOff(){
