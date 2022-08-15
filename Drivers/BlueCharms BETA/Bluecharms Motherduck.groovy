@@ -22,7 +22,6 @@
  *  V1.1.0  08-12-2022       Added child devices
  *  V1.2.0  08-13-2022       Added settings commands 
  *
- *   // todo - pull current values and MAC address from motherduck   \\
  *
  */
 
@@ -458,8 +457,8 @@ def setMacAddress(beacon,data){
                 def json = (resp.data) 
                 if (json){
                     if (logEnable) log.trace "Response -$json"
-                    sendEvent(name:"status",value: "Trying to update mac address")
-                    runIn(2,clearStatus)
+                    sendEvent(name:"status",value: "Updating mac address")
+                    runIn(3,clearStatus)
                 }else{
                     if (logEnable) log.debug "Command -ERROR- response from Device- $json"
                 }
@@ -484,3 +483,4 @@ def installed() {
 def uninstalled() {
     deleteChildren()
 }
+
