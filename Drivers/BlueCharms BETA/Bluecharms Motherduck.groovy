@@ -48,12 +48,12 @@ metadata {
     }
 }
     preferences {
-        input name: "deviceIp",type: "string", title: "Motherduck Device IP Address", required: true
-        input name: "deviceMac",type: "string", title: "Motherduck Device MAC Address", required: false
-        input name: "hubIp",type: "string", title: "Hubitat Hub IP Address", required: true
-        input( "beaconCount","enum", options:["none","1","2","3"], title: "Number of Beacon Child Devices (optional)", defaultValue: "none")
-        input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "deviceIp",type: "string", title: "<b>Motherduck Device IP Address</b>", required: true
+        input name: "deviceMac",type: "string", title: "<b>Motherduck Device MAC Address</b>", required: false
+        input name: "hubIp",type: "string", title: "<b>Hubitat Hub IP Address</b>", required: true
+        input( "beaconCount","enum", options:["none","1","2","3"], title: "<b>Number of Beacon Child Devices</b> (optional)", defaultValue: "none")
+        input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
 
 def logsOff() {
