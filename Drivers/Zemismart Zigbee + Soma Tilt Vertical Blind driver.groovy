@@ -26,6 +26,7 @@
  *  V1.6.0  10-27-2021      Changed Battery Check to once per day at 6:00am
  */
 
+import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
 import hubitat.helper.HexUtils
@@ -215,7 +216,7 @@ def setLevel(data, rate = null) {
         setTiltLevel(100)
         if (state.somaConnected){
             sendEvent(name:"windowShade", value:"opening")
-            runIn(1,openFromClosed)
+            runIn(2,openFromClosed)
         }else{
             log.warn "Could not set Soma Tilt Position, Not changing level"
         }
@@ -234,7 +235,7 @@ def setLevel(data, rate = null) {
         setTiltLevel(100)
         if (state.somaConnected){
             sendEvent(name:"windowShade", value:"opening")
-            runIn(1,openFromClosed)
+            runIn(2,openFromClosed)
         }else{
             log.warn "Could not set Soma Tilt Position, Not changing level"
         }
