@@ -30,11 +30,13 @@
  *  V1.5.0  9-09-2021       Improvements for windowShade attribute changes
  *  V1.6.0  9-21-2021       Changed Morning Position implementation and added info logging
  *  V1.7.0  10-5-2021       Changed Battery check to once per day at 4:00am (refresh command also checks battery level)
+ *  V1.8.0  1-20-2023       Added support for Connect usb U1 device + bug fixes and improvements
  */
 
-def driverVer() { return "1.7" }
+def driverVer() { return "1.8" }
 
-
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 
 metadata {
     definition (name: "Soma Connect Shades 2", namespace: "Gassgs", author: "Gary G", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/Soma%20Connect/Soma%20Shades%202.groovy") {
@@ -52,11 +54,12 @@ metadata {
     }
 }
     preferences {
-        input name: "connectIp",type: "text", title: "Soma Connect IP Address", required: true
-        input name: "mac",type: "text", title: "Mac address of Shade 2 device", required: true
-        input name: "timeout",type: "number", title: "Time it takes to open or close", required: true, defaultValue: 10
-        input name: "logInfoEnable", type: "bool", title: "Enable info text logging", defaultValue: true
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "usb", type: "bool", title: "<b>Enable for U1 usb device</b>", defaultValue: false
+        input name: "connectIp",type: "text", title: "<b>Soma Connect or U1 device IP Address</b>", required: true
+        input name: "mac",type: "text", title: "<b>Mac address of Shade 2 device</b>", required: true
+        input name: "timeout",type: "number", title: "<b>Time it takes to fully open from closed</b>", required: true, defaultValue: 10
+        input name: "logInfoEnable", type: "bool", title: "<b>Enable info text logging</b>", defaultValue: true
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
 
 def logsOff() {
@@ -79,9 +82,19 @@ def open() {
     state.position = 100
     currentLevel = device.currentValue("level")
     posChange = 100 - currentLevel
+    if (usb){
+        cmd = ":3000/open_shade?mac="
+    }else{
+        cmd = ":3000/open_shade/"
+    }
     try {
-       httpGet("http://" + connectIp + ":3000/open_shade/"  + mac) { resp ->
+       httpGet("http://" + connectIp + cmd + mac) { resp ->
            def json = (resp.data)
+           def msg = (resp.data as String)
+           if (usb){
+               def dataUsb = new JsonSlurper().parseText(msg)
+               json = dataUsb
+           }
            if (logEnable) log.debug "${json}"
            if (json.result == "error") {
                if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
@@ -114,9 +127,19 @@ def close() {
     if (logInfoEnable) log.info "$device.label Sending Close Command"
     state.position = 0
     posChange = device.currentValue("level")
+    if (usb){
+        cmd = ":3000/close_shade?mac="
+    }else{
+        cmd = ":3000/close_shade/"
+    }
     try {
-       httpGet("http://" + connectIp + ":3000/close_shade/"  + mac) { resp ->
+       httpGet("http://" + connectIp + cmd + mac) { resp ->
            def json = (resp.data)
+           def msg = (resp.data as String)
+           if (usb){
+               def dataUsb = new JsonSlurper().parseText(msg)
+               json = dataUsb
+           }
            if (logEnable) log.debug "${json}"
            if (json.result == "error") {
                if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
@@ -155,9 +178,19 @@ def off() {
 def stopPositionChange() {
     if (logEnable) log.debug "Sending Stop Command to [${settings.mac}]"
     if (logInfoEnable) log.info "$device.label Sending Stop Command"
+    if (usb){
+        cmd = ":3000/stop_shade?mac="
+    }else{
+        cmd = ":3000/stop_shade/"
+    }
     try {
-       httpGet("http://" + connectIp + ":3000/stop_shade/"  + mac) { resp ->
+       httpGet("http://" + connectIp + cmd + mac) { resp ->
            def json = (resp.data)
+           def msg = (resp.data as String)
+           if (usb){
+               def dataUsb = new JsonSlurper().parseText(msg)
+               json = dataUsb
+           }
            if (logEnable) log.debug "${json}"
            if (json.result == "error") {
                if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
@@ -190,10 +223,21 @@ def setPosition(value) {
 
     value = value.toInteger()
 	def position = 100 - value
-
+    if (usb){
+        cmd = ":3000/set_shade_position?mac="
+        posCmd = "&pos="
+    }else{
+        cmd = ":3000/set_shade_position/"
+        posCmd = "/"
+    }
     try {
-       httpGet("http://" + connectIp + ":3000/set_shade_position/"  + mac + "/"+ position) { resp ->
+       httpGet("http://" + connectIp + cmd + mac + posCmd + position) { resp ->
             def json = (resp.data)
+            def msg = (resp.data as String)
+            if (usb){
+                def dataUsb = new JsonSlurper().parseText(msg)
+                json = dataUsb
+            }
             if (logEnable) log.debug "${json}"
             if (json.result == "error") {
                if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
@@ -263,81 +307,98 @@ def startLevelChange(direction) {
 }
 
 def setMorningPosition(value) {
-    if (logEnable) log.debug "Sending Set Moring Position Command to [${settings.mac}]"
-    if (logInfoEnable) log.info "$device.label Sending Set Morning Position Command $value %"
-    state.position = value
-    currentLevel = device.currentValue("level")
-    
-    if (value > currentLevel){
-        posChange = value - currentLevel
-    }else{
-        posChange = currentLevel - value
+    if (usb){
+        log.warn "$device.label - Morning Position command not supported on U1 usb device"
+        sendEvent(name:"windowShade",value:"command not supported")
+        runIn(3,refresh)
     }
+    else{
+        if (logEnable) log.debug "Sending Set Moring Position Command to [${settings.mac}]"
+        if (logInfoEnable) log.info "$device.label Sending Set Morning Position Command $value %"
+        state.position = value
+        currentLevel = device.currentValue("level")
     
-    value = value.toInteger()
+        if (value > currentLevel){
+            posChange = value - currentLevel
+        }else{
+            posChange = currentLevel - value
+        }
     
-    def newPosition = 100 - value
+        value = value.toInteger()
     
-    try {
-       httpGet("http://" + connectIp + ":3000/set_shade_position/"  + mac + "/"+ newPosition + "?morning_mode=1") { resp ->
-            def json = (resp.data)
-            if (logEnable) log.debug "${json}"
-            if (json.result == "error") {
-               if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
-            }
-            if (json.result == "success") {
-                if (logEnable) log.debug "Command Success Response from SOMA Connect"
-                if (value > device.currentValue("level")){
-                sendEvent(name: "windowShade", value: "opening",isStateChange: true)
-                    if (posChange > 75){
-                        timeout = timeout * 5 as Integer
-                    }
-                    else if (posChange > 50 && posChange <= 75){
-                        timeout = (timeout * 0.75) * 5 as Integer
-                    }
-                    else if (posChange > 25 && posChange <= 50){
-                        timeout = (timeout * 0.50) * 5 as Integer
-                    }
-                    else if (posChange <= 25){
-                        timeout = (timeout * 0.25) * 5 as Integer
-                    }
-                    runIn(timeout,getPosition)
+        def newPosition = 100 - value
+    
+        try {
+           httpGet("http://" + connectIp + ":3000/set_shade_position/"  + mac + "/"+ newPosition + "?morning_mode=1") { resp ->
+                def json = (resp.data)
+                if (logEnable) log.debug "${json}"
+                if (json.result == "error") {
+                   if (logEnable) log.debug "Command -ERROR- from SOMA Connect- $json.msg"
                 }
-                else{
-                sendEvent(name: "windowShade", value: "closing", isStateChange: true)
-                    if (posChange > 75){
-                        timeout = timeout * 5 as Integer
+                if (json.result == "success") {
+                    if (logEnable) log.debug "Command Success Response from SOMA Connect"
+                    if (value > device.currentValue("level")){
+                    sendEvent(name: "windowShade", value: "opening",isStateChange: true)
+                        if (posChange > 75){
+                            timeout = timeout * 5 as Integer
+                        }
+                        else if (posChange > 50 && posChange <= 75){
+                            timeout = (timeout * 0.75) * 5 as Integer
+                        }
+                        else if (posChange > 25 && posChange <= 50){
+                            timeout = (timeout * 0.50) * 5 as Integer
+                        }
+                        else if (posChange <= 25){
+                            timeout = (timeout * 0.25) * 5 as Integer
+                        }
+                        runIn(timeout,getPosition)
                     }
-                    else if (posChange > 50 && posChange <= 75){
-                        timeout = (timeout * 0.75) * 5 as Integer
+                    else{
+                    sendEvent(name: "windowShade", value: "closing", isStateChange: true)
+                        if (posChange > 75){
+                            timeout = timeout * 5 as Integer
+                        }
+                        else if (posChange > 50 && posChange <= 75){
+                            timeout = (timeout * 0.75) * 5 as Integer
+                        }
+                        else if (posChange > 25 && posChange <= 50){
+                            timeout = (timeout * 0.50) * 5 as Integer
+                        }
+                        else if (posChange <= 25){
+                            timeout = (timeout * 0.25) * 5 as Integer
+                        }
+                        runIn(timeout,getPosition)
                     }
-                    else if (posChange > 25 && posChange <= 50){
-                        timeout = (timeout * 0.50) * 5 as Integer
-                    }
-                    else if (posChange <= 25){
-                        timeout = (timeout * 0.25) * 5 as Integer
-                    }
-                    runIn(timeout,getPosition)
                 }
-            }
-       }   
-    } catch (Exception e) {
-        log.warn "Call to on failed: ${e.message}"
+           }   
+        } catch (Exception e) {
+            log.warn "Call to on failed: ${e.message}"
+        }
     }
 }
 
 def getPosition() {
     if (logEnable) log.debug "Checking Shade Position"
     shadeValue = state.position
+    if (usb){
+        cmd = ":3000/get_shade_state?mac="
+    }else{
+        cmd = ":3000/get_shade_state/"
+    }
     try {
-    httpGet("http://" + connectIp + ":3000/get_shade_state/"  + mac) { resp ->
+    httpGet("http://" + connectIp + cmd + mac) { resp ->
         def json = (resp.data)
+        def msg = (resp.data as String)
+        if (usb){
+            def dataUsb = new JsonSlurper().parseText(msg)
+            json = dataUsb
+        }
         if (logEnable) log.debug "${json}"
         def shadePos = 100 - json.position
         sendEvent(name: "position", value: shadeValue)
         sendEvent(name: "level", value: shadeValue)
         if (logEnable) log.debug  "Shade Position set to ${shadePos}"
-        if (shadePos == 100){
+        if (shadePos >= 95){
             sendEvent(name: "windowShade", value: "open",isStateChange: true)
             sendEvent(name: "switch", value: "on", isStateChange: true)
             } else if (shadePos == 0) {
@@ -355,16 +416,27 @@ def getPosition() {
 
 def getStopPosition() {
     if (logEnable) log.debug "Checking Shade Position"
+    unschedule(getPosition)
     unschedule(refresh)
+    if (usb){
+        cmd = ":3000/get_shade_state?mac="
+    }else{
+        cmd = ":3000/get_shade_state/"
+    }
     try {
-    httpGet("http://" + connectIp + ":3000/get_shade_state/"  + mac) { resp ->
+    httpGet("http://" + connectIp + cmd + mac) { resp ->
         def json = (resp.data)
+        def msg = (resp.data as String)
+        if (usb){
+            def dataUsb = new JsonSlurper().parseText(msg)
+            json = dataUsb
+        }
         if (logEnable) log.debug "${json}"
         def shadePos = 100 - json.position
         sendEvent(name: "position", value: shadePos)
         sendEvent(name: "level", value: shadePos)
         if (logEnable) log.debug  "Shade Position set to ${shadePos}"
-        if (shadePos == 100){
+        if (shadePos >= 95){
             sendEvent(name: "windowShade", value: "open",isStateChange: true)
             sendEvent(name: "switch", value: "on", isStateChange: true)
             } else if (shadePos == 0) {
@@ -383,9 +455,19 @@ def getStopPosition() {
 
 def getBattery() {
     if (logEnable) log.debug "Checking Battery Level"
+    if (usb){
+        cmd = ":3000/get_battery_level?mac="
+    }else{
+        cmd = ":3000/get_battery_level/"
+    }
     try {
-    httpGet("http://" + connectIp + ":3000/get_battery_level/"  + mac) { resp ->
+    httpGet("http://" + connectIp + cmd + mac) { resp ->
         def json = (resp.data)
+        def msg = (resp.data as String)
+        if (usb){
+            def dataUsb = new JsonSlurper().parseText(msg)
+            json = dataUsb
+        }
         if (logEnable) log.debug  "${json}"
         def batteryPercent = json.battery_percentage
         sendEvent(name: "battery", value: batteryPercent)
