@@ -22,12 +22,16 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 10/21/2021
+ *  Last Update: 05/21/2022
  *
  *  Changes:
  *
  *  V1.0.0      -       2-15-2021       First run
  *  V1.1.0      -       10-21-2021      Improvements and fixes
+ *  V1.2.0      -       11-14-2021      Improvements and fixes
+ *  V1.3.0      -       12-05-2021      fixes - "unschedule auto off"
+ *  V1.4.0      -       05-21-2022      Added wait time for turning fan off, to avoid mis-turn off's
+ *  V1.5.0      -       12-16-2022      Made adjustments for new device driver that combines the light and fan in one.
  *
  */
 
@@ -52,19 +56,19 @@ preferences{
         required: true,
     	"<div style='text-align:center'><big><b>Kitchen Range Hood Automation</b></div></big>"
      	)
+        input(
+            name:"hood",
+            type:"capability.switchLevel",
+            title: "Range Hood to control",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
      paragraph(
         title: "Kitchen Range Hood Automation",
         required: true,
     	"<b><div style='text-align:center'>Kitchen Range Hood Light Options</div></b>"
      	)
-        input(
-            name:"light",
-            type:"capability.switchLevel",
-            title: "Range Hood Light to control",
-            multiple: true,
-            required: true,
-            submitOnChange: true
-              )
         input(
             name:"activeMotionSensors",
             type:"capability.motionSensor",
@@ -188,14 +192,6 @@ preferences{
     	"<b><div style='text-align:center'>Kitchen Range Hood Fan Options</div></b>"
      	)
         input(
-            name:"fanSwitch",
-            type:"capability.switch",
-            title: "Range Hood Fan to control",
-            multiple: false,
-            required: true,
-            submitOnChange: true
-              )
-        input(
             name:"hoodSensor",
             type:"capability.temperatureMeasurement",
             title: "Range Hood temperature sensor",
@@ -229,6 +225,13 @@ preferences{
             type:"number",
             title:"The Temperature threshold above baseline to trigger OFF",
             defaultValue: 7,
+            submitOnChange: true
+        )
+        input(
+            name:"offTimeout",
+            type:"number",
+            title:"How long the tempurature must remain below threshold before turning OFF",
+            defaultValue: 60,
             submitOnChange: true
         )
     }
@@ -274,8 +277,8 @@ def updated(){
 def initialize(){
     subscribe(settings.hoodSensor, "temperature", hoodSensorTemperatureHandler)
     subscribe(settings.baselineSensors, "temperature", baselineTemperatureHandler)
-    subscribe(settings.fanSwitch, "switch",  fanSwitchHandler)
-    subscribe(settings.light, "switch",  lightSwitchHandler)
+    subscribe(settings.hood, "speed",  fanSwitchHandler)
+    subscribe(settings.hood, "switch",  lightSwitchHandler)
     subscribe(settings.switch, "switch",  switchHandler)
     subscribe(settings.activeMotionSensors, "motion.active",  activeMotionHandler)
     subscribe(settings.inactiveMotionSensors, "motion",  inactiveMotionHandler)
@@ -298,11 +301,12 @@ def getValues(){
         status = settings.switch.currentValue("switch")
         state.switchOk = (status == "on")
     }
-    if (settings.fanSwitch){
-        status = settings.fanSwitch.currentValue("switch")
+    if (settings.hood){
+        status = settings.hood.currentValue("speed")
         state.fanSwitchOn = (status == "on")
         state.fanSwitchOff = (status == "off")
     }
+    tempFanHandler()
 }
 
 def modeEventHandler(evt){
@@ -346,35 +350,35 @@ def activeMotionHandler(evt){
 def lightsOnLevel(){
     if (state.earlyMorning){
         logInfo ("setting On Level for early morning mode")
-        settings.light.setLevel(earlyMorningOn)
+        settings.hood.setLevel(earlyMorningOn)
     }
     if (state.day){
         logInfo ("setting On Level for day mode")
-        settings.light.setLevel(dayOn)
+        settings.hood.setLevel(dayOn)
     }
     if (state.afternoon){
         logInfo ("setting On Level for afternoon mode")
-        settings.light.setLevel(afternoonOn)
+        settings.hood.setLevel(afternoonOn)
     }
     if (state.dinner){
         logInfo ("setting On Level for dinner mode")
-        settings.light.setLevel(dinnerOn)
+        settings.hood.setLevel(dinnerOn)
     }
     if (state.evening){
         logInfo ("setting On Level for evening mode")
-        settings.light.setLevel(eveningOn)
+        settings.hood.setLevel(eveningOn)
     }
     if (state.lateEvening){
         logInfo ("setting On Level for late evening mode")
-        settings.light.setLevel(lateEveningOn)
+        settings.hood.setLevel(lateEveningOn)
     }
     if (state.night){
         logInfo ("setting On Level for night mode")
-        settings.light.setLevel(nightOn)
+        settings.hood.setLevel(nightOn)
     }
     if (state.away){
         logInfo ("setting On Level for away mode")
-        settings.light.setLevel(awayOn)
+        settings.hood.setLevel(awayOn)
     }
 }
 
@@ -397,7 +401,7 @@ def motionInactive(){
     logInfo("All Inactive")
     if (state.switchOk){
         logInfo ("Turning lights Off")
-        settings.light.setLevel("0",duration)
+        settings.hood.setLevel(0,duration)
     }
     else{
         logInfo ("motion lighting switch off, not turning light off")
@@ -416,7 +420,7 @@ def hoodTemperature(){
 }
 def getHoodTemperature(){
 	logInfo ("Current temperature average is ${hoodTemperature()}")
-    tempHumidityFanHandler()
+    tempFanHandler()
 }
 
 def baselineTemperatureHandler(evt){
@@ -427,7 +431,7 @@ def baselineTemperature(){
 }
 def getBaselineTemperature(){
 	logInfo ("Current baseline temperature is ${baselineTemperature()}")
-    tempHumidityFanHandler()
+    tempFanHandler()
 }
 
 def fanSwitchHandler(evt){
@@ -440,9 +444,13 @@ def fanSwitchHandler(evt){
         logInfo ("Auto Fan on, turning off in $autoOff minutes")
         runIn(autoOff*60,autoFanOff)
     }
+    else if (state.fanSwitchOff){
+        unschedule(autoFanOff)
+        state.timerFan = false
+    }
 }
 
-def tempHumidityFanHandler(){
+def tempFanHandler(){
     hoodTemperature = hoodTemperature()
     baselineTemperature = baselineTemperature()
     fanTemperatureOnThreshold = (baselineTemperature + tempOnThreshold)
@@ -450,13 +458,15 @@ def tempHumidityFanHandler(){
     state.highTemperature = (hoodTemperature > fanTemperatureOnThreshold)
     state.goodTemperature = (hoodTemperature <= fanTemperatureOffThreshold)
     if (state.highTemperature){
+        unschedule(turnFanOff)
         logInfo ("temperature above threshold")
         turnFanOn()
     }
     if (state.goodTemperature){
         logInfo ("temperature below threshold")
         if (! state.timerFan){
-            turnFanOff()
+            logInfo ("If temperature remains below threshold for $offTimeout seconds,fan will turn Off")
+            runIn(offTimeout,turnFanOff)
         }
     }
 }
@@ -464,17 +474,18 @@ def tempHumidityFanHandler(){
 def turnFanOn(){
     if (state.fanSwitchOff){
         logInfo ("turning fan ON")
-        settings.fanSwitch.on()
+        settings.hood.setSpeed("on")
     }
     else{
         logInfo ("fan already On, not turning On")
+        state.timerFan = false
     }
 }
 
 def turnFanOff(){
     if (state.fanSwitchOn){
         logInfo ("turning fan Off")
-        settings.fanSwitch.off()
+        settings.hood.setSpeed("off")
     }
     else{
         logInfo ("fan already Off, not turning Off")
@@ -483,7 +494,7 @@ def turnFanOff(){
 
 def autoFanOff(){
     logInfo ("auto off timer expired, turning fan Off")
-    settings.fanSwitch.off()
+    settings.hood.setSpeed("off")
     state.timerFan = false
 }
 
