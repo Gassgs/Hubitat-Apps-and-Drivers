@@ -26,9 +26,10 @@
  *  V1.4.0  05-18-2022       Added motion capability
  *  V1.5.0  06-01-2022       Adding rule integration for syned updates, Many changes and improvments
  *  V1.6.0  06-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
+ *  V1.7.0  02-09-2023       Removed toggle command, not needed. Added Flash command and rate options
  */
 
-def driverVer() { return "1.6" }
+def driverVer() { return "1.7" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -41,18 +42,19 @@ metadata {
         capability "Sensor"
         capability "MotionSensor"
         
-        command "toggle"
+        command "flash"
         
         attribute "wifi","string"
         
     }
 }
     preferences {
-        input name: "deviceIp",type: "string", title: "Tasmota Device IP Address", required: true
-        input name: "hubIp",type: "string", title: "Hubitat Device IP Address", required: true
-        input name: "refreshEnable",type: "bool", title: "Enable to Refresh every 30mins", defaultValue: true
-        input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "deviceIp",type: "string", title: "<b>Tasmota Device IP Address</b>", required: true
+        input name: "hubIp",type: "string", title: "<b>Hubitat Device IP Address</b>", required: true
+        input name: "refreshEnable",type: "bool", title: "<b>Enable to Refresh every 30mins</b>", defaultValue: true
+        input (name: "flashRate", type: "enum", title: "<b>Flash Rate</b>", defaultValue: 750, options: [750:"750ms", 1000:"1s", 2000:"2s", 5000:"5s" ])
+        input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
 
 def logsOff() {
@@ -169,6 +171,9 @@ def parse(LanMessage){
 }
     
 def on() {
+    if (state.flashing){
+        stopFlash()
+    }
     if (logEnable) log.debug "Sending On Command to [${settings.deviceIp}]"
     try {
         httpGet("http://" + deviceIp + "/cm?cmnd=POWER%20On") { resp ->
@@ -186,6 +191,9 @@ def on() {
 }
 
 def off() {
+    if (state.flashing){
+        stopFlash()
+    }
     if (logEnable) log.debug "Sending Off Command to [${settings.deviceIp}]"
     try {
         httpGet("http://" + deviceIp + "/cm?cmnd=POWER%20Off") { resp ->
@@ -202,14 +210,71 @@ def off() {
     }
 }
 
-def toggle(){
-    status = device.currentValue("switch")
-    if (status == "on"){
-        off()
-    }else{
-        on()
+def flash(){
+    if (state.flashing){
+        stopFlash()
+        if (state.restore){
+            on()
+        }
+        else{
+            off()
+        }
     }
-}  
+    else{
+        if (logInfo) log.info "$device.label Flashing Started"
+        state.flashing = true
+        currentStatus = device.currentValue("switch")
+        if (currentStatus == "on"){
+            state.restore = true
+            flashOff()
+        }
+        else{
+            state.restore = false
+            flashOff()
+        }
+    }  
+}
+
+def flashOn(){
+    try {
+        httpGet("http://" + deviceIp + "/cm?cmnd=POWER%20On") { resp ->
+            def json = (resp.data)
+            if (logEnable) log.debug "${json}"
+            if (json.POWER == "ON"){
+                if (logEnable) log.debug "Command Success response from Device"
+            }else{
+                if (logEnable) log.debug "Command -ERROR- response from Device- $json"
+            }
+        }
+    } catch (Exception e) {
+        log.warn "Call to on failed: ${e.message}"
+    }
+    runInMillis(flashRate as Integer,flashOff)
+}
+
+def flashOff(){
+    try {
+        httpGet("http://" + deviceIp + "/cm?cmnd=POWER%20Off") { resp ->
+            def json = (resp.data)
+            if (logEnable) log.debug "${json}"
+            if (json.POWER == "ON"){
+                if (logEnable) log.debug "Command Success response from Device"
+            }else{
+                if (logEnable) log.debug "Command -ERROR- response from Device- $json"
+            }
+        }
+    } catch (Exception e) {
+        log.warn "Call to on failed: ${e.message}"
+    }
+    runInMillis(flashRate as Integer,flashOn)  
+}
+
+def stopFlash(){
+    if (logInfo) log.info "$device.label Flashing Ended"
+    unschedule(flashOn)
+    unschedule(flashOff)
+    state.flashing = false
+}
 
 def refresh() {
     if(settings.deviceIp){
