@@ -21,6 +21,7 @@
  *  V1.3.0  1-29-2021   -       Added Water sensor custom Handler
  *  V2.0.0  1-31-2021   -       Cleanup and improvements
  *  V2.1.0  6-30-2021   -       Improvements changed update method
+ *  V2.2.0  12-24-2022  -       Improvements simplified on/off
  * 
  */
 
@@ -43,18 +44,26 @@ metadata {
         attribute"currentAlert","string"
         attribute"currentMode","string"
         attribute"Home","string"
-        attribute"Leak","string" 
+        attribute"Leak","string"
+        attribute"exitAllowance","number"
+        
     }
 }
 
 def on(){
-    sendEvent(name:"alert",value:"arm")
-    runIn(1,resetAlert)
+    mode = device.currentValue("currentMode")
+    if (mode == "Away"){
+        sendLocationEvent(name: "hsmSetArm", value: "armAway")
+    }
+    else if (mode == "Night" || mode == "Late_evening"){
+        sendLocationEvent(name: "hsmSetArm", value: "armNight")
+    }else{
+        sendLocationEvent(name: "hsmSetArm", value: "armHome")
+    }
 }
 
 def off(){
-    sendEvent(name:"alert",value:"disarm")
-    runIn(1,resetAlert)
+    sendLocationEvent(name: "hsmSetArm", value: "disarm")
 }
 
 //current event will send :"alert","active" / when cancelled will send: "alert", "ok"
