@@ -39,9 +39,9 @@ metadata {
     }
 }
     preferences {
-        input name: "deviceMac",type: "string", title: "Synology MAC address", required: true
-        input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "deviceMac",type: "string", title: "<b>Synology MAC address</b>", required: true
+        input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
 
 def logsOff() {
