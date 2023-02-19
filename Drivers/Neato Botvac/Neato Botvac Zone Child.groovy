@@ -16,7 +16,7 @@ def version() {"v1.0"}
 
 metadata {
 	definition (name: "Neato Botvac Zone Child", namespace: "alyc100", author: "Gassgs") {
-		    capability "Actuator"
+		capability "Actuator"
         capability "Switch"
         capability "Sensor" 
         
@@ -24,9 +24,9 @@ metadata {
    }
 }
 preferences{
-    input("pwrMode", "enum", options: ["turbo", "eco"], title: "Power Mode", required:true, defaultValue: "turbo")
-    input("navMode", "enum", options: ["standard", "extraCare","deep"], title: "Navigation Mode", required:true, defaultValue: "standard" )
-    input(name:"logEnable",type:"bool",title: "Enable Info logging",required: true, defaultValue: true)
+    input("pwrMode", "enum", options: ["turbo", "eco"], title: "<b>Power Mode</b>", required:true, defaultValue: "turbo")
+    input("navMode", "enum", options: ["standard", "extraCare","deep"], title: "<b>Navigation Mode</b>", required:true, defaultValue: "standard" )
+    input(name:"logEnable",type:"bool",title: "<b>Enable Info logging</b>",required: true, defaultValue: true)
 }
 
 def on(){
