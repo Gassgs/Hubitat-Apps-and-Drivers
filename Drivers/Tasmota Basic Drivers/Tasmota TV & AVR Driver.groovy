@@ -52,15 +52,15 @@ metadata {
    
 }
     preferences {
-        input name: "deviceIp",type: "string", title: "Tasmota S31 Device IP Address", required: true
-        input name: "hubIp",type: "string", title: "Hubitat Hub IP Address", required: true
-        input name: "irDeviceIp",type: "string", title: "Tasmota IR Device IP Address", required: true
-        input( "deviceBrand","enum", options:["JVC","Samsung","Toshiba"], title: "Device Brand", defaultValue: "JVC")
-        input name: "lowValue",type: "number", title: "Low Power threshold 'OFF'", defaultValue: 0 , required: true
-        input name: "highValue",type: "number", title: "High Power threshold 'ON'", defaultValue: 0 , required: true
-        input name: "refreshEnable",type: "bool", title: "Enable to Refresh every 30mins", defaultValue: true
-        input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "deviceIp",type: "string", title: "<b>Tasmota S31 Device IP Address</b>", required: true
+        input name: "hubIp",type: "string", title: "<b>Hubitat Hub IP Address</b>", required: true
+        input name: "irDeviceIp",type: "string", title: "<b>Tasmota IR Device IP Address</b>", required: true
+        input( "deviceBrand","enum", options:["JVC","Samsung","Toshiba"], title: "<b>Device Brand</b>", defaultValue: "JVC")
+        input name: "lowValue",type: "number", title: "<b>Low Power threshold 'OFF'</b>", defaultValue: 0 , required: true
+        input name: "highValue",type: "number", title: "<b>High Power threshold 'ON'</b>", defaultValue: 0 , required: true
+        input name: "refreshEnable",type: "bool", title: "<b>Enable to Refresh every 30mins</b>", defaultValue: true
+        input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
 
 def logsOff() {
