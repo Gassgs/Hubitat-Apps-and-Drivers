@@ -2,7 +2,7 @@
  *  Tasker Mobile Presence
  *
  *  Use Tasker with Maker API for presence
- *  GPS + Wifi for presence - Tasker & Auto Location  
+ *  Wifi for presence - Tasker wifi near w/ 
  *  Power source, battery level, and in vehicle also supported.
  *
  *  Copyright 2021 Gassgs  GaryG
@@ -22,37 +22,38 @@
  *  V1.1.0  8-23-2021       Added Wifi ping for double check
  *  V1.2.0  8-27-2021       Added "In Car" - booleen
  *  V1.3.0  11-1-2021       removed On/Off, not needed. testing complete.
+ *  V1.4.0  08-2-2022       No GPS, wifi near only removed ping
+ *  V1.5.0  09-7-2022       wifi near and wifi ping/ ping added back in (Final?)
  */
 
-def driverVer() { return "1.3" }
+def driverVer() { return "1.5" }
 
  
 metadata {
 	definition (name: "Tasker Mobile Presence", namespace: "Gassgs", author: "Gary G") {
-	capability "Presence Sensor"
+	    capability "Presence Sensor"
         capability "Sensor"
         capability "Power Source"
         capability "Actuator"
         capability "Battery"
         capability "Refresh"
         
-        attribute "wifiLocation", "String"
-        attribute "gpsLocation", "String"
+        attribute "wifi", "String"
+        attribute "wifiNear", "String"
         attribute "inCar", "String"
         
-        command "gps", [[name:"Set GPS", type: "ENUM",description: "Set GPS", constraints: ["arrived", "departed"]]]
-        command "wifi", [[name:"Set Wifi", type: "ENUM",description: "Set Wifi", constraints: ["arrived", "departed"]]]
+        command "presence", [[name:"Set Presence", type: "ENUM",description: "Set Presence", constraints: ["arrived", "departed"]]]
         command "power", [[name:"Set power", type: "ENUM",description: "Set power", constraints: ["dc", "battery"]]]
         command "inCar", [[name:"In Car", type: "ENUM",description: "In Car", constraints: ["true", "false"]]]
         command "battery", [[name:"Set battery", type: "NUMBER",description: "Set battery"]]
 	}
     
     preferences {
-	input name: "ipAddress",type: "string",title: "Phone IP Address",required: true	
-        input name: "timeoutMinutes",type: "number",title: "Timeout Minutes",required: true,defaultValue: 3
-        input name: "enableDevice",type: "bool",title: "Enable Device?",required: true,defaultValue: true
-        input name: "infoEnable", type: "bool", title: "Enable Info Text logging", defaultValue: true
-        input name: "debugEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+		input name: "ipAddress",type: "string",title: "<b>Phone IP Address</b>",required: true	
+        input name: "timeoutMinutes",type: "number",title: "<b>Timeout in Minutes</b>",required: true,defaultValue: 3
+        input name: "enableDevice",type: "bool",title: "<b>Enable Device Ping?</b>",required: true,defaultValue: true
+        input name: "infoEnable", type: "bool", title: "<b>Enable Info Text logging</b>", defaultValue: true
+        input name: "debugEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
     }
 }
 
@@ -98,8 +99,7 @@ def refresh() {
     if ((state.tryCount / state.triesPerMinute) > (timeoutMinutes < 1 ? 1 : timeoutMinutes) && device.currentValue('wifiLocation') != "away") {
         def descriptionText = "${device.displayName} is OFFLINE";
         if (debugEnable) log.debug "descriptionText"
-        if (infoEnable) log.info "$device.label Wifi location Not Present - backup ping"
-        wifi("departed")
+        wifi("notConnected")
     }
     
 	if (ipAddress == null || ipAddress.size() == 0) {
@@ -122,7 +122,7 @@ def httpGetCallback(response, data) {
 		if (device.currentValue('wifiLocation') != "home") {
 			def descriptionText = "${device.displayName} is ONLINE";
 			if (debugEnable) log.debug "descriptionText"
-			wifi("arrived")
+			wifi("connected")
 		}
 	}
     else {
@@ -131,20 +131,20 @@ def httpGetCallback(response, data) {
     }
 }
 
-def gps(value){
+def presence(value){
     if (value == "arrived"){
-        if (device.currentValue("gpsLocation") == "away" || device.currentValue("gpsLocation") == null){
-            if (infoEnable) log.info "$device.label Gps location Present"
-            sendEvent(name:"gpsLocation",value:"home")
+        if (device.currentValue("wifiNear") == "false" || device.currentValue("wifiNear") == null){
+            if (infoEnable) log.info "$device.label Wifi nearby -  Present"
+            sendEvent(name:"wifiNear",value:"true")
             sendEvent(name:"presence",value:"present")
         }
     }
     else if (value == "departed"){
-        if (device.currentValue("gpsLocation") == "home" || device.currentValue("gpsLocation") == null){
-            if (infoEnable) log.info "$device.label GPS location Not Present"
-            sendEvent(name:"gpsLocation",value:"away")
-            if (device.currentValue("wifiLocation") == "away"){
-                if (infoEnable) log.info "$device.label Wifi and Gps location Not Present"
+        if (device.currentValue("wifiNear") == "true" || device.currentValue("wifiNear") == null){
+            if (infoEnable) log.info "$device.label Wifi is not nearby -  Not Present"
+            sendEvent(name:"wifiNear",value:"false")
+            if (device.currentValue("wifi") == "not connected"){
+                if (infoEnable) log.info "$device.label Wifi not connected and not nearby - Not Present"
                 sendEvent(name:"presence",value:"not present")
             }
         }
@@ -152,19 +152,19 @@ def gps(value){
 }
 
 def wifi(value){
-    if (value == "arrived"){
-        if (device.currentValue("wifiLocation") == "away" || device.currentValue("wifiLocation") == null){
-            if (infoEnable) log.info "$device.label wifi location Present"
-            sendEvent(name:"wifiLocation",value:"home")
+    if (value == "connected"){
+        if (device.currentValue("wifi") == "not connected" || device.currentValue("wifi") == null){
+            if (infoEnable) log.info "$device.label wifi Connected - Present"
+            sendEvent(name:"wifi",value:"connected")
             sendEvent(name:"presence",value:"present")
         }
     }
-    else if (value == "departed"){
-        if (device.currentValue("wifiLocation") == "home" || device.currentValue("wifiLocation") == null){
-            if (infoEnable) log.info "$device.label Wifi location Not Present"
-            sendEvent(name:"wifiLocation",value:"away")
-            if (device.currentValue("gpsLocation") == "away"){
-                if (infoEnable) log.info "$device.label Wifi and Gps location Not Present"
+    else if (value == "notConnected"){
+        if (device.currentValue("wifi") == "connected" || device.currentValue("wifi") == null){
+            if (infoEnable) log.info "$device.label Wifi Not Connected -  Not Present"
+            sendEvent(name:"wifi",value:"not connected")
+            if (device.currentValue("wifiNear") == "false"){
+                if (infoEnable) log.info "$device.label Wifi not connected and not nearby -  Not Present"
                 sendEvent(name:"presence",value:"not present")
             }
         }
