@@ -26,7 +26,7 @@ metadata {
     definition (name: "Bluecharms Beacon", namespace: "Gassgs", author: "Gary G"){
         capability "Actuator"
         capability "Sensor"
-        capability "Presence Sensor"
+        capability "Beacon"
         
         command "inRangeThreshold",[[name: "RSSI", description: "number from -99 to -1  suggested -65", type: "NUMBER"]]
         command "outOfRangeThreshold", [[name: "RSSI", description: "number from -99 to -1  suggested -80", type: "NUMBER"]]
