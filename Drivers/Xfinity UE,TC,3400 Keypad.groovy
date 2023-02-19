@@ -60,11 +60,11 @@ metadata {
     }
 
     preferences{
-        input name: "optEncrypt", type: "bool", title: "Enable lockCode encryption", defaultValue: false, description: ""
-        input name: "codeEnable", type: "bool", title: "Enable showing entered code #", defaultValue: false, description: ""
-        input "refTemp", "decimal", title: "Reference temperature", description: "Enter current reference temperature reading", range: "*..*"
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true, description: ""
-        input name: "txtEnable", type: "bool", title: "Enable descriptionText logging", defaultValue: true, description: ""
+        input name: "optEncrypt", type: "bool", title: "<b>Enable lockCode encryption</b>", defaultValue: false, description: ""
+        input name: "codeEnable", type: "bool", title: "<b>Enable showing entered code #</b>", defaultValue: false, description: ""
+        input "refTemp", "decimal", title: "<b>Reference temperature</b>", description: "Enter current reference temperature reading", range: "*..*"
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true, description: ""
+        input name: "txtEnable", type: "bool", title: "<b>Enable descriptionText logging</b>", defaultValue: true, description: ""
     }
 }
 
