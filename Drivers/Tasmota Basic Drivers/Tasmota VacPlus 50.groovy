@@ -28,10 +28,11 @@
  *  V1.4.0  5-31-2022       Improved "refresh"
  *  V1.5.0  6-03-2022       Automated rule setup process
  *  V1.6.0  6-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
+ *  V1.7.0  12-2-2022       Consolidated ionizer commands
  * 
  */
 
-def driverVer() { return "1.6" }
+def driverVer() { return "1.7" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -45,8 +46,8 @@ metadata {
         capability "Sensor"
         capability "Refresh"
         
-        command "ionizerOn"
-        command "ionizerOff"
+        
+        command "ionizer", [[name:"Ionizer", type: "ENUM",description: "Ionizer", constraints: ["on","off"]]]
         command "setMode", [[name:"Set Mode", type: "ENUM",description: "Set Mode", constraints: ["standard","raining","drying","sleep"]]]
         command "setHumidity",[[name: "humidity",type: "NUMBER",description:"Desired Humidity Level"]]
         
@@ -58,11 +59,11 @@ metadata {
     }
 }
     preferences {
-        input name: "deviceIp",type: "string", title: "Tasmota Device IP Address", required: true
-        input name: "hubIp",type: "string", title: "Hubitat Device IP Address", required: true
-        input name: "refreshEnable",type: "bool", title: "Enable to Refresh every 30mins", defaultValue: true
-        input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "deviceIp",type: "string", title: "<b>Tasmota Device IP Address</b>", required: true
+        input name: "hubIp",type: "string", title: "<b>Hubitat Device IP Address</b>", required: true
+        input name: "refreshEnable",type: "bool", title: "<b>Enable to Refresh every 30mins</b>", defaultValue: true
+        input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
 
 def logsOff() {
@@ -354,6 +355,14 @@ def setHumidity(value) {
        }   
     } catch (Exception e) {
         log.warn "Call to on failed: ${e.message}"
+    }
+}
+
+def ionizer(data){
+    if (data == "on"){
+        ionizerOn()
+    }else{
+        ionizerOff()
     }
 }
 
