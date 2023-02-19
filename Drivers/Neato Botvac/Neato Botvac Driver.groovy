@@ -40,14 +40,14 @@ preferences{
     refreshRate << ["10 min" : "Refresh every 10 minutes"]
 	refreshRate << ["15 min" : "Refresh every 15 minutes"]
 	refreshRate << ["30 min" : "Refresh every 30 minutes"]
-    input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
-    input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
-    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
-    input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
-    input(name:"clearEnable",type:"bool",title: "Enable to automatically clear alerts",required:false,defaultValue: false)
-    input(name:"zoneEnable",type:"bool",title: "Enable Zone Child Devices, D7 model only",required: true, defaultValue: false)
-    input(name:"logInfo",type:"bool",title: "Enable Info logging",required: true,defaultValue: true)
-    input(name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: true)   
+    input("dockRefresh", "enum", title: "<b>Refresh Interval while resting</b>",options: refreshRate, defaultValue: "15 min", required: true )
+    input("runRefresh", "number", title: "<b>Refresh Interval while running</b>", description: "*In Seconds*", defaultValue: 30, required: true )
+    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "<b>Use Persistent Map, No-Go-Lines</b>", description: "*Only supported on certain models*", required: false, defaultValue: on )
+    input(name: "offEnable", type: "bool", title: "<b>Off = Paused by default, Enable for Return to Dock</b>", defaultValue: false)
+    input(name:"clearEnable",type:"bool",title: "<b>Enable to automatically clear alerts</b>",required:false,defaultValue: false)
+    input(name:"zoneEnable",type:"bool",title: "<b>Enable Zone Child Devices</b>", description: "*D7 model only*",required: true, defaultValue: false)
+    input(name:"logInfo",type:"bool",title: "<b>Enable Info logging</b>",required: true,defaultValue: true)
+    input(name: "debugEnable", type: "bool", title: "<b>Enable Debug Logging</b>", defaultValue: true)   
 }
 
 metadata {
@@ -234,7 +234,7 @@ def scheduleOn() {
 
 def scheduleOff() {
 	logDebug ("Executing Schedule Disable")
-    	nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
+    nucleoPOST("/messages", '{"reqId":"1", "cmd":"disableSchedule"}')
 	runIn(2, refresh)
 }
 
@@ -450,7 +450,7 @@ def nucleoPOST(path, body) {
                 }
                 charge = result.details.isCharging as String
                 logDebug ("charge status $charge")
-                if (logInfo) log.info "$device.label charging $charge"
+                //if (logInfo) log.info "$device.label charging $charge"
                 if (charge == "false"){
                     state.notCharging = true
                 }else{
@@ -463,7 +463,7 @@ def nucleoPOST(path, body) {
                 }
                 scheduleStatus = result.details.isScheduleEnabled as String
                 logDebug ("Schedule Enabled - $scheduleStatus")
-                if (logInfo) log.info "$device.label Schedule Enabled - $scheduleStatus"
+                //if (logInfo) log.info "$device.label Schedule Enabled - $scheduleStatus"
                 if (scheduleStatus == "true"){
                     sendEvent(name:"schedule",value:"enabled") 
                 }else{
