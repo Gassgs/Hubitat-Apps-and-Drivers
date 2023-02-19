@@ -23,11 +23,12 @@
  *  V1.6 Hubitat   improved refresh schedule method
  *  V1.7 Hubitat   Removed Schedule toggle, added Schedule On and Off Commands
  *  V1.8 Hubitat   Added Clear alert Command, fixes and cleanup
- *  V1.9 Hubitat   Driver for D7 series vacuums ability to manually add rooms/zones
+ *  V1.9 Hubitat   D7 series vacuums ability to manually add rooms/zones
+ *  V2.0 Hubitat   Added rooms/zones child devices for D7 Vacuums
  *
  */
 
-def driverVer() { return "1.9" }
+def driverVer() { return "2.0" }
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -36,27 +37,27 @@ import java.security.InvalidKeyException;
 preferences{
     def refreshRate = [:]
 	refreshRate << ["5 min" : "Refresh every 5 minutes"]
-        refreshRate << ["10 min" : "Refresh every 10 minutes"]
+    refreshRate << ["10 min" : "Refresh every 10 minutes"]
 	refreshRate << ["15 min" : "Refresh every 15 minutes"]
 	refreshRate << ["30 min" : "Refresh every 30 minutes"]
-    input("dockRefresh", "enum", title: "How often to 'Refresh' device status",options: refreshRate, defaultValue: "15 min", required: true )
-    input("runRefresh", "number", title: "How often to 'Refresh' device status while vacuum is running, in Seconds", defaultValue: 30, required: true )
-    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "Use Persistent Map, No-Go-Lines", description: "Only supported on certain models", required: false, defaultValue: on )
-    input(name: "offEnable", type: "bool", title: "Off = Paused by default, Enable for, Off = Return to Dock", defaultValue: false)
-    input(name:"clearEnable",type:"bool",title: "Enable to automatically clear alerts",required:false,defaultValue: false)
-    input(name:"logInfo",type:"bool",title: "Enable Info logging",required: true,defaultValue: true)
-    input(name: "debugEnable", type: "bool", title: "Enable Debug Logging", defaultValue: true)
-    
+    input("dockRefresh", "enum", title: "<b>Refresh Interval while resting</b>",options: refreshRate, defaultValue: "15 min", required: true )
+    input("runRefresh", "number", title: "<b>Refresh Interval while running</b>", description: "*In Seconds*", defaultValue: 30, required: true )
+    input( "prefPersistentMapMode", "enum", options: ["on", "off"], title: "<b>Use Persistent Map, No-Go-Lines</b>", description: "*Only supported on certain models*", required: false, defaultValue: on )
+    input(name: "offEnable", type: "bool", title: "<b>Off = Paused by default, Enable for Return to Dock</b>", defaultValue: false)
+    input(name:"clearEnable",type:"bool",title: "<b>Enable to automatically clear alerts</b>",required:false,defaultValue: false)
+    input(name:"zoneEnable",type:"bool",title: "<b>Enable Zone Child Devices</b>", description: "*D7 model only*",required: true, defaultValue: false)
+    input(name:"logInfo",type:"bool",title: "<b>Enable Info logging</b>",required: true,defaultValue: true)
+    input(name: "debugEnable", type: "bool", title: "<b>Enable Debug Logging</b>", defaultValue: true)   
 }
 
 metadata {
-	definition (name: "Neato Botvac D7 Series", namespace: "alyc100", author: "Alex Lee Yuk Cheung")	{
+	definition (name: "Neato Botvac D7 Series", namespace: "Gassgs", author: "Gary G")	{
     	capability "Battery"
-	capability "Refresh"
-	capability "Switch"
+		capability "Refresh"
+		capability "Switch"
         capability "Actuator"
 
-	command "refresh"
+		command "refresh"
         command "clearAlert"
         command "returnToDock"
         command "findMe"  //(Only works on D7 model)
@@ -67,12 +68,19 @@ metadata {
         command "scheduleOff"
         command "setPowerMode", [[name:"Set Power Mode", type: "ENUM",description: "Set Power Mode", constraints: ["eco", "turbo"]]]
         command "setNavigationMode", [[name:"Set Navigation Mode", type: "ENUM",description: "Set Navigation Mode", constraints: ["standard", "extraCare","deep"]]]
-        command "zones"
         
         def zones = []
         zones << "Home"   // add custom rooms and zones names below - replace "Home" with your zone names, example | zones << "Living Room" |  -- (optional for D7 model only) 
+        zones << "Living Room"
+        zones << "Kitchen"
+        zones << "Zone 1"
+        zones << "Hallway"
+        zones << "Bathroom"
+        zones << "Master Bedroom"
+        zones << "Ethan's Room"
+        zones << "Spare Room"
+        zones << "Zone 2"
         
-
         command "cleanZone",[[name:"cleanZone", type: "ENUM",description: "Clean Zone", constraints: zones]]
 
         attribute "status","string"
@@ -124,6 +132,13 @@ def updated() {
             if (logInfo) log.info "$device.label refresh every 30 minutes schedule"
             break
 	}
+    if (state.model == "BotVacD7Connected"){
+        if (zoneEnable){
+            zoneAdd()
+        }else{
+            zoneRemove()
+        }
+    }
 	initialize()
 }
 
@@ -148,7 +163,6 @@ def refreshSch(){
 }
 
 def cleanZone(zone){
-    // dont't change this first one //
     if (zone == "Home"){
         on()
         return
@@ -174,6 +188,34 @@ def cleanZone(zone){
         roomId = "bd213c5b-fdd0-4ecd-870a-42a6dd5fed2f"
     }                                                   *///////////
 
+    if (zone == "Living Room"){
+        roomId = "6485f67d-09a5-44ff-b4e7-6e4af06ddba0"
+    }
+    if (zone == "Kitchen"){
+        roomId = "1db93c22-6cf2-40c8-9b1f-7efc25340d66"
+    }
+    if (zone == "Zone 1"){
+        roomId = "322097bc-4c13-4f29-8df0-eece1022c927"
+    }
+    if (zone == "Hallway"){
+        roomId = "104a5c41-3b74-4d7c-8d4c-d12e1ef30f56"
+    }
+    if (zone == "Bathroom"){
+        roomId = "e27262d7-67ff-472a-a168-4a31a8874564"
+    }
+    if (zone == "Ethan's Room"){
+        roomId = "a215d0d5-48ee-4526-9ecb-35382352ed41"
+    }
+    if (zone == "Master Bedroom"){
+        roomId = "43589f5b-b187-40ce-b33f-956bd248b3bb"
+    }
+    if (zone == "Zone 2"){
+        roomId = "d1807ad5-b0e3-40e7-8cbd-c565a3fd80ce"
+    }
+    if (zone == "Spare Room"){
+        roomId = "5a844796-9f67-4a79-8b03-cbbe94217a55"
+    }
+    
     nucleoPOST("/messages", '{"reqId":"1", "cmd":"startCleaning", "params":{"category": "4", "mode":' + modeParam +' , "navigationMode":' + navParam +', "boundaryId":"'+roomId+'"}}')
     logDebug ("Executing 'Clean Zone  -- $zone'")
     runIn(2, refresh)
@@ -456,7 +498,7 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"error",value:"clear")
                 }else{
                     logDebug ("Error is -  $errorCode")
-                    errorMsg = result.error.replaceAll('_',' ').capitalize()
+                    errorMsg = "Error. " + result.error.replaceAll('_',' ').replaceAll('batt','battery').replaceAll('gen','robot was').replaceAll('hw','hardware').replaceAll('maint',' ').replaceAll('nav','navigation error, ').capitalize()
                     if (logInfo) log.info "$device.label error - $errorMsg"
                     sendEvent(name:"error",value:errorMsg)
                 }
@@ -468,7 +510,7 @@ def nucleoPOST(path, body) {
                     sendEvent(name:"alert",value:"clear")
                 }else{
                     logDebug ("Alert is -  $alertText")
-                    alertMsg = result.alert.replaceAll('_',' ').capitalize()
+                    alertMsg = "Alert. " + result.alert.replaceAll('_',' ').replaceAll('maint','time for').replaceAll('nav',' ').replaceAll('sched','schedule').capitalize()
                     if (logInfo) log.info "$device.label error - $alertMsg"
                     sendEvent(name:"alert",value:alertMsg)
                     if (clearEnable){
@@ -491,7 +533,7 @@ def nucleoPOST(path, body) {
                 }
                 charge = result.details.isCharging as String
                 logDebug ("charge status $charge")
-                if (logInfo) log.info "$device.label charging $charge"
+                //if (logInfo) log.info "$device.label charging $charge"
                 if (charge == "false"){
                     state.notCharging = true
                 }else{
@@ -504,25 +546,17 @@ def nucleoPOST(path, body) {
                 }
                 scheduleStatus = result.details.isScheduleEnabled as String
                 logDebug ("Schedule Enabled - $scheduleStatus")
-                if (logInfo) log.info "$device.label Schedule Enabled - $scheduleStatus"
+                //if (logInfo) log.info "$device.label Schedule Enabled - $scheduleStatus"
                 if (scheduleStatus == "true"){
                     sendEvent(name:"schedule",value:"enabled") 
                 }else{
                     sendEvent(name:"schedule",value:"disabled")
                 }
- 
             }
-            if (result.find{ it.key == "data" }){
-                if (result.data.boundaries != null){
-                    //result.data.boundaries.findAll { it.name }.each {
-                        //log.warn "$it.name:$it.id" }
-                    def rooms = [:]
-                    result.data.boundaries.findAll { it.name }.each { rooms[it.name] = it.id }
-                    log.warn "$rooms"
-                    //state.rooms = "$rooms"
-                }
+            if (result.find{ it.key == "meta" }){
+                model = result.meta.modelName as String
+                state.model = "$model"
             }
-            
             
             return response
 		}
@@ -532,15 +566,18 @@ def nucleoPOST(path, body) {
 	}
 }
 
+/////////////////////////////Zone Devices D7 Only//////////////////////
 
-////////////////////////////////WIP///////////////////////////////
-
-
-def zones(){
-    def resp2 = parent.beehiveGET("/users/me/robots/${device.deviceNetworkId.tokenize("|")[0]}/persistent_maps")
-    def mapId = resp2.data[0].id
-    nucleoPOST2("/messages", '{"reqId": "1", "cmd": "getMapBoundaries", "params": {"mapId": "' + mapId + '"}}')
-    if (debugEnable) log.debug("map ID = ${mapId}")
+def zoneAdd(){
+    def childDevice = getChildDevices()?.find {it.data.componentLabel == "zone"}
+    if (!childDevice) {
+        def resp2 = parent.beehiveGET("/users/me/robots/${device.deviceNetworkId.tokenize("|")[0]}/persistent_maps")
+        def mapId = resp2.data[0].id
+        nucleoPOST2("/messages", '{"reqId": "1", "cmd": "getMapBoundaries", "params": {"mapId": "' + mapId + '"}}')
+        if (debugEnable) log.debug("map ID = ${mapId}")
+    }else{
+        if (debugEnable) log.debug("Child zones already created- to add or update, remove child devices and try again")
+    }      
 }
 
 def nucleoPOST2(path, body) {
@@ -554,15 +591,28 @@ def nucleoPOST2(path, body) {
             def result = resp
             if (result.find{ it.key == "data" }){
                 if (result.data.boundaries != null){
-                    
-                    result.data.boundaries.findAll { it.name }.each { 
-                    log.trace "$it.name = $it.id" }
                    
-                    
                     def rooms = [:]
                     result.data.boundaries.findAll { it.name }.each { rooms[it.name] = it.id }
                     if (debugEnable) log.debug "$rooms"
                     
+                    result.data.boundaries.findAll { it.name }.each {
+                        
+                        def zoneName = "$it.name"
+                        def zoneId = "$it.id"
+                        
+                        log.trace "$zoneName  =  $zoneId"
+                    
+                        if (zoneName != null) { 
+                            log.info("Adding Neato zone device ${zoneName}:${zoneId}")
+                            
+                            childDevice = addChildDevice("alyc100","Neato Botvac Zone Child","${zoneId}",[name:"Neato Botvac Zone - ${zoneName}",label: "Vacuum ${zoneName}", isComponent: true, componentLabel: "zone"])
+                            childDevice.setId("$zoneId")
+                            childDevice.off()
+                            
+                            if (debugEnable) "Created Zone Child - ${zoneName} with id: ${zoneId}"
+                        }   
+                    } 
                 }
             }
             
@@ -574,8 +624,20 @@ def nucleoPOST2(path, body) {
 	}
 }
 
-/////////////////////////////WIP//////////////////////
+def zoneRemove(){
+    def childDevice = getChildDevices()?.find {it.data.componentLabel == "zone"}
+    if (childDevice) {
+        if (debugEnable) log.debug "Deleting Zone children"
+        def children = getChildDevices()
+        children.each {child->
+            deleteChildDevice(child.deviceNetworkId)
+        }
+    }else{
+        if (debugEnable) log.debug "No Zone children to delete"
+    }
+}
 
+/////////////////////////////Zone Devices D7 Only//////////////////////
 
 def getHMACSignature(date, body) {
 	//request params
