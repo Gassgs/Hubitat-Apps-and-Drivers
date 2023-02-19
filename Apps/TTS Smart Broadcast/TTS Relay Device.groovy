@@ -37,7 +37,7 @@ metadata {
    
 }
     preferences {
-        input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
+        input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
 }
         
 def speak(string,volume = "null",voice = "null"){
@@ -59,8 +59,8 @@ def speak(string,volume = "null",voice = "null"){
 }
 
 def clearMsg(){
+    if (logInfo) log.info "$device.label clearing"
     sendEvent(name:"message",value:"clear")
     sendEvent(name:"volume",value:"clear")
     sendEvent(name:"voice",value:"clear")
 }
-    
