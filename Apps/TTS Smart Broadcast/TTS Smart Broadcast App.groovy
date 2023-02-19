@@ -32,6 +32,9 @@
  *  V1.4.0      -       12-11-2021      Improvements and fixes. added send to "home" pushover devices only when ON or Online
  *  V1.5.0      -       12-14-2021      temp fix for issue with 1st gen nest hubs cutting off begining. (removed 12/16)
  *  V1.6.0      -       12-31-2021      Added garage smart area and send TTS to glasses through tasker
+ *  V1.7.0      -       03-06-2021      Adjusted Gary Push rule to car stereo when in car or text when away. Not through glasses when home.
+ *  V1.8.0      -       03-09-2021      Added Gary personal notification rule to car stereo when in car, text when away,  and glasses when home.
+ *  V1.9.0      -       02-01-2023      Added message default to Living Room only when no motion in Kitchen.
  *
  *
  */
@@ -319,24 +322,6 @@ preferences{
     	"<div style='text-align:center'><b>Pushover Devices -HOME-</b></div>"
      	)
         input(
-            name:"galaxyChromebook",
-            type:"capability.notification",
-            title: "<b>Galaxy Chromebook 2</b> For push messages",
-            multiple: true,
-            required: true,
-            submitOnChange: true
-              )
-        if(galaxyChromebook){
-            input(
-            name:"galaxyChromebookSwitch",
-            type:"capability.switch",
-            title: "<b>Galaxy Chromebook 2 On/Off Switch</b>",
-            multiple: false,
-            required: true,
-            submitOnChange: true
-              )
-        }
-        input(
             name:"livingroomTv",
             type:"capability.notification",
             title: "<b>Living Room TV</b> For push messages",
@@ -427,7 +412,7 @@ preferences{
         input(
             name:"garyPushHome",
             type:"capability.notification",
-            title: "<b>Gary's Mobile Device</b> For messages when at home or driving",
+            title: "<b>Gary's Mobile Device</b> For messages when driving",
             multiple: false,
             required: true,
             submitOnChange: true
@@ -461,6 +446,22 @@ preferences{
               )
         }
     }
+    section{
+        
+        paragraph(
+        title: "Gary Smart Notification Device",
+        required: true,
+    	"<div style='text-align:center'><b><big>Gary Smart Notification Device</big></b></div>"
+     	)
+        input(
+            name:"garySmartDevice",
+            type:"capability.speechSynthesis",
+            title: "<b>Gary Smart Notification Device</b> input for Gary's messages",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+              )
+    }
     
     section{
         
@@ -493,6 +494,7 @@ def updated(){
 def initialize(){
     subscribe(settings.ttsCriticalDevice, "message", criticalMsgHandler)
 	subscribe(settings.ttsSmartDevice, "message", smartMsgHandler)
+    subscribe(settings.garySmartDevice, "message", garyMsgHandler)
 	subscribe(settings.ttsSmartDevice, "volume", smartVolHandler)
     subscribe(settings.ttsCriticalDevice, "voice", criticalVoiceHandler)
 	subscribe(settings.ttsSmartDevice, "voice", smartVoiceHandler)
@@ -504,7 +506,6 @@ def initialize(){
     subscribe(settings.bedroomSensor, "motion", bedroomMotionHandler)
     subscribe(settings.spareRoomSensor, "motion", spareRoomMotionHandler)
     subscribe(settings.garageSensor, "motion", garageMotionHandler)
-    subscribe(settings.galaxyChromebookSwitch, "switch", galaxyChromebookSwitchHandler)
     subscribe(settings.livingroomTvSwitch, "switch", livingroomTvSwitchHandler)
     subscribe(settings.basementTvSwitch, "switch", basementTvSwitchHandler)
     subscribe(settings.bedroomTvSwitch, "switch", bedroomTvSwitchHandler)
@@ -518,16 +519,6 @@ def modeEventHandler(evt){
     mode = evt.value
     state.away = (mode == "Away")
     logInfo ("$app.label mode status $mode")
-}
-
-def galaxyChromebookSwitchHandler(evt){
-    if (evt.value == "on"){
-        state.galaxyChromebookOn = true
-        logInfo ("$app.label Galaxy Chromebook 2 On")
-    }else{
-        state.galaxyChromebookOn = false
-        logInfo ("$app.label Galaxy Chromebook 2 Off")
-    }
 }
 
 def livingroomTvSwitchHandler(evt){
@@ -600,10 +591,6 @@ def sendCriticalMsg(){
     settings.ttsCriticalDevices.speak(msg,90,voice)
     settings.ttsCriticalDevices.setVolume(90)
     settings.pushCriticalMobileDevices.deviceNotification(msg as String)
-    if (state.galaxyChromebookOn){
-        settings.galaxyChromebook.deviceNotification("[HTML]<b><big>" + msg as String)
-        logInfo ("$app.label Sending Push message to Galaxy Chromebook 2")
-    }
     if (state.livingroomTvOn){
         settings.livingroomTv.deviceNotification("[HTML]<b><big>" + msg as String)
         logInfo ("$app.label Sending Push message to Living Room TV")
@@ -774,17 +761,14 @@ def sendMsg(){
         settings.garageTts.setVolume(80)
         runIn(15,resetGarage)
     }
-    logInfo ("Living Room always - sending TTS message")
-    settings.livingRoomTts.speak(msg,90,voice)
-    settings.livingRoomTts.setVolume(90)
-    runIn(15,resetLivingRoom)
-    
-    //settings.smartPushHome.deviceNotification("[HTML]<b><big>" + msg as String)
-    logInfo ("Sending Push message to home devices")
-    if (state.galaxyChromebookOn){
-        settings.galaxyChromebook.deviceNotification("[HTML]<b><big>" + msg as String)
-        logInfo ("$app.label Sending Push message to Galaxy Chromebook 2")
+    if (!state.kitchenActive){
+        logInfo ("Living Room always - sending TTS message")
+        settings.livingRoomTts.speak(msg,90,voice)
+        settings.livingRoomTts.setVolume(90)
+        runIn(15,resetLivingRoom)
     }
+
+    logInfo ("Sending Push message to home devices")
     if (state.livingroomTvOn){
         settings.livingroomTv.deviceNotification("[HTML]<b><big>" + msg as String)
         logInfo ("$app.label Sending Push message to Living Room TV")
@@ -805,9 +789,9 @@ def sendMsg(){
         settings.garyPush.deviceNotification("[HTML]<b><big>" + msg as String)
         logInfo ("$app.label Sending Push message to Gary's Phone")
     }
-    if (!state.garyAway || state.garyInCar){
+    if (state.garyInCar){
         settings.garyPushHome.deviceNotification(msg as String)
-        logInfo ("$app.label Sending Push message to Gary's Phone For TTS to Glasses or Car Stereo")
+        logInfo ("$app.label Sending Push message to Gary's Phone For TTS to Car Stereo")
     }
     if (state.lynetteAway){
         settings.lynettePush.deviceNotification("[HTML]<b><big>" + msg as String)
@@ -856,6 +840,28 @@ def sendAwayMessage(){
     msg = state.smartMsg as String
     settings.garyPush.deviceNotification("[HTML]<b><big>" + msg as String)
     settings.lynettePush.deviceNotification("[HTML]<b><big>" + msg as String)
+}
+
+def garyMsgHandler(evt){
+    if (evt.value == "clear"){
+        //do nothing
+    }else{
+        logInfo ("Gary Notification - $evt.value")
+        state.garyMsg = evt.value as String
+        runIn(1,sendGaryMsg)
+    }
+}
+
+def sendGaryMsg(){
+    msg = state.garyMsg as String
+    if (state.garyAway && !state.garyInCar){
+        settings.garyPush.deviceNotification("[HTML]<b><big>" + msg as String)
+        logInfo ("$app.label Sending Push message to Gary's Phone")
+    }
+    if (state.garyInCar || !state.garyAway){
+        settings.garyPushHome.deviceNotification(msg as String)
+        logInfo ("$app.label Sending Push message to Gary's Phone For TTS to Car Stereo or Glasses")
+    }
 }
 
 void logInfo(String msg){
