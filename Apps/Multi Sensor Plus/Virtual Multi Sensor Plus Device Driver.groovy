@@ -51,15 +51,18 @@ metadata {
     }
 }
     preferences {
-        input name: "autoEnable", type: "bool", title: "Enable for auto off", required: true, defaultValue: false
-        input name: "autoOff", type: "number", title: "Timer for auto off, in seconds", required: true, defaultValue: 5
-        input name: "logEnable", type: "bool", title: "Enable info logging", defaultValue: true
+        input name: "autoOffEnable", type: "bool", title: "<b>Enable for auto off</b>", required: true, defaultValue: false, submitOnChange: true
+        if (autoOffEnable){
+            input name: "autoOff", type: "number", title: "<b>Timer for auto off, in seconds</b>", required: true, defaultValue: 5
+        }
+        input name: "logEnable", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
+    
 }
 
 def on(){
     if (logEnable) log.info "Switch_On"
     sendEvent(name: "switch", value: "on")
-    if(autoEnable){
+    if(autoOffEnable){
         if (logEnable) log.info "Turning Off in $autoOff seconds"
         runIn(autoOff,off)
     }
