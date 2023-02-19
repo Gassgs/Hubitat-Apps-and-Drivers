@@ -37,7 +37,7 @@
  *  V1.6.0  -        11-10-2021     Format and logging improvements
  *  V1.7.0  -        11-14-2021     fixed initializing values
  *  V1.8.0  -        12-28-2022     removed parent/child structure. All features now in one app.
- *  V1.8.0  -        12-29-2022     Added set humidity setpoint for smart humidifier, also night light and display settings by mode
+ *  V1.9.0  -        12-29-2022     Added set humidity setpoint for smart humidifier, also night light and display settings by mode
  */
 
 import groovy.transform.Field
