@@ -1,8 +1,9 @@
 /**
- *  ****************  Summer Humidity Controlled Ceiling Fans App ****************
+ *  ****************  Summer Humidity Control App ****************
  *
  *  Adjusts ceiling fan speeds based on indoor humidity
-
+ *  Control Dehumidifier based on Mode and Weather
+ *
  *   
  *
  *
@@ -23,21 +24,26 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 2/14/2021
+ *  Last Update: 12/2/22
  *
  *  Changes:
  *
  *  V1.0.0  -       2-14-2021       First run
  *  V1.1.0  -       2-15-2021       added logging
+ *  V1.2.0  -       5-13-2022       Fixed turning fan speed off instead of fan light off
+ *  V1.3.0  -       5-31-2022       Changed App Name Added Control for VacPlus Tasmota dehumidifier.
+ *  V1.4.0  -       6-02-2022       Dehumidifier control based on weather and Mode, Added more logging
+ *  V1.5.0  -       12-2-2022       Fix for new ionizer commands
+ *  V1.6.0  -       12-25-2022      Name change simplified
  */
 
 import groovy.transform.Field
 
 definition(
-    name: "Summer Humidity Controlled Ceiling Fans",
+    name: "Summer Humidity Control",
     namespace: "Gassgs",
     author: "Gary G",
-    description: "Adjusts ceiling fan speeds based on indoor humidity",
+    description: "Adjusts ceiling fan speeds based on indoor humidity and Controls Dehumidifier based on Humidity, Mode, and Weather",
     category: "Utilities",
     iconUrl: "",
     iconX2Url: "",
@@ -48,21 +54,21 @@ preferences{
     
 	section{
         paragraph(
-        title: "Summer Humidity Controlled Ceiling Fans",
+        title: "Summer Humidity Control",
         required: true,
-    	"<div style='text-align:center'><b>Summer Humidity Controlled Ceiling Fans</b></div>"
+    	"<div style='text-align:center'><b><big>Summer Humidity Control</big></b></div>"
      	)
      paragraph(
-        title: "Summer Humidity Controlled Ceiling Fans",
+        title: "Ceiling Fan Control Options",
         required: true,
-    	"<div style='text-align:center'>Summer Humidity Controlled Ceiling Fans Options</div>"
+    	"<div style='text-align:center'><b>Ceiling Fan Control Options</b></div>"
      	)
     }
     section{
         input(
             name:"fans",
             type:"capability.fanControl",
-            title:"Ceiling fans to control",
+            title:"<b>Ceiling fans</b> to control",
             multiple: true,
             required: true,
             submitOnChange: true
@@ -72,17 +78,17 @@ preferences{
         input(
             name:"switch",
             type:"capability.switch",
-            title:"Switch to enable or disable automatic ceiling fans (optional)",
+            title:"<b>Switch</b> to enable or disable automatic ceiling fans (optional)",
             multiple: false,
             required: false,
             submitOnChange: true
         )
-        }
+    }
     section{
         input(
             name:"humiditySensors",
             type:"capability.relativeHumidityMeasurement",
-            title: "Humidity sensor(s) to use for indoor humidity level",
+            title: "<b>Humidity sensors</b> to use for indoor humidity level",
             required: true,
             multiple: true,
             submitOnChange: true
@@ -145,6 +151,76 @@ preferences{
         )
     }
     section{
+        paragraph(
+            title: "Summer Ceiling Fan and Dehumidifier Control App",
+            required: true,
+    	    "<div style='text-align:center'><b>Dehumidifier Control Options</b></div>"
+     	)
+        input(
+            name:"dehumidifier",
+            type:"capability.switch",
+            title:"<b>Dehumidifier</b> to control",
+            multiple: true,
+            required: true,
+            submitOnChange: true
+        )
+        input(
+            name:"ionizerModes",
+            type:"mode",
+            title: "<b>Modes</b> to turn on Ionizer",
+            required: true,
+            multiple: true,
+            submitOnChange: true
+            )
+        input(
+            name:"sleepModes",
+            type:"mode",
+            title: "<b>Modes</b> to turn on Sleep Mode",
+            required: true,
+            multiple: true,
+            submitOnChange: true
+            )
+        input(
+            name:"weather",
+            type:"capability.temperatureMeasurement",
+            title:"<b>Weather Service</b> to pull current conditions from",
+            multiple: false,
+            required: true,
+            submitOnChange: true
+        )
+        if(weather){
+            paragraph "Current Weather = <b>${weatherDisplay()}</b>, Humidity = <b>${weatherHumDisplay()}</b>, Temperature = <b>${weatherTempDisplay()}</b>"
+        }
+        input(
+            name:"rainEnable",
+            type:"bool",
+            title: "<b>Enable</b> to turn on raining mode anytime 'rain' is mentioned in the current weather",
+            required: true,
+            defaultValue: false,
+            submitOnChange: true
+            )
+        input(
+            name:"basementHumiditySensors",
+            type:"capability.relativeHumidityMeasurement",
+            title: "<b>Humidity sensors</b> to use for basement humidity level",
+            required: true,
+            multiple: true,
+            submitOnChange: true
+            )
+        if(basementHumiditySensors){
+            paragraph "<b>Current humidity average is ${averageBasementHumidity()}%</b>"
+        }
+        input(
+            name:"basementHumidityThreshold",
+            type:"number",
+            title:"% humidity to turn off Dehumidifier",
+            multiple: false,
+            defaultValue:"44",
+            required: true,
+            submitOnChange: true
+        )
+    }
+    section{
         input(
             name:"logEnable",
             type:"bool",
@@ -174,13 +250,129 @@ def initialize(){
 	subscribe(settings.humiditySensors, "humidity",humiditySensorsHandler)
     subscribe(settings.switch, "switch",  switchHandler)
     subscribe(location, "mode", modeEventHandler)
+    subscribe(settings.dehumidifier, "switch",  dehumidifierHandler)
+    subscribe(settings.weather, "weather",  weatherHandler)
+    subscribe(settings.basementHumiditySensors, "humidity", basementHumiditySensorsHandler)
     getHumidity()
     logInfo ("subscribed to sensor events")
 }
 
+def weatherDisplay(){
+	def currentWeather = settings.weather.currentValue ("weather")
+	return currentWeather
+}
+def weatherHumDisplay(){
+	def currentHumWeather = settings.weather.currentValue ("humidity")
+	return currentHumWeather
+}
+def weatherTempDisplay(){
+	def currentTempWeather = settings.weather.currentValue ("temperature")
+	return currentTempWeather
+}
+
+def weatherHandler(evt){
+    currentWeather = evt.value
+    logInfo ("$app.label Current weather is $currentWeather")
+    if (currentWeather.contains("rain")){
+        state.rain = true
+        logInfo ("$app.label Current weather is Rainy")
+    }else{
+        state.rain = false
+    }
+    if (rainEnable){
+        if (state.rain && !state.sleep){
+            logInfo ("$app.label setting Dehumidifier Mode to Raining")
+            settings.dehumidifier.setMode("raining")
+        }
+        else if (!state.rain && !state.sleep){
+            logInfo ("$app.label setting Dehumidifier Mode to Standard")
+            settings.dehumidifier.setMode("standard")
+        }
+    }
+}
+
+def dehumidifierHandler(evt){
+    status = evt.value
+    if (status == "on"){
+        state.dehumidifierOn = true
+    }else{
+        state.dehumidifierOn = false
+    }
+}
+
+def basementHumiditySensorsHandler(evt){
+    getBasementHumidity()
+}
+
+def averageBasementHumidity(){
+	def total = 0
+    def n = settings.basementHumiditySensors.size()
+	settings.basementHumiditySensors.each {total += it.currentHumidity}
+	return (total /n).toDouble().round(1)
+}
+
+def getBasementHumidity(){
+	def humidityAvg = averageHumidity()
+	logInfo ("Current basement humidity average is ${averageHumidity()}")
+    basementHumidityHandler()
+}
+
+def basementHumidityHandler(){
+    humidityAvg = averageBasementHumidity()
+    if (humidityAvg <= settings.basementHumidityThreshold){
+        if (state.dehumidifierOn){
+            logInfo ("Current basement humidity average is low, turning off dehumidifier")
+            settings.dehumidifier.off()
+        }else{
+            logInfo ("Current basement humidity average is low, dehumidifier is already off")
+        }
+    }else{
+        if (!state.dehumidifierOn){
+            logInfo ("Current basement humidity average is high, turning on dehumidifier")
+            settings.dehumidifier.on()
+        }else{
+            logInfo ("Current basement humidity average is high, dehumidifier is already on")
+        }
+    }
+}
+
 def modeEventHandler(evt){
-    mode = evt.value
+    mode = evt.value as String
     state.night = (mode == "Night")
+    ionizerList = ionizerModes as String
+    sleepList = sleepModes as String
+    if (ionizerList.contains ("$mode")){
+        logInfo ("ionizer modes - $ionizerModes  current mode -  $mode")
+        state.ionizer = true
+        logInfo ("$app.label setting Dehumidifier Ionizer to ON")
+        settings.dehumidifier.ionizer(on)
+    }else{
+        logInfo ("ionizer modes - $ionizerModes  current mode -  $mode")
+        state.ionizer = false
+        logInfo ("$app.label setting Dehumidifier Ionizer to OFF")
+        settings.dehumidifier.ionizer(off)
+    }
+    if (sleepList.contains ("$mode")){
+        logInfo ("sleep modes - $ionizerModes  current mode -  $mode")
+        state.sleep = true
+        logInfo ("$app.label setting Dehumidifier Mode to Sleep")
+        settings.dehumidifier.setMode("sleep")
+    }else{
+        logInfo ("sleep modes - $ionizerModes  current mode -  $mode")
+        state.sleep = false
+        if (rainEnable){
+            if (state.rain){
+                logInfo ("$app.label setting Dehumidifier Mode to Raining")
+                settings.dehumidifier.setMode("raining")
+            }else{
+                logInfo ("$app.label setting Dehumidifier Mode to Standard")
+                settings.dehumidifier.setMode("standard")
+            }
+        }else{
+            logInfo ("$app.label setting Dehumidifier Mode to Standard")
+            settings.dehumidifer.setMode("standard")
+        }
+    }
     humidityHandler()
     logInfo ("mode status $mode")
 }
@@ -254,19 +446,19 @@ def humidityDay(){
     state.fansHigh = (humidityAvg > fanLowThreshold+humidityThreshold*3)
     if (state.fansOff){
         logInfo ("Turning Fans Off")
-        settings.fans.off()
+        settings.fans.setSpeed("off")
     }
     if (state.fansLow){
         logInfo ("Setting Fans to Low")
         settings.fans.setSpeed("low")
     }
     if (state.fansMediumLow){
-        logInfo ("Setting Fans to Medium-Low")
-        settings.fans.setSpeed("medium-low")
-    }
-    if (state.fansMedium){
         logInfo ("Setting Fans to Medium")
         settings.fans.setSpeed("medium")
+    }
+    if (state.fansMedium){
+        logInfo ("Setting Fans to Medium-High")
+        settings.fans.setSpeed("medium-high")
     }
     if (state.fansAuto){
         logInfo ("Setting Fans to Auto")
@@ -288,19 +480,19 @@ def humidityNight(){
     state.fansHigh = (humidityAvg > fanNightThreshold+humidityThreshold*3)
     if (state.fansOff){
         logInfo ("Turning Fans Off")
-        settings.fans.off()
+        settings.fans.setSpeed("off")
     }
     if (state.fansLow){
         logInfo ("Setting Fans to Low")
         settings.fans.setSpeed("low")
     }
     if (state.fansMediumLow){
-        logInfo ("Setting Fans to Medium-Low")
-        settings.fans.setSpeed("medium-low")
-    }
-    if (state.fansMedium){
         logInfo ("Setting Fans to Medium")
         settings.fans.setSpeed("medium")
+    }
+    if (state.fansMedium){
+        logInfo ("Setting Fans to Medium-High")
+        settings.fans.setSpeed("medium-high")
     }
     if (state.fansAuto){
         logInfo ("Setting Fans to Auto")
