@@ -54,11 +54,11 @@ metadata {
     }
 }
     preferences {
-        input name: "deviceIp",type: "string", title: "Tasmota Device IP Address", required: true
-        input name: "hubIp",type: "string", title: "Hubitat Device IP Address", required: true
-        input name: "refreshEnable",type: "bool", title: "Enable to Refresh every 30mins", defaultValue: true
-        input name: "logInfo", type: "bool", title: "Enable info logging", defaultValue: true
-        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+        input name: "deviceIp",type: "string", title: "<b>Tasmota Device IP Address</b>", required: true
+        input name: "hubIp",type: "string", title: "<b>Hubitat Device IP Address</b>", required: true
+        input name: "refreshEnable",type: "bool", title: "<b>Enable to Refresh every 30mins</b>", defaultValue: true
+        input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
+        input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
 
 def logsOff() {
