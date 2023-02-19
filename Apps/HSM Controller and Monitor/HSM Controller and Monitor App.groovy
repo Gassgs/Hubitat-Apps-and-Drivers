@@ -40,6 +40,8 @@
  *  V2.6.0  -       2-25-2021       Improved Keypad integration/HSM
  *  V2.7.0  -       6-30-2021       Improved update handling
  *  V2.8.0  -       10-8-2021       Removed ecolink siren options
+ *  V2.9.0  -       12-24-2022      Removed on/off handlers, moved to driver
+ *  V3.0.0  -       02-05-2023      Added options for Kauf RGB Wall switch as indicator
  */
 
 import groovy.transform.Field
@@ -200,7 +202,7 @@ preferences {
             )
            input(
             name:"lightsFlash",
-            type:"capability.switchLevel",
+            type:"capability.switch",
             title: "<b>Lights</b> to flash for delayed intrusion status",
             multiple: true,
             required: false,
@@ -208,13 +210,21 @@ preferences {
             )
         input(
             name:"lights",
-            type:"capability.colorTemperature",
+            type:"capability.colorControl",
             title: "<b>Lights</b> to change color for armed and back for disarmed status",
             multiple: true,
             required: false,
             submitOnChange: true
             )
-        if (lights){
+        input(
+            name:"rgbSwitch",
+            type:"capability.colorControl",
+            title: "<b>RGB Switch</b> to change color for armed and water alerts",
+            multiple: true,
+            required: false,
+            submitOnChange: true
+            )
+        if (lights || rgbSwitch){
             input(
                 name:"hue",
                 type:"number",
@@ -303,8 +313,6 @@ def updated(){
 
 def initialize(){
     logInfo ("Settings: ${settings}")
-    subscribe(settings.hsmDevice, "alert.arm", hsmSwitchOnHandler)
-    subscribe(settings.hsmDevice, "alert.disarm", hsmSwitchOffHandler)
     subscribe(settings.hsmDevice, "alert.clearing", hsmClearHandler)
     subscribe(location, "hsmStatus", statusHandler)
     subscribe(location, "hsmAlert", alertHandler)
@@ -346,34 +354,16 @@ def lastCodeHandler(evt){
     }
 }
 
-def hsmSwitchOnHandler(evt){
-    logInfo ("HSM Status Arming")
-    if (state.lateEvening||state.night){
-        sendLocationEvent(name: "hsmSetArm", value: "armNight")
-    }
-    if (state.away){
-        sendLocationEvent(name: "hsmSetArm", value: "armAway")
-    }
-    else{
-        sendLocationEvent(name: "hsmSetArm", value: "armHome")
-    }
-}
-
-def hsmSwitchOffHandler(evt){
-    logInfo ("HSM Status Disarming")
-    sendLocationEvent(name: "hsmSetArm", value: "disarm")
-}
-
 def hsmClearHandler(evt){
     logInfo ("HSM Status Clearing")
     sendLocationEvent(name: "hsmSetArm", value: "cancelAlerts")
     sendEvent(settings.hsmDevice,[name:"currentAlert",value:"cancel"])
+    settings.rgbSwitch.rgbOff()
 }
 
 def statusHandler(evt){
     logInfo ("HSM Status: $evt.value")
     hsmStatus = evt.value
-    sendEvent(settings.hsmDevice,[name:"status",value:"$evt.value"])
     state.armedNight = (hsmStatus == "armedNight")
     state.armedAway = (hsmStatus == "armedAway")
     state.armedHome = (hsmStatus == "armedHome")
@@ -382,27 +372,39 @@ def statusHandler(evt){
     state.armingAway = (hsmStatus == "armingAway")
     state.armingHome = (hsmStatus == "armingHome")
     if (state.armedNight){
+        sendEvent(settings.hsmDevice,[name:"status",value:"armed night"])
         sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
+        sendEvent(settings.hsmDevice,[name:"exitAllowance",value:0])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
+        settings.rgbSwitch.setColor(hue:settings.hue,saturation:100,level:100)
         settings.chimeDevice.playSound(armSound)
         runIn(2,stopChime)
     }
     if (state.armedAway){
+        sendEvent(settings.hsmDevice,[name:"status",value:"armed away"])
         sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
+        sendEvent(settings.hsmDevice,[name:"exitAllowance",value:0])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
+        settings.rgbSwitch.setColor(hue:settings.hue,saturation:100,level:100)
         settings.chimeDevice.playSound(armSound)
         runIn(2,stopChime)
     }
     if (state.armedHome){
+        sendEvent(settings.hsmDevice,[name:"status",value:"armed home"])
         sendEvent(settings.hsmDevice,[name:"switch",value:"on"])
+        sendEvent(settings.hsmDevice,[name:"exitAllowance",value:0])
         settings.lights.setColor(hue: settings.hue,saturation: settings.sat)
+        settings.rgbSwitch.setColor(hue:settings.hue,saturation:100,level:100)
         settings.chimeDevice.playSound(armSound)
         runIn(2,stopChime)
     }
     if (state.disarmed){
+        sendEvent(settings.hsmDevice,[name:"status",value:"disarmed"])
         sendEvent(settings.hsmDevice,[name:"switch",value:"off"])
+        sendEvent(settings.hsmDevice,[name:"exitAllowance",value:0])
         settings.hsmDevice.clearAlert()
-        settings.lights.setColorTemperature("2702")
+        settings.lights.setColorTemperature(3000)
+        settings.rgbSwitch.rgbOff()
         settings.chimeDevice.playSound(disarmSound)
         runIn(2,stopChime)
     }
@@ -420,6 +422,7 @@ def statusHandler(evt){
     if (state.armingAway){
         logInfo ("arming security system, locking locks")
         settings.lock.lock()
+        sendEvent(settings.hsmDevice,[name:"exitAllowance",value:10])
         if (settings.chimeAwayTimer != 0){
             logInfo ("playing arming delay sound")
             settings.chimeDevice.playSound(delaySound)
@@ -550,11 +553,13 @@ def waterHandler(evt){
 def waterLeakDetected(){
     if (state.night||state.away){
         settings.chimeDevice.playSound(waterSound)
+        settings.rgbSwitch.setColor(hue:60,saturation:100,level:100)
         settings.valveDevice.close()
         logInfo ("Leak Detected for longer than timeout limit, Mode is Away or Night, Closing water Valve")
     }
     else{
         settings.chimeDevice.playSound(waterSound)
+        settings.rgbSwitch.setColor(hue:60,saturation:100,level:100)
         logInfo ("Leak Detected for longer than timeout limit")
     }
 }
