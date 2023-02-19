@@ -16,7 +16,8 @@
  *	V1.0 Hubitat
  *	V1.1 Hubitat
  *	V1.2 Hubitat fixes and improvements
- *	V1.3 General improvements and cleanup
+ *	V1.3 General improvements and cleanup, added alerts and ability to clear them - 01/15/2022
+ *	V1.4 Fix for retry attempt - 02/10/2023
  */
 
  
@@ -448,6 +449,7 @@ private removeChildDevices(devices) {
 
 def devicesList() {
 	logErrors([]) {
+        def reAttemptPeriod = 300 // in sec
 		def resp = beehiveGET("/users/me/robots")
         def notificationMessage = "Neato is disconnected from Hubitat, because the access credential changed or was lost. Please go to the Neato (Connect) SmartApp and re-enter your account login credentials."
 		if (resp.status == 200) {
@@ -541,7 +543,7 @@ def getApiEndpoint()         { return "https://apps.neatorobotics.com" }
 def getSmartThingsClientId() { return appSettings?.clientId }
 def beehiveURL(path = '/') 	 { return "https://beehive.neatocloud.com${path}" }
 private def textVersion() {
-    def text = "<b>Neato Botvac Connected Series\nHubitat Version: 1.3</b>"
+    def text = "<b>Neato Botvac Connected Series\nHubitat Version: 1.4</b>"
 }
 
 private def textCopyright() {
