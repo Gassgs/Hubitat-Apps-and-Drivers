@@ -10,12 +10,19 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *  Change History:
+ *
+ *    V1.0  08-10-2021   -       Ported for hubitat - Gassgs
+ *    V2.0  02-20-2023   -       Big improvements to windowShade attribute updates
+ *  
  */
+
+def driverVer() { return "2.0" }
 import groovy.json.JsonOutput
 
 
 metadata {
-    definition (name: "Zemismart Z-Wave Window Shade Curtain", namespace: "smartthings/Gassgs", author: "SmartThings", ocfDeviceType: "oic.d.blind") {
+    definition (name: "Zemismart Z-Wave Curtain Motor", namespace: "Gassgs", author: "SmartThings") {
         capability "Window Shade"
         capability "Actuator"
         capability "Sensor"
@@ -82,6 +89,7 @@ def updated() {
     if (device.latestValue("checkInterval") != checkInterval) {
         sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
     }
+    state.DriverVersion=driverVer()
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
@@ -101,7 +109,14 @@ private handleLevelReport(hubitat.zwave.Command cmd) {
     def shadeValue = null
 
     def level = cmd.value as Integer
-    if (level >= 99) {
+    def currentValue = device.currentValue("level") as Integer
+    
+    if (currentValue == level){
+        shadeValue = state.shadeDir as String
+    }else if (currentValue == 100 && level == 99){
+        level = 100
+        shadeValue = state.shadeDir as String 
+    }else if (level >= 99) {
         level = 100
         shadeValue = "open"
         sendEvent(name: "switch", value: "on")
@@ -116,6 +131,7 @@ private handleLevelReport(hubitat.zwave.Command cmd) {
     }
     def levelEvent = createEvent(name: "level", value: level, unit: "%", displayed: false)
     sendEvent(name: "position", value: level, unit: "%") 
+    
     def stateEvent = createEvent(name: "windowShade", value: shadeValue, descriptionText: descriptionText, isStateChange: levelEvent.isStateChange)
 
     def result = [stateEvent, levelEvent]
@@ -143,7 +159,8 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 
 def open() {
     if(logEnable) log.debug "open()"
-      if(logInfoEnable)log.info "$device.label open()"
+    if(logInfoEnable)log.info "$device.label open()"
+    state.shadeDir = "opening"
     /*delayBetween([
             zwave.basicV1.basicSet(value: 0xFF).format(),
             zwave.switchMultilevelV1.switchMultilevelGet().format()
@@ -154,6 +171,7 @@ def open() {
 def close() {
     if(logEnable) log.debug "close()"
     if(logInfoEnable) log.info "$device.label close()"
+    state.shadeDir = "closing"
     /*delayBetween([
             zwave.basicV1.basicSet(value: 0x00).format(),
             zwave.switchMultilevelV1.switchMultilevelGet().format()
@@ -170,9 +188,18 @@ def off() {
 }
 
 def setLevel(value, duration = null) {
+    Integer level = value as Integer
+    currentValue = device.currentValue("level") as Integer
+    if (level < currentValue){
+        state.shadeDir = "closing"
+    }
+    else if (level > currentValue){
+        state.shadeDir = "opening"
+    }else{
+        if(logInfoEnable) log.info "$device.label -No Change called"
+    }   
     if(logEnable)  log.debug "setLevel(${value.inspect()})"
     if(logInfoEnable) log.info "$device.label setLevel(${value.inspect()})"
-    Integer level = value as Integer
     if (level < 0) level = 0
     if (level > 99) level = 99
     delayBetween([
@@ -180,7 +207,6 @@ def setLevel(value, duration = null) {
             zwave.switchMultilevelV1.switchMultilevelGet().format()
     ])
 }
-
 
 def pause() {
     if(logEnable) log.debug "pause()"
@@ -203,6 +229,7 @@ def startLevelChange(direction) {
        close()
     }
 }
+
 def setPosition(value) {
     setLevel(value)
     
