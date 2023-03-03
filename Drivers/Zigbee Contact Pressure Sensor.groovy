@@ -1,5 +1,5 @@
 /*
- *   Zigbee Contact Chair Sensor
+ *   Zigbee Contact Pressure Sensor
  *  for Ecolink or Visonic contact sensor w/
  *  Universal Safety Belt Warning Pressure Sensor Car Seat Pressure Sensor 
  *
@@ -31,7 +31,7 @@ import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
 metadata
 {
-	definition(name: "Zigbee Contact Chair Sensor", namespace: "Gassgs", author: "GaryG")
+	definition(name: "Zigbee Contact Presure Sensor", namespace: "Gassgs", author: "GaryG")
 	{
 		capability "Motion Sensor"
         capability "Contact Sensor"
