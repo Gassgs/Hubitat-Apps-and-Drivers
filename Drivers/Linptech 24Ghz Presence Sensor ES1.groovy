@@ -29,17 +29,17 @@ import hubitat.zigbee.clusters.iaszone.ZoneStatus
 
 metadata
 {
-	definition(name: "Linptech 24Ghz Presence Sensor ES1", namespace: "Gassgs", author: "Krassimir Kossev")
+	definition(name: "Linptech 24Ghz Presence Sensor ES1", namespace: "Gassgs", author: "Krassimir Kossev", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/Linptech%2024Ghz%20Presence%20Sensor%20ES1.groovy", singleThreaded: true )
 	{
-		capability "Motion Sensor"
+	capability "Motion Sensor"
         capability "IlluminanceMeasurement"
-		capability "Configuration"
-		capability "Refresh"
-		capability "Sensor"
+	capability "Configuration"
+	capability "Refresh"
+	capability "Sensor"
         
         attribute "distance", "number" 
           
-		fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
+	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
 
 	preferences{
