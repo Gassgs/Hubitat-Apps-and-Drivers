@@ -23,6 +23,7 @@
  *  V1.1.0  9-27-2023       Fixed lux reporting and parsing, clean up / todo - distance reporting option
  *  V1.2.0  9-30-2023       Added distance reporting
  *  V1.3.0  10-1-2023       Added fade time option and states for preferences
+ *  V1.4.0  10-3-2023       Addjust fade time range to match Tuya hub settings
  */
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
@@ -31,15 +32,15 @@ metadata
 {
 	definition(name: "Linptech 24Ghz Presence Sensor ES1", namespace: "Gassgs", author: "Krassimir Kossev", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/Linptech%2024Ghz%20Presence%20Sensor%20ES1.groovy", singleThreaded: true )
 	{
-	capability "Motion Sensor"
-        capability "IlluminanceMeasurement"
-	capability "Configuration"
-	capability "Refresh"
-	capability "Sensor"
+		capability "Motion Sensor"
+        	capability "IlluminanceMeasurement"
+		capability "Configuration"
+		capability "Refresh"
+		capability "Sensor"
         
         attribute "distance", "number" 
           
-	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
+		fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
 
 	preferences{
@@ -68,7 +69,7 @@ metadata
             staticLevel << [1 : "low"]
             input "staticDetectionSensitivity", "enum", title: "<b>Static Detection Sensitivity</b>", options: staticLevel, defaultValue: 5
             input "luxThreshold", "number", title: "<b>Lux threshold</b>", description: "<i>Range (0..999)</i>", range: "0..999", defaultValue: 5
-            input "fadeTime", "decimal", title: "<b>Fade time, in seconds</b>", description: "<i>Range (10..999)</i>", range: "10..999", defaultValue: 10
+            input "fadeTime", "decimal", title: "<b>Fade time, in seconds</b>", description: "<i>Range (0..10000)</i>", range: "0..10000", defaultValue: 10
             input "enableDistance", "bool", title: "<b>Enable Distance Reporting?</b>", defaultValue: false, required: false, multiple: false
             input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "<b>Enable debug logging?</b>", defaultValue: false, required: false, multiple: false
