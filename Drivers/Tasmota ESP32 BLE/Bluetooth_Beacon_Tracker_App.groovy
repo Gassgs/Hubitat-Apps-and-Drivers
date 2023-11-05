@@ -1,7 +1,7 @@
 /**
  *  ****************  Bluetooth Beacon Tracker  ****************
  *
- * Track upto 6 beacons from multiple Tasmota ESP32 BLE devices
+ * Track upto 8 beacons from multiple Tasmota ESP32 BLE devices
  * Use with Tasmota ESP32-C3 BLE Tracking Devices and BLE Beacon/BLE Tasker Beacon combined virtual presence devices
  *
  *
@@ -24,7 +24,7 @@
  *
  *  Changes:
  *
- *  V1.0.0      -       11-02-2023       First run, preping for arrival of new beacons and additional ESP32's
+ *  V1.0.0      -       11-02-2023       First run, test new beacons and additional ESP32's
  *  V2.0.0      -       11-03-2023       Expanded to support 8 beacon devices
  */
 
@@ -178,19 +178,21 @@ def beacon1Handler(evt){
 }
 def getBeacon1(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon1") == 'detected' }
-		if (detected){
-		    unschedule(beacon1Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master1.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon1Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 1"+beaconList)
+        if (statusAway){
             settings.master1.beacon("detected")
-            logInfo("$app.label Beacon 1"+beaconList)
         }
-    else{
-       runIn(buffer,beacon1Inactive)
+    }else{
+        runIn(buffer,beacon1Inactive)
     }
 }
 def beacon1Inactive(){
     settings.master1.beacon("not detected")
-    logInfo("$app.label Beacon 1 All Not Detected")
+    logInfo("$app.label Beacon 1 Not Detected")
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -199,19 +201,21 @@ def beacon2Handler(evt){
 }
 def getBeacon2(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon2") == 'detected' }
-		if (detected){
-		    unschedule(beacon2Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master2.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon2Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 2"+beaconList)
+        if (statusAway){
             settings.master2.beacon("detected")
-            logInfo("$app.label Beacon 2"+beaconList)
         }
-    else{
+    }else{
        runIn(buffer,beacon2Inactive)
     }
 }
 def beacon2Inactive(){
     settings.master2.beacon("not detected")
-    logInfo("$app.label Beacon 2 All Not Detected")
+    logInfo("$app.label Beacon 2 Not Detected")
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -220,19 +224,21 @@ def beacon3Handler(evt){
 }
 def getBeacon3(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon3") == 'detected' }
-		if (detected){
-		    unschedule(beacon3Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master3.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon3Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 3"+beaconList)
+        if (statusAway){
             settings.master3.beacon("detected")
-            logInfo("$app.label Beacon 3"+beaconList)
         }
-    else{
+    }else{
        runIn(buffer,beacon3Inactive)
     }
 }
 def beacon3Inactive(){
     settings.master3.beacon("not detected")
-    logInfo("$app.label Beacon 3 All Not Detected")
+    logInfo("$app.label Beacon 3 Not Detected")
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -241,19 +247,21 @@ def beacon4Handler(evt){
 }
 def getBeacon4(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon4") == 'detected' }
-		if (detected){
-		    unschedule(beacon4Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master4.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon4Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 4"+beaconList)
+        if (statusAway){
             settings.master4.beacon("detected")
-            logInfo("$app.label Beacon 4"+beaconList)
         }
-    else{
+    }else{
        runIn(buffer,beacon4Inactive)
     }
 }
 def beacon4Inactive(){
     settings.master4.beacon("not detected")
-    logInfo("$app.label Beacon 4 All Not Detected")
+    logInfo("$app.label Beacon 4 Not Detected")
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -262,19 +270,21 @@ def beacon5Handler(evt){
 }
 def getBeacon5(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon5") == 'detected' }
-		if (detected){
-		    unschedule(beacon5Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master5.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon5Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 5"+beaconList)
+        if (statusAway){
             settings.master5.beacon("detected")
-            logInfo("$app.label Beacon 5"+beaconList)
         }
-    else{
+    }else{
        runIn(buffer,beacon5Inactive)
     }
 }
 def beacon5Inactive(){
     settings.master5.beacon("not detected")
-    logInfo("$app.label Beacon 5 All Not Detected")
+    logInfo("$app.label Beacon 5 Not Detected")
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -283,19 +293,21 @@ def beacon6Handler(evt){
 }
 def getBeacon6(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon6") == 'detected' }
-		if (detected){
-		    unschedule(beacon6Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master6.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon6Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 6"+beaconList)
+        if (statusAway){
             settings.master6.beacon("detected")
-            logInfo("$app.label Beacon 6"+beaconList)
         }
-    else{
+    }else{
        runIn(buffer,beacon6Inactive)
     }
 }
 def beacon6Inactive(){
     settings.master6.beacon("not detected")
-    logInfo("$app.label Beacon 6 All Not Detected")
+    logInfo("$app.label Beacon 6 Not Detected")
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -304,19 +316,21 @@ def beacon7Handler(evt){
 }
 def getBeacon7(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon7") == 'detected' }
-		if (detected){
-		    unschedule(beacon7Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master7.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon7Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 7"+beaconList)
+        if (statusAway){
             settings.master7.beacon("detected")
-            logInfo("$app.label Beacon 7"+beaconList)
         }
-    else{
+    }else{
        runIn(buffer,beacon7Inactive)
     }
 }
 def beacon7Inactive(){
     settings.master7.beacon("not detected")
-    logInfo("$app.label Beacon 7 All Not Detected")
+    logInfo("$app.label Beacon 7 Not Detected")
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -325,19 +339,21 @@ def beacon8Handler(evt){
 }
 def getBeacon8(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon8") == 'detected' }
-		if (detected){
-		    unschedule(beacon8Inactive)
-            beaconList = "${detected}"
+    statusAway = settings.master8.currentValue("beacon") == 'not detected'
+    if (detected){
+        unschedule(beacon8Inactive)
+        beaconList = "${detected}"
+        logInfo("$app.label Beacon 8"+beaconList)
+        if (statusAway){
             settings.master8.beacon("detected")
-            logInfo("$app.label Beacon 8"+beaconList)
         }
-    else{
+    }else{
        runIn(buffer,beacon8Inactive)
     }
 }
 def beacon8Inactive(){
     settings.master8.beacon("not detected")
-    logInfo("$app.label Beacon 8 All Not Detected")
+    logInfo("$app.label Beacon 8 Not Detected")
 }
 
 void logInfo(String msg){
