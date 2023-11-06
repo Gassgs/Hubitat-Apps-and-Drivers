@@ -62,8 +62,8 @@ metadata {
         refreshRate << ["disabled" : "Disabled"]
         refreshRate << ["5 min" : "Ping every 5 minutes"]
         refreshRate << ["10 min" : "Ping every 10 minutes"]
-	    refreshRate << ["15 min" : "Ping every 15 minutes"]
-	    refreshRate << ["30 min" : "Ping every 30 minutes"]
+	refreshRate << ["15 min" : "Ping every 15 minutes"]
+	refreshRate << ["30 min" : "Ping every 30 minutes"]
         input name: "deviceIp",type: "string", title: "<b>Tasmota ESP32 IP Address</b>", required: true
         input name: "hubIp",type: "string", title: "<b>Hubitat Hub IP Address</b>", required: true
         input name: "refreshRate",type: "enum", title: "<b>Ping Option</b>",options: refreshRate, defaultValue: "15 min", required: true
