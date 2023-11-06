@@ -25,7 +25,7 @@
  *  Changes:
  *
  *  V1.0.0      -       11-02-2023       First run, test new beacons and additional ESP32's
- *  V2.0.0      -       11-03-2023       Expanded to support 8 beacon devices
+ *  V2.0.0      -       11-03-2023       Expanded to support 8 beacon devices 
  */
 
 import groovy.transform.Field
