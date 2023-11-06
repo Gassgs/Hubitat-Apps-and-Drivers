@@ -33,13 +33,12 @@ def driverVer() { return "2.0" }
  
 metadata {
 	definition (name: "BLE Tasker Beacon", namespace: "Gassgs", author: "Gary G") {
-	    capability "Presence Sensor"
+	capability "Presence Sensor"
         capability "Beacon"
         capability "Sensor"
         capability "Power Source"
         capability "Actuator"
         capability "Battery"
-        //capability "Refresh"
         
         attribute "wifi", "String"
         attribute "beacon", "String"
@@ -77,12 +76,10 @@ def updated() {
     if (enableDevice) {
         runEvery1Minute(refresh)
         state.triesPerMinute = 1
+        runIn(2, refresh)
     }
     else{
         wifi("notConnected")
-    }
-    if (enableDevice){
-        runIn(2, refresh)
     }
 	configure()
 }
