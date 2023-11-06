@@ -18,7 +18,6 @@
  * 
  *  V1.0.0  10-23-2023       first run
  *  V1.1.0  11-03-2023       Added command for use with BLE Tracker App
- *
  * 
  */
 
