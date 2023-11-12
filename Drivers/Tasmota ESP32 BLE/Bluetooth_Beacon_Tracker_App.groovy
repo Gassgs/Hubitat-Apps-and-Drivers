@@ -25,7 +25,8 @@
  *  Changes:
  *
  *  V1.0.0      -       11-02-2023       First run, test new beacons and additional ESP32's
- *  V2.0.0      -       11-03-2023       Expanded to support 8 beacon devices 
+ *  V1.5.0      -       11-03-2023       Expanded to support 8 beacon devices
+ *  V2.0.0      -       11-12-2023       Added current tracker status per device
  */
 
 import groovy.transform.Field
@@ -84,6 +85,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master1){
+            paragraph "${beacon1Status()}"
+        }
         input(
             name:"master2",
             type:"capability.beacon",
@@ -91,6 +95,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master2){
+            paragraph "${beacon2Status()}"
+        }
         input(
             name:"master3",
             type:"capability.beacon",
@@ -98,6 +105,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master3){
+            paragraph "${beacon3Status()}"
+        }
         input(
             name:"master4",
             type:"capability.beacon",
@@ -105,6 +115,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master4){
+            paragraph "${beacon4Status()}"
+        }
         input(
             name:"master5",
             type:"capability.beacon",
@@ -112,6 +125,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master5){
+            paragraph "${beacon5Status()}"
+        }
         input(
             name:"master6",
             type:"capability.beacon",
@@ -119,6 +135,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master6){
+            paragraph "${beacon6Status()}"
+        }
         input(
             name:"master7",
             type:"capability.beacon",
@@ -126,6 +145,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master7){
+            paragraph "${beacon7Status()}"
+        }
         input(
             name:"master8",
             type:"capability.beacon",
@@ -133,6 +155,9 @@ preferences{
             required: false,
             submitOnChange: true
         )
+        if(master8){
+            paragraph "${beacon8Status()}"
+        }
     }
     section{
         input(
@@ -195,6 +220,11 @@ def beacon1Inactive(){
     logInfo("$app.label Beacon 1 Not Detected")
 }
 
+def beacon1Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon1") == 'detected' }
+    return value as String
+}
+
 /////////////////////////////////////////////////////////////////////
 def beacon2Handler(evt){
     getBeacon2()
@@ -216,6 +246,11 @@ def getBeacon2(){
 def beacon2Inactive(){
     settings.master2.beacon("not detected")
     logInfo("$app.label Beacon 2 Not Detected")
+}
+
+def beacon2Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon2") == 'detected' }
+    return value as String
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -241,6 +276,11 @@ def beacon3Inactive(){
     logInfo("$app.label Beacon 3 Not Detected")
 }
 
+def beacon3Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon3") == 'detected' }
+    return value as String
+}
+
 /////////////////////////////////////////////////////////////////////
 def beacon4Handler(evt){
     getBeacon4()
@@ -262,6 +302,11 @@ def getBeacon4(){
 def beacon4Inactive(){
     settings.master4.beacon("not detected")
     logInfo("$app.label Beacon 4 Not Detected")
+}
+
+def beacon4Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon4") == 'detected' }
+    return value as String
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -287,6 +332,11 @@ def beacon5Inactive(){
     logInfo("$app.label Beacon 5 Not Detected")
 }
 
+def beacon5Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon5") == 'detected' }
+    return value as String
+}
+
 ////////////////////////////////////////////////////////////////////
 def beacon6Handler(evt){
     getBeacon6()
@@ -308,6 +358,11 @@ def getBeacon6(){
 def beacon6Inactive(){
     settings.master6.beacon("not detected")
     logInfo("$app.label Beacon 6 Not Detected")
+}
+
+def beacon6Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon6") == 'detected' }
+    return value as String
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -333,6 +388,11 @@ def beacon7Inactive(){
     logInfo("$app.label Beacon 7 Not Detected")
 }
 
+def beacon7Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon7") == 'detected' }
+    return value as String
+}
+
 ////////////////////////////////////////////////////////////////////
 def beacon8Handler(evt){
     getBeacon8()
@@ -354,6 +414,11 @@ def getBeacon8(){
 def beacon8Inactive(){
     settings.master8.beacon("not detected")
     logInfo("$app.label Beacon 8 Not Detected")
+}
+
+def beacon8Status(){
+    def value = settings.ESP32.findAll { it?.latestValue("beacon8") == 'detected' }
+    return value as String
 }
 
 void logInfo(String msg){
