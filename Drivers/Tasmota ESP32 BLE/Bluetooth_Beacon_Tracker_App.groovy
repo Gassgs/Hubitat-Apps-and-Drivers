@@ -231,6 +231,7 @@ def initialize(){
     }
     if (masterMonitor){
         subscribe(ESP32, "wifi", statusHandler)
+        getStatus()
     }
     logInfo ("subscribed to sensor events")
 }
