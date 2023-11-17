@@ -17,7 +17,8 @@
  *  Change History:
  *
  * 
- *  V1.0.0  11-17-2023       first run
+ *  V1.0.0  11-17-2023       First run
+ *  V1.1.0  11-18-2023       Added state name reference option command
  *
  * 
  */
@@ -28,6 +29,8 @@ metadata {
         capability "Sensor"
         capability "PresenceSensor"
         capability "Beacon"
+        
+        command "nameBeacon", [[name: "Beacon*", type:"ENUM", constraints:["select beacon","1","2","3","4","5","6","7","8"]], [name: "Name", description: "name reference", type: "STRING"]]
         
         attribute "beacon1","string"
         attribute "beacon2","string"
@@ -41,6 +44,33 @@ metadata {
     }   
     preferences {
         None
+    }
+}
+
+def nameBeacon(beacon,name = null){
+    if (beacon == "1" && name !=null){
+        state."1" = "$name"
+    }
+    if (beacon == "2" && name !=null){
+        state."2" = "$name"
+    }
+    if (beacon == "3" && name !=null){
+        state."3" = "$name"
+    }
+    if (beacon == "4" && name !=null){
+        state."4" = "$name"
+    }
+    if (beacon == "5" && name !=null){
+        state."5" = "$name"
+    }
+    if (beacon == "6" && name !=null){
+        state."6" = "$name"
+    }
+    if (beacon == "7" && name !=null){
+        state."7" = "$name"
+    }
+    if (beacon == "8" && name !=null){
+        state."8" = "$name"
     }
 }
 
