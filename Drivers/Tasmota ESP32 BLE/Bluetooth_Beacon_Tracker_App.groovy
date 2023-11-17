@@ -26,7 +26,8 @@
  *
  *  V1.0.0      -       11-02-2023       First run, test new beacons and additional ESP32's
  *  V1.5.0      -       11-03-2023       Expanded to support 8 beacon devices
- *  V2.0.0      -       11-12-2023       Added current tracker status per device
+ *  V1.7.0      -       11-12-2023       Added current tracker status per device
+ *  V2.0.0      -       11-17-2023       Added master monitor device option, cleanup and method improvements
  */
 
 import groovy.transform.Field
@@ -158,6 +159,16 @@ preferences{
         if(master8){
             paragraph "${beacon8Status()}"
         }
+        input(
+            name:"masterMonitor",
+            type:"capability.beacon",
+            title:"<b>Master Presence Device for All Beacons</b> <i> Optional </i>",
+            required: false,
+            submitOnChange: true
+        )
+        if(masterMonitor){
+            paragraph "<i> Bluetooth Trackers are - </i><b> ${monitorStatus()} <b>"
+        }
     }
     section{
         input(
@@ -186,14 +197,41 @@ def updated(){
 }
 
 def initialize(){
-    if (master1){subscribe(ESP32, "beacon1", beacon1Handler)}
-    if (master2){subscribe(ESP32, "beacon2", beacon2Handler)}
-    if (master3){subscribe(ESP32, "beacon3", beacon3Handler)}
-    if (master4){subscribe(ESP32, "beacon4", beacon4Handler)}
-    if (master5){subscribe(ESP32, "beacon5", beacon5Handler)}
-    if (master6){subscribe(ESP32, "beacon6", beacon6Handler)}
-    if (master7){subscribe(ESP32, "beacon7", beacon6Handler)}
-    if (master8){subscribe(ESP32, "beacon8", beacon6Handler)}
+    if (master1){
+        subscribe(ESP32, "beacon1", beacon1Handler)
+        getBeacon1()
+    }
+    if (master2){
+        subscribe(ESP32, "beacon2", beacon2Handler)
+        getBeacon2()
+    }
+    if (master3){
+        subscribe(ESP32, "beacon3", beacon3Handler)
+        getBeacon3()
+    }
+    if (master4){
+        subscribe(ESP32, "beacon4", beacon4Handler)
+        getBeacon4()
+    }
+    if (master5){
+        subscribe(ESP32, "beacon5", beacon5Handler)
+        getBeacon5()
+    }
+    if (master6){
+        subscribe(ESP32, "beacon6", beacon6Handler)
+        getBeacon6()
+    }
+    if (master7){
+        subscribe(ESP32, "beacon7", beacon7Handler)
+        getBeacon7()
+    }
+    if (master8){
+        subscribe(ESP32, "beacon8", beacon8Handler)
+        getBeacon8()
+    }
+    if (masterMonitor){
+        subscribe(ESP32, "wifi", statusHandler)
+    }
     logInfo ("subscribed to sensor events")
 }
 
@@ -203,13 +241,17 @@ def beacon1Handler(evt){
 }
 def getBeacon1(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon1") == 'detected' }
-    statusAway = settings.master1.currentValue("beacon") == 'not detected'
+    statusAway = settings.master1.currentValue("beacon") != 'detected'
+    status1Away = settings.masterMonitor.currentValue("beacon1") != 'present'
     if (detected){
         unschedule(beacon1Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 1"+beaconList)
         if (statusAway){
             settings.master1.beacon("detected")
+        }
+        if (masterMonitor && status1Away){
+            sendEvent(masterMonitor,[name:"beacon1",value:"present"])
         }
     }else{
         runIn(buffer,beacon1Inactive)
@@ -218,6 +260,9 @@ def getBeacon1(){
 def beacon1Inactive(){
     settings.master1.beacon("not detected")
     logInfo("$app.label Beacon 1 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon1",value:"not present"])
+    }
 }
 
 def beacon1Status(){
@@ -231,13 +276,17 @@ def beacon2Handler(evt){
 }
 def getBeacon2(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon2") == 'detected' }
-    statusAway = settings.master2.currentValue("beacon") == 'not detected'
+    statusAway = settings.master2.currentValue("beacon") != 'detected'
+    status2Away = settings.masterMonitor.currentValue("beacon2") != 'present'
     if (detected){
         unschedule(beacon2Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 2"+beaconList)
         if (statusAway){
             settings.master2.beacon("detected")
+        }
+        if (masterMonitor && status2Away){
+            sendEvent(masterMonitor,[name:"beacon2",value:"present"])
         }
     }else{
        runIn(buffer,beacon2Inactive)
@@ -246,6 +295,9 @@ def getBeacon2(){
 def beacon2Inactive(){
     settings.master2.beacon("not detected")
     logInfo("$app.label Beacon 2 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon2",value:"not present"])
+    }
 }
 
 def beacon2Status(){
@@ -259,13 +311,17 @@ def beacon3Handler(evt){
 }
 def getBeacon3(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon3") == 'detected' }
-    statusAway = settings.master3.currentValue("beacon") == 'not detected'
+    statusAway = settings.master3.currentValue("beacon") != 'detected'
+    status3Away = settings.masterMonitor.currentValue("beacon3") != 'present'
     if (detected){
         unschedule(beacon3Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 3"+beaconList)
         if (statusAway){
             settings.master3.beacon("detected")
+        }
+        if (masterMonitor && status3Away){
+            sendEvent(masterMonitor,[name:"beacon3",value:"present"])
         }
     }else{
        runIn(buffer,beacon3Inactive)
@@ -274,6 +330,9 @@ def getBeacon3(){
 def beacon3Inactive(){
     settings.master3.beacon("not detected")
     logInfo("$app.label Beacon 3 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon3",value:"not present"])
+    }
 }
 
 def beacon3Status(){
@@ -287,13 +346,17 @@ def beacon4Handler(evt){
 }
 def getBeacon4(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon4") == 'detected' }
-    statusAway = settings.master4.currentValue("beacon") == 'not detected'
+    statusAway = settings.master4.currentValue("beacon") != 'detected'
+    status4Away = settings.masterMonitor.currentValue("beacon4") != 'present'
     if (detected){
         unschedule(beacon4Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 4"+beaconList)
         if (statusAway){
             settings.master4.beacon("detected")
+        }
+        if (masterMonitor && status4Away){
+            sendEvent(masterMonitor,[name:"beacon4",value:"present"])
         }
     }else{
        runIn(buffer,beacon4Inactive)
@@ -302,6 +365,9 @@ def getBeacon4(){
 def beacon4Inactive(){
     settings.master4.beacon("not detected")
     logInfo("$app.label Beacon 4 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon4",value:"not present"])
+    }
 }
 
 def beacon4Status(){
@@ -315,13 +381,17 @@ def beacon5Handler(evt){
 }
 def getBeacon5(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon5") == 'detected' }
-    statusAway = settings.master5.currentValue("beacon") == 'not detected'
+    statusAway = settings.master5.currentValue("beacon") != 'detected'
+    status5Away = settings.masterMonitor.currentValue("beacon5") != 'present'
     if (detected){
         unschedule(beacon5Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 5"+beaconList)
         if (statusAway){
             settings.master5.beacon("detected")
+        }
+        if (masterMonitor && status5Away){
+            sendEvent(masterMonitor,[name:"beacon5",value:"present"])
         }
     }else{
        runIn(buffer,beacon5Inactive)
@@ -330,6 +400,9 @@ def getBeacon5(){
 def beacon5Inactive(){
     settings.master5.beacon("not detected")
     logInfo("$app.label Beacon 5 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon5",value:"not present"])
+    }
 }
 
 def beacon5Status(){
@@ -343,13 +416,17 @@ def beacon6Handler(evt){
 }
 def getBeacon6(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon6") == 'detected' }
-    statusAway = settings.master6.currentValue("beacon") == 'not detected'
+    statusAway = settings.master6.currentValue("beacon") != 'detected'
+    status6Away = settings.masterMonitor.currentValue("beacon6") != 'present'
     if (detected){
         unschedule(beacon6Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 6"+beaconList)
         if (statusAway){
             settings.master6.beacon("detected")
+        }
+        if (masterMonitor && status6Away){
+            sendEvent(masterMonitor,[name:"beacon6",value:"present"])
         }
     }else{
        runIn(buffer,beacon6Inactive)
@@ -358,6 +435,9 @@ def getBeacon6(){
 def beacon6Inactive(){
     settings.master6.beacon("not detected")
     logInfo("$app.label Beacon 6 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon6",value:"not present"])
+    }
 }
 
 def beacon6Status(){
@@ -371,13 +451,17 @@ def beacon7Handler(evt){
 }
 def getBeacon7(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon7") == 'detected' }
-    statusAway = settings.master7.currentValue("beacon") == 'not detected'
+    statusAway = settings.master7.currentValue("beacon") != 'detected'
+    status7Away = settings.masterMonitor.currentValue("beacon7") != 'present'
     if (detected){
         unschedule(beacon7Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 7"+beaconList)
         if (statusAway){
             settings.master7.beacon("detected")
+        }
+        if (masterMonitor && status7Away){
+            sendEvent(masterMonitor,[name:"beacon7",value:"present"])
         }
     }else{
        runIn(buffer,beacon7Inactive)
@@ -386,6 +470,9 @@ def getBeacon7(){
 def beacon7Inactive(){
     settings.master7.beacon("not detected")
     logInfo("$app.label Beacon 7 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon7",value:"not present"])
+    }
 }
 
 def beacon7Status(){
@@ -399,13 +486,17 @@ def beacon8Handler(evt){
 }
 def getBeacon8(){
 	def detected = settings.ESP32.findAll { it?.latestValue("beacon8") == 'detected' }
-    statusAway = settings.master8.currentValue("beacon") == 'not detected'
+    statusAway = settings.master8.currentValue("beacon") != 'detected'
+    status8Away = settings.masterMonitor.currentValue("beacon8") != 'present'
     if (detected){
         unschedule(beacon8Inactive)
         beaconList = "${detected}"
         logInfo("$app.label Beacon 8"+beaconList)
         if (statusAway){
             settings.master8.beacon("detected")
+        }
+        if (masterMonitor && status8Away){
+            sendEvent(masterMonitor,[name:"beacon8",value:"present"])
         }
     }else{
        runIn(buffer,beacon8Inactive)
@@ -414,11 +505,40 @@ def getBeacon8(){
 def beacon8Inactive(){
     settings.master8.beacon("not detected")
     logInfo("$app.label Beacon 8 Not Detected")
+    if (masterMonitor){
+        sendEvent(masterMonitor,[name:"beacon8",value:"not present"])
+    }
 }
 
 def beacon8Status(){
     def value = settings.ESP32.findAll { it?.latestValue("beacon8") == 'detected' }
     return value as String
+}
+
+//////////////////////////////////////////////////////////////////////////
+def statusHandler(evt){
+    getStatus()
+}
+def getStatus(){
+	def offline = settings.ESP32.findAll { it?.latestValue("wifi") == 'offline'}
+    if (offline){
+        statusList = "${offline}"
+        log.warn "$app.label Tracker Offline - $stausList"
+        sendEvent(masterMonitor,[name:"status",value:"offline"])
+    }else{
+        sendEvent(masterMonitor,[name:"status",value:"online"])
+    }
+}
+
+def monitorStatus(){
+    def value = settings.ESP32.findAll { it?.latestValue("wifi") == 'offline'}
+    statusList = "${value}"
+    if (offline){
+        status = "offline"
+    }else{
+        status = "online"
+    return status +" - " +statusList as String
+    }
 }
 
 void logInfo(String msg){
