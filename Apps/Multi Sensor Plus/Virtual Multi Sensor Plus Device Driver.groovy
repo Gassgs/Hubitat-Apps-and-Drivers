@@ -22,7 +22,7 @@
  *  V2.1.0  1-26-2021       code cleanup
  *  V2.2.0  7-05-2021       added auto off options, toggle, and status update method redo.
  *  V2.3.0  11-17-2023      added waterLeak attribute for google home app
- *  V2.4.0  11-17-2023      added CO and Smake capabilities w/ non standard values for google home app
+ *  V2.4.0  11-17-2023      added CO and Smoke capabilities w/ non standard values for google home community app
  * 
  */
 
