@@ -2,7 +2,7 @@
  *  ****************  Multi Sensor Plus  Child App  ****************
  *
  *   Average: Temperature, Humidity, and Illuminance   -
- *   Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  -
+ *   Group:  Locks, Contact, Motion, Water, Presence,Smoke, CO and Sound Sensors  -
  *   Plus  a Virtual Switch  -  All  In One Device
  *
  *
@@ -38,6 +38,8 @@
  *  V2.2.0 -    1-23-2021       added initialize values & code improvements
  *  V2.3.0 -    1-24-2021       reworked avg and code cleanup - Release
  *  V2.4.0 -    7-05-2021       reworked status updating method.
+ *  V2.5.0 -    11-17-2023      Added waterLeak attribute for google home.
+ *  V2.6.0 -    11-19-2023      Added smoke and CO attribute for google home community app compatibilty.
  */
 
 import groovy.transform.Field
@@ -60,13 +62,18 @@ definition(
 preferences{
     
 	section{
+        paragraph(
+        title: "Multi Sensor Plus App",
+        required: true,
+    	"<div style='text-align:center'><big><b>Multi Sensor Plus App</b></div></big>"
+     	)
        
      paragraph(
          title: "Multi Sensor Plus Child",
         required: false,
     	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance"+
          "- <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors"+
-         "- <b>Plus</b>: a Virtual Switch                                                                                      <b>All In One Device</b></div>"
+         "- <b>Plus</b>: a Virtual Switch <b>All In One Device</b></div>"
      	)
         
         input(
@@ -156,6 +163,24 @@ preferences{
    }
     section{
         input(
+            name:"smokeSensors",
+            type:"capability.smokeDetector",
+            title: "<b>Smoke</b> Sensors to group (optional)",
+            multiple: true,
+            submitOnChange: true
+            )
+   }
+    section{
+        input(
+            name:"coSensors",
+            type:"capability.carbonMonoxideDetector",
+            title: "<b>CarbonMonoxide</b> Sensors to group (optional)",
+            multiple: true,
+            submitOnChange: true
+            )
+   }
+    section{
+        input(
             name:"soundSensors",
             type:"capability.soundSensor",
             title: "<b>Sound</b> Sensors to group (optional)",
@@ -226,11 +251,13 @@ def updated(){
 def initialize(){
     subscribe(settings.temperatureSensors, "temperature", temperatureSensorsHandler)
 	subscribe(settings.humiditySensors, "humidity",humiditySensorsHandler)
-    subscribe( settings.illuminanceSensors,"illuminance",illuminanceSensorsHandler)
+    subscribe(settings.illuminanceSensors,"illuminance",illuminanceSensorsHandler)
 	subscribe(settings.contactSensors, "contact", contactSensorsHandler)
     subscribe(settings.locks, "lock", lockHandler)
     subscribe(settings.waterSensors, "water", waterSensorHandler)
     subscribe(settings.motionSensors, "motion",  motionSensorHandler)
+    subscribe(settings.smokeSensors, "smoke", smokeSensorHandler)
+    subscribe(settings.coSensors, "carbonMonoxide", coSensorHandler)
     subscribe(settings.soundSensors, "sound", soundSensorHandler)
     subscribe(settings.presenceSensors, "presence", presenceSensorHandler)
     loadValues()
@@ -258,6 +285,12 @@ def loadValues(){
     }
     if (settings.motionSensors){
         getMotion()
+    }
+    if (settings.coSensors){
+        getCo()
+    }
+    if (settings.smokeSensors){
+        getSmoke()
     }
     if (settings.soundSensors){
         getSound()
@@ -363,11 +396,13 @@ def getWaterStatus(){
 		if (wet){
             waterList = "${wet}"
             sendEvent(multiSensor,[name:"water",value:"wet"])
+            sendEvent(multiSensor,[name:"waterLeak",value:"leak"])
             sendEvent(multiSensor,[name:"Water_Sensors",value:waterList])
             logInfo("leakDetected"+waterList)
         }
     else{
         sendEvent(multiSensor,[name:"water",value:"dry"])
+        sendEvent(multiSensor,[name:"waterLeak",value:"no leak"])
         sendEvent(multiSensor,[name:"Water_Sensors",value:"All Dry"])
         logInfo("All Dry")
     }
@@ -394,6 +429,44 @@ def motionInactive(){
     sendEvent(multiSensor,[name:"motion",value:"inactive"])
     sendEvent(multiSensor,[name:"Motion_Sensors",value:"All Inactive"])
     logInfo("All Inactive")
+}
+
+def smokeSensorsHandler(evt){
+    getSmoke()
+}
+
+def getSmoke(){
+    def detected = settings.smokeSensors.findAll { it?.latestValue("smoke") == 'detected' }
+		if (detected){
+            smokeList = "${detected}"
+            sendEvent(multiSensor,[name:"smoke",value:"smoke detected"])
+            sendEvent(multiSensor,[name:"Smoke_Sensors",value:smokeList])
+            logInfo("smoke detected "+smokeList)
+        }
+    else{
+        sendEvent(multiSensor,[name:"smoke",value:"no smoke detected"])
+        sendEvent(multiSensor,[name:"Smoke_Sensors",value:"All Clear"])
+        logInfo("Smoke All Clear")
+    }
+}
+
+def coSensorsHandler(evt){
+    getCo()
+}
+
+def getCo(){
+    def detected = settings.coSensors.findAll { it?.latestValue("carbonMonoxide") == 'detected' }
+		if (detected){
+            coList = "${detected}"
+            sendEvent(multiSensor,[name:"carbonMonoxide",value:"carbon monoxide detected"])
+            sendEvent(multiSensor,[name:"CarbonMonoxide_Sensors",value:coList])
+            logInfo("CO detected"+coList)
+        }
+    else{
+        sendEvent(multiSensor,[name:"carbonMonoxide",value:"no carbon monoxide detected"])
+        sendEvent(multiSensor,[name:"CarbonMonoxide_Sensors",value:"All Clear"])
+        logInfo("CO All Clear")
+    }
 }
 
 def soundSensorHandler(evt){
