@@ -2,7 +2,7 @@
 
 <b>Make your virtual switches more useful!!</b>
 
-<b>Average: Temperature, Humidity, and Illuminance   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch
+<b>Average: Temperature, Humidity, and Illuminance   -  Group:  Locks, Contact, Motion, Water, Presence, Smoke, CO, and Sound Sensors  - Plus  a Virtual Switch
                                                         -  All In One Device  -</b>
 
 This is a simple app that lets you combine multiple sensors into one device.
