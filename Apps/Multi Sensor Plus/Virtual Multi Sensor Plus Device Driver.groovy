@@ -21,6 +21,8 @@
  *  V2.0.0  1-12-2021       improved presence sensor options to include nest cams and normal presence devices  Gassgs
  *  V2.1.0  1-26-2021       code cleanup
  *  V2.2.0  7-05-2021       added auto off options, toggle, and status update method redo.
+ *  V2.3.0  11-17-2023      added waterLeak attribute for google home app
+ *  V2.4.0  11-17-2023      added CO and Smake capabilities w/ non standard values for google home app
  * 
  */
 
@@ -37,6 +39,8 @@ metadata {
         capability "TemperatureMeasurement"
         capability "RelativeHumidityMeasurement"
         capability "IlluminanceMeasurement"
+        capability "CarbonMonoxideDetector"
+        capability "SmokeDetector"
         
         command "toggle"
 
@@ -48,6 +52,9 @@ metadata {
         attribute"Sound_Heard","string"
         attribute"lock","string"
         attribute"Locks","string"
+        attribute"waterLeak","string"
+        attribute"CarbonMonoxide_Sensors","string"
+        attribute"Smoke_Sensors","string"
     }
 }
     preferences {
