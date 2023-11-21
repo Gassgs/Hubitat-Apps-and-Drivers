@@ -72,14 +72,19 @@ preferences{
          title: "Multi Sensor Plus Child",
         required: false,
     	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance"+
-         "- <b>Group</b>: Locks, Contact, Motion, Water, Presence, and Sound Sensors"+
-         "- <b>Plus</b>: a Virtual Switch <b>All In One Device</b></div>"
+         "- <b>Group</b>: Locks, Contact, Motion, Water, Presence, CO, Smoke, and Sound Sensors"
      	)
-        
+        paragraph(
+         title: "Multi Sensor Plus Child1",
+        required: false,
+         "<div style='text-align:center'><b>Plus</b>: a Virtual Switch <b>All In One Device</b></div>"
+     	)
+    }
+    section{
         input(
             name:"multiSensor",
             type:"capability.sensor",
-            title: "<b>Virtual Multi Sensor Device</b>(Create device before adding rules)",
+            title:"<b>Virtual Multi Sensor Device</b>(Create device before adding rules)",
             required: true
               )
     }
