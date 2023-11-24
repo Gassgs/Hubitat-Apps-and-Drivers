@@ -27,9 +27,11 @@
  *  V1.5.0  06-01-2022       Adding rule integration for syned updates, Many changes and improvments
  *  V1.6.0  06-01-2022       Adding pwer monitoring high/low rules. Switch is on when over High threshold off when under Low etc...
  *  V1.7.0  06-28-2022       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
+ *  V1.8.0  03-09-2023       Improved info logging on refresh
+ *  V1.9.0  11-23-2023       Made Motion attribute optional
  */
 
-def driverVer() { return "1.7" }
+def driverVer() { return "1.9" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -55,6 +57,7 @@ metadata {
         input name: "refreshEnable",type: "bool", title: "<b>Enable to Refresh every 30mins</b>", defaultValue: true
         input name: "lowValue",type: "number", title: "<b>Low Power threshold 'OFF'</b>", defaultValue: 0 , required: true
         input name: "highValue",type: "number", title: "<b>High Power threshold 'ON'</b>", defaultValue: 0 , required: true
+        input name: "motionEnable", type: "bool", title: "<b>Enable Motion attribute</b>", defaultValue: true
         input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
         input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
@@ -77,6 +80,9 @@ def updated() {
 	}
     deviceSetup()
     syncSetup()
+    if (!motionEnable){
+        device.deleteCurrentState('motion')
+    }
     if (logEnable) runIn(1800, logsOff)
 }
 
@@ -175,13 +181,17 @@ def parse(LanMessage){
         if (logEnable) log.debug "Found the word PowerLowON"
         if (logInfo) log.info "$device.label - Power is below Low threshold"
         sendEvent(name:"switch",value:"off")
-        sendEvent(name:"motion",value:"inactive")
+        if (motionEnable){
+            sendEvent(name:"motion",value:"inactive")
+        }
     }
     if (json.contains("PowerHighON")){
         if (logEnable) log.debug "Found the word PowerHighON"
         if (logInfo) log.info "$device.label - Power is above High threshold"
         sendEvent(name:"switch",value:"on")
-        sendEvent(name:"motion",value:"active")
+        if (motionEnable){
+            sendEvent(name:"motion",value:"active")
+        }
     }
 }
 
@@ -236,6 +246,7 @@ def off(){
 }
 
 def refresh() {
+    deviceStatus = device.currentValue("switch").toUpperCase()
     if(settings.deviceIp){
         if (logEnable) log.debug "Refreshing Device Status - [${settings.deviceIp}]"
         try {
@@ -249,7 +260,7 @@ def refresh() {
                    if (logEnable) log.debug "Wifi signal strength $signal db"
                    sendEvent(name:"wifi",value:"${signal}db")
                    if (logEnable) log.debug "$device.label $deviceIp - $status"
-                   if (logInfo) log.info "$device.label Plug is - $status"
+                   if (logInfo) log.info "Relay is $status - $device.label is $deviceStatus"
                    }   
                    if (status == "ON"){
                        sendEvent(name:"outlet",value:"on")
@@ -259,6 +270,7 @@ def refresh() {
            }
         }catch (Exception e) {
             sendEvent(name:"wifi",value:"offline")
+            if (logInfo) log.error "$device.label Unable to connect, device is <b>OFFLINE</b>"
             log.warn "Call to on failed: ${e.message}"
         }
     }
