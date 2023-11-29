@@ -24,10 +24,11 @@
  *  V1.2.0  10-24-2023        expanded to support up to 6 beacons, clean up
  *  V1.3.0  10-26-2023        added refresh options and child devices toggle
  *  V1.4.0  10-30-2023        added beacon reset option and testing on ESP32-C3 w/ BLE 5.0 hardware
- *  V1.5.0  10-30-2023        changed method of upadting children for multiple child driver options (tasker)
+ *  V1.5.0  10-30-2023        changed method of upadting children
+ *  V1.6.0  11-13-2023        added buffer timeout option
  */
 
-def driverVer() { return "1.5" }
+def driverVer() { return "1.6" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -56,13 +57,13 @@ metadata {
     preferences {
         def refreshRate = [:]
         refreshRate << ["disabled" : "Disabled"]
-        refreshRate << ["5 min" : "Refresh every 5 minutes"]
-        refreshRate << ["10 min" : "Refresh every 10 minutes"]
-	    refreshRate << ["15 min" : "Refresh every 15 minutes"]
-	    refreshRate << ["30 min" : "Refresh every 30 minutes"]
+        refreshRate << ["5 min" : "Ping every 5 minutes"]
+        refreshRate << ["10 min" : "Ping every 10 minutes"]
+	    refreshRate << ["15 min" : "Ping every 15 minutes"]
+	    refreshRate << ["30 min" : "Ping every 30 minutes"]
         input name: "deviceIp",type: "string", title: "<b>Tasmota ESP32 IP Address</b>", required: true
         input name: "hubIp",type: "string", title: "<b>Hubitat Hub IP Address</b>", required: true
-        input name: "refreshRate",type: "enum", title: "<b>Refresh Rate Option</b>",options: refreshRate, defaultValue: "15 min", required: true
+        input name: "refreshRate",type: "enum", title: "<b>Ping Option</b>",options: refreshRate, defaultValue: "15 min", required: true
         input name: "beacon1", type: "string", title: "<b>Beacon1 MAC Address</b>", required: false , defaultValue: "00:00:00:00:00:00"
         input name: "beacon2", type: "string", title: "<b>Beacon2 MAC Address</b>", required: false , defaultValue: "00:00:00:00:00:00"
         input name: "beacon3", type: "string", title: "<b>Beacon3 MAC Address</b>", required: false , defaultValue: "00:00:00:00:00:00"
@@ -70,6 +71,7 @@ metadata {
         input name: "beacon5", type: "string", title: "<b>Beacon5 MAC Address</b>", required: false , defaultValue: "00:00:00:00:00:00"
         input name: "beacon6", type: "string", title: "<b>Beacon6 MAC Address</b>", required: false , defaultValue: "00:00:00:00:00:00"
         input name: "childEnable", type: "bool", title: "<b>Enable Child Devices</b>", defaultValue: false
+        input name: "buffer", type: "number", title: "<b>Buffer</b><i> in seconds</i>", defaultValue: 10
         input name: "logInfo", type: "bool", title: "<b>Enable info logging</b>", defaultValue: true
         input name: "logEnable", type: "bool", title: "<b>Enable debug logging</b>", defaultValue: true
 }
@@ -337,6 +339,7 @@ def parse(LanMessage){
     if (json.contains("BEACONONE")){
         def childDevice1 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-1"}    
         if (json.contains("1")){
+            unschedule(beacon1Inactive)
             if (logInfo) log.info "$device.label Beacon 1 is <b>detected</b>"
             sendEvent(name:"beacon1",value:"detected")
             if (childDevice1) {
@@ -344,16 +347,13 @@ def parse(LanMessage){
             }
         }
         else if (json.contains("0")){
-            if (logInfo) log.info "$device.label Beacon 1 is <b>not detected</b>"
-            sendEvent(name:"beacon1",value:"not detected")
-            if (childDevice1) {
-                childDevice1.beacon("not detected")
-            }
+            runIn(buffer,beacon1Inactive)
         }
     }
     else if (json.contains("BEACONTWO")){
         def childDevice2 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-2"} 
         if (json.contains("1")){
+            unschedule(beacon2Inactive)
             if (logInfo) log.info "$device.label Beacon 2 is <b>detected</b>"
             sendEvent(name:"beacon2",value:"detected")
             if (childDevice2) {
@@ -361,16 +361,13 @@ def parse(LanMessage){
             }
         }
         else if (json.contains("0")){
-            if (logInfo) log.info "$device.label Beacon 2 is <b>not detected</b>"
-            sendEvent(name:"beacon2",value:"not detected")
-            if (childDevice2) {
-                childDevice2.beacon("not detected")
-            }
+            runIn(buffer,beacon2Inactive)
         }
     }
     else if (json.contains("BEACONTHREE")){
         def childDevice3 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-3"} 
         if (json.contains("1")){
+            unschedule(beacon3Inactive)
             if (logInfo) log.info "$device.label Beacon 3 is <b>detected</b>"
             sendEvent(name:"beacon3",value:"detected")
             if (childDevice3) {
@@ -378,16 +375,13 @@ def parse(LanMessage){
             }
         }
         else if (json.contains("0")){
-            if (logInfo) log.info "$device.label Beacon 3 is <b>not detected</b>"
-            sendEvent(name:"beacon3",value:"not detected")
-            if (childDevice3) {
-                childDevice3.beacon("not detected")
-            }
+            runIn(buffer,beacon3Inactive)
         }
     }
     else if (json.contains("BEACONFOUR")){
         def childDevice4 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-4"} 
         if (json.contains("1")){
+            unschedule(beacon4Inactive)
             if (logInfo) log.info "$device.label Beacon 4 is <b>detected</b>"
             sendEvent(name:"beacon4",value:"detected")
             if (childDevice4) {
@@ -395,16 +389,13 @@ def parse(LanMessage){
             }
         }
         else if (json.contains("0")){
-            if (logInfo) log.info "$device.label Beacon 4 is <b>not detected</b>"
-            sendEvent(name:"beacon4",value:"not detected")
-            if (childDevice4) {
-                childDevice4.beacon("not detected")
-            }
+            runIn(buffer,beacon4Inactive)
         }
     }
     else if (json.contains("BEACONFIVE")){
         def childDevice5 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-5"} 
         if (json.contains("1")){
+            unschedule(beacon5Inactive)
             if (logInfo) log.info "$device.label Beacon 5 is <b>detected</b>"
             sendEvent(name:"beacon5",value:"detected")
             if (childDevice5) {
@@ -412,16 +403,13 @@ def parse(LanMessage){
             }
         }
         else if (json.contains("0")){
-            if (logInfo) log.info "$device.label Beacon 5 is <b>not detected</b>"
-            sendEvent(name:"beacon5",value:"not detected")
-            if (childDevice5) {
-                childDevice5.beacon("not detected")
-            }
+            runIn(buffer,beacon5Inactive)
         }
     }
     else if (json.contains("BEACONSIX")){
         def childDevice6 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-6"} 
         if (json.contains("1")){
+            unschedule(beacon6Inactive)
             if (logInfo) log.info "$device.label Beacon 6 is <b>detected</b>"
             sendEvent(name:"beacon6",value:"detected")
             if (childDevice6) {
@@ -429,15 +417,65 @@ def parse(LanMessage){
             }
         }
         else if (json.contains("0")){
-            if (logInfo) log.info "$device.label Beacon 6 is <b>not detected</b>"
-            sendEvent(name:"beacon6",value:"not detected")
-            if (childDevice6) {
-                childDevice6.beacon("not detected")
-            }
+            runIn(buffer,beacon6Inactive)
         }
     }
 }
-    
+
+def beacon1Inactive(){
+    def childDevice1 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-1"} 
+    if (logInfo) log.info "$device.label Beacon 1 is <b>not detected</b>"
+    sendEvent(name:"beacon1",value:"not detected")
+    if (childDevice1) {
+        childDevice1.beacon("not detected")
+    } 
+}
+
+def beacon2Inactive(){
+    def childDevice2 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-2"} 
+    if (logInfo) log.info "$device.label Beacon 2 is <b>not detected</b>"
+    sendEvent(name:"beacon2",value:"not detected")
+    if (childDevice2) {
+        childDevice2.beacon("not detected")
+    } 
+}
+
+def beacon3Inactive(){
+    def childDevice3 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-3"} 
+    if (logInfo) log.info "$device.label Beacon 3 is <b>not detected</b>"
+    sendEvent(name:"beacon3",value:"not detected")
+    if (childDevice3) {
+        childDevice3.beacon("not detected")
+    } 
+}
+
+def beacon4Inactive(){
+    def childDevice4 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-4"} 
+    if (logInfo) log.info "$device.label Beacon 4 is <b>not detected</b>"
+    sendEvent(name:"beacon4",value:"not detected")
+    if (childDevice4) {
+        childDevice4.beacon("not detected")
+    } 
+}
+
+def beacon5Inactive(){
+    def childDevice5 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-5"} 
+    if (logInfo) log.info "$device.label Beacon 5 is <b>not detected</b>"
+    sendEvent(name:"beacon5",value:"not detected")
+    if (childDevice5) {
+        childDevice5.beacon("not detected")
+    } 
+}
+
+def beacon6Inactive(){
+    def childDevice6 = childDevices.find{it.deviceNetworkId == "$device.deviceNetworkId-6"} 
+    if (logInfo) log.info "$device.label Beacon 6 is <b>not detected</b>"
+    sendEvent(name:"beacon6",value:"not detected")
+    if (childDevice6) {
+        childDevice6.beacon("not detected")
+    } 
+}
+
 def on(){
     try {
         httpGet("http://" + deviceIp + "/cm?cmnd=IBEACON%20ON") { resp ->
