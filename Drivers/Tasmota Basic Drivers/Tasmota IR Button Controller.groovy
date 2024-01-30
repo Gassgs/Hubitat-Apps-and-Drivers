@@ -1,6 +1,6 @@
 /**
  *  Tasmota IR Button Controller
- *  For use with Sofabaton X1 and other IR remotes
+ *  For use with Sofabaton and other IR remotes
  *  
  *  Copyright 2024 Gassgs
  *
@@ -19,10 +19,11 @@
  *
  *  Change History:
  *
- *  V1.0.0  01-17-2024       first run   
+ *  V1.0.0  01-17-2024       first run
+ *  V1.1.0  01-27-2024       cleanup added push cmd method
  */
 
-def driverVer() { return "1.0" }
+def driverVer() { return "1.1" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
@@ -137,7 +138,7 @@ def syncSetup(){
             httpGet("http://" + deviceIp + "/cm?cmnd=RULE1%20${ruleNow}") { resp ->
                 def json = (resp.data) 
                 if (json){
-                    if (logEnable) log.debug "Command Success response from Device - Setup Rule 3"
+                    if (logEnable) log.debug "Command Success response from Device - Setup Rule 1"
                 }else{
                     if (logEnable) log.debug "Command -ERROR- response from Device- $json"
                 }
@@ -168,7 +169,7 @@ def syncSetup2(){
             httpGet("http://" + deviceIp + "/cm?cmnd=RULE2%20${ruleNow}") { resp ->
                 def json = (resp.data) 
                 if (json){
-                    if (logEnable) log.debug "Command Success response from Device - Setup Rule 3"
+                    if (logEnable) log.debug "Command Success response from Device - Setup Rule 2"
                 }else{
                     if (logEnable) log.debug "Command -ERROR- response from Device- $json"
                 }
@@ -216,7 +217,7 @@ def turnOnRule(){
          httpGet("http://" + deviceIp + "/cm?cmnd=RULE1%20ON") { resp ->
              def json = (resp.data) 
              if (json){
-                 if (logEnable) log.debug "Command Success response from Device - Rule 3 activated"
+                 if (logEnable) log.debug "Command Success response from Device - Rule 1 activated"
              }else{
                  if (logEnable) log.debug "Command -ERROR- response from Device- $json"
              }
@@ -237,7 +238,7 @@ def turnOnRule2(){
          httpGet("http://" + deviceIp + "/cm?cmnd=RULE2%20ON") { resp ->
              def json = (resp.data) 
              if (json){
-                 if (logEnable) log.debug "Command Success response from Device - Rule 3 activated"
+                 if (logEnable) log.debug "Command Success response from Device - Rule 2 activated"
              }else{
                  if (logEnable) log.debug "Command -ERROR- response from Device- $json"
              }
@@ -276,6 +277,12 @@ def parse(LanMessage){
     if (logEnable) log.debug "Value == ${json}"
     if (logInfo) log.info "$device.label - Button $json Pushed"
     sendEvent(name:"pushed",value:"${json}",isStateChange: true)
+}
+
+def push(value){
+    if (logEnable) log.debug "data is ${value}"
+    if (logInfo) log.info "$device.label - Button $value Pushed"
+    sendEvent(name:"pushed",value:"$value",isStateChange: true)
 }
 
 def refresh() {
