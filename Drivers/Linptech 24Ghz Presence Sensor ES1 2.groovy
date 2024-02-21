@@ -25,7 +25,11 @@
  *  V1.3.0  10-01-2023       Added fade time option and states for preferences
  *  V1.4.0  10-03-2023       Addjust fade time range to match Tuya hub settings
  *  V1.5.0  02-03-2024       Added addtional info logging
- *  V2.0.0  02-19-2024       Added Device Health Check, fade Time and existance time attributes, commands replace preference settings, actuator capability
+ *  V1.6.0  02-14-2024       Added fade Time and existance time attributes
+ *  V1.7.0  02-18-2024       Changed commands to replace preference settings, added actuator capability
+ *  V1.8.0  02-19-2024       Added Device Health Check (testing)
+ *  V1.9.0  02-20-2024       Fix for existance time = 1 and changed atribute to number
+ *  V2.0.0  02-21-2024       Changed health check method for lower hub resource usage
  */
 
 def driverVer() { return "2.0" }
@@ -52,7 +56,7 @@ metadata
         attribute "motionSensitivity", "string"
         attribute "staticSensitivity", "string"
         attribute "distanceLimit", "string"
-        attribute "existanceTime", "string"
+        attribute "existanceTime", "number"
         attribute "fadeTime", "number"
         attribute "status", "string" 
           
@@ -65,7 +69,13 @@ metadata
             input "enableDistance", "bool", title: "<b>Enable Distance Reporting?</b>", defaultValue: false, required: false, multiple: false
             input "healthCheckEnabled", "bool", title: "<b>Enable Health Check</b>", defaultValue: false, required: false
             if(healthCheckEnabled){
-                input "timeOut", "number", title: "<b>Health Check Timeout in minutes</b>", description: "<i>Range (2..60)</i>", range: "2..60", defaultValue: 5,required: true
+                def pingRate = [:]
+	                pingRate << ["5 min" : "5 minutes"]
+                    pingRate << ["10 min" : "10 minutes"]
+	                pingRate << ["15 min" : "15 minutes"]
+	                pingRate << ["30 min" : "30 minutes"]
+                    pingRate << ["60 min" : "60 minutes"]
+                input("healthCheckInterval", "enum", title: "<b>Health Check Interval</b>",options: pingRate, defaultValue: "15 min", required: true )
             }
             input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "<b>Enable debug logging?</b>", defaultValue: false, required: false, multiple: false
@@ -151,21 +161,19 @@ def parse(String description) {
             fadeTime( descMap )
         }
     }
-    if (healthCheckEnabled != false) {
-        unschedule(healthExpired)
+    if (healthCheckEnabled) {
 		if (device.currentValue("status") != "online"){
+            unschedule(healthExpired)
 			sendEvent(name: "status", value:  "online")
-			log.trace ("$device.label Online")
+			logInfo ("$device.label Online")
 		}
-        if (timeOut == null) {timeOut = 5}
-        runIn(timeOut*60,healthExpired)
     }
 }
 
-def healthStatus() {
+def healthCheck() {
     sendEvent(name: "status", value:  "checking")
-    runIn(10,healthExpired)
-    runIn(1,healthPing)
+    runIn(30,healthExpired)
+    runIn(2,healthPing)
 }
 
 def healthPing() {
@@ -263,8 +271,10 @@ def processDistance( descMap ) {
 def existanceTime( descMap ){
     currentExistanceTime = device.currentValue("existanceTime")
     def value = zigbee.convertHexToInt(descMap.value)
-    if (currentExistanceTime != "0"){logInfo "$device.label Existance Time - $value minutes"}
-    sendEvent(name : "existanceTime", value : "$value")
+    if (value as Number != currentExistanceTime){
+        logInfo "$device.label Existance Time - $value minutes"
+        sendEvent(name : "existanceTime", value : "$value")
+    }
 }
 
 def fadeTime( descMap ) {
@@ -393,15 +403,45 @@ def initialize(){
     if (!enableDistance){
         device.deleteCurrentState('distance')
     }
+    if (healthCheckEnabled){
+        
+        switch(healthCheckInterval) {
+		case "5 min" :
+			runEvery5Minutes(healthCheck)
+            logDebug "Health Check every 5 minutes schedule"
+            logInfo "$device.label Health Check every 5 minutes schedule"
+			break
+        case "10 min" :
+			runEvery10Minutes(healthCheck)
+            logDebug "Health Check every 10 minutes schedule"
+            logInfo "$device.label Health Check every 10 minutes schedule"
+			break
+		case "15 min" :
+			runEvery15Minutes(healthCheck)
+            logDebug "Health Check every 15 minutes schedule"
+            logInfo "$device.label Health Check every 15 minutes schedule"
+			break
+		case "30 min" :
+			runEvery30Minutes(healthCheck)
+            logDebug "Health Check every 30 minutes schedule"
+            logInfo "$device.label Health Check every 30 minutes schedule"
+            break
+         case "60 min" :
+			runEvery1Hour(healthCheck)
+            logDebug "Health Check every 60 minutes schedule"
+            logInfo "$device.label Health Check every 60 minutes schedule"
+            break
+        }
+    }
     if (!healthCheckEnabled){
         device.deleteCurrentState('status')
-    }
+    }   
 }
 
 def refresh() {
     logInfo "Refreshing Values"
     if (healthCheckEnabled){
-        healthStatus()
+        healthCheck()
     }
     ArrayList<String> cmds = []
     IAS_ATTRIBUTES.each { key, value ->
