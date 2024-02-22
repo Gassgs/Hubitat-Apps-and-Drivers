@@ -28,7 +28,7 @@
  *  V1.6.0  02-14-2024       Added fade Time and existance time attributes
  *  V1.7.0  02-18-2024       Changed commands to replace preference settings, added actuator capability
  *  V1.8.0  02-19-2024       Added Device Health Check (testing)
- *  V1.9.0  02-20-2024       Fix for existance time = 1 and changed atribute to number
+ *  V1.9.0  02-20-2024       Fix for existance time = 1 and changed attribute to number
  *  V2.0.0  02-21-2024       Changed health check method for lower hub resource usage, code cleanup
  */
 
