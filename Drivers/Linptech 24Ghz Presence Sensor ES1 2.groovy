@@ -55,7 +55,7 @@ metadata
 		attribute "distance", "number"
 		attribute "motionSensitivity", "string"
 		attribute "staticSensitivity", "string"
-		attribute "distanceLimit", "string"
+		attribute "detectionDistance", "string"
 		attribute "existanceTime", "number"
 		attribute "fadeTime", "number"
 		attribute "status", "string"
@@ -67,7 +67,7 @@ metadata
 		section{
 			input "luxThreshold", "number", title: "<b>Lux threshold</b>", description: "<i>Range (0..999)</i>", range: "0..999", defaultValue: 5
 			input "enableDistance", "bool", title: "<b>Enable Distance Reporting?</b>", defaultValue: false, required: false, multiple: false
-			input "healthCheckEnabled", "bool", title: "<b>Enable Health Check</b>", defaultValue: false, required: false
+			input "healthCheckEnabled", "bool", title: "<b>Enable Health Check?</b>", defaultValue: false, required: false
 			if(healthCheckEnabled){
 				def pingRate = [:]
 				pingRate << ["5 min" : "5 minutes"]
@@ -180,7 +180,7 @@ def healthCheck() {
 }
 
 def healthPing() {
-    val = device.currentValue("distanceLimit")
+    val = device.currentValue("detectionDistance")
     setDetectionDistance( val )
 }
 
@@ -261,10 +261,10 @@ def distanceLimit( descMap ) {
     logDebug "Cluster ${descMap.cluster} Attribute ${descMap.attrId} value is ${value} (0x${descMap.value})"
     distanceValue = (value/100)
     newDistance = distanceValue as String
-    currentDistance = device.currentValue("distanceLimit")
+    currentDistance = device.currentValue("detectionDistance")
     if (newDistance != currentDistance){
-        logInfo "$device.label Distance Detection Limit - $distanceValue meters"
-        sendEvent(name: "distanceLimit",value:"$distanceValue")
+        logInfo "$device.label Detection Distance - $distanceValue meters"
+        sendEvent(name: "detectionDistance",value:"$distanceValue")
     }
 }
 
@@ -295,7 +295,7 @@ def updatePreferences(){
     
     cmds += tuyaBlackMagic()
     if (device.currentValue("fadeTime") == null) {cmds += setFadeTime(10)}
-    if (device.currentValue("distanceLimit") == null) {cmds += setDetectionDistance(6.0)}
+    if (device.currentValue("detectionDistance") == null) {cmds += setDetectionDistance(6.0)}
     if (device.currentValue("motionSensitivity") == null) {cmds += setMotionSensitivity( "high" )}
     if (device.currentValue("staticSensitivity") == null) {cmds += setStaticSensitivity("high")}
     
@@ -391,14 +391,14 @@ def configure() {
 }
 
 def installed(){
-    configure()
-    updatePreferences()
+	configure()
+	updatePreferences()
 }
 
 def updated(){
 	initialize()
-    configure()
-    updatePreferences()
+	configure()
+	updatePreferences()
 }
 
 def initialize(){
