@@ -162,8 +162,8 @@ def parse(String description) {
         }
     }
     if (healthCheckEnabled) {
+        unschedule(healthExpired)
         if (device.currentValue("status") != "online"){
-            unschedule(healthExpired)
             sendEvent(name: "status", value:  "online")
             logInfo ("$device.label Online")
 		}
