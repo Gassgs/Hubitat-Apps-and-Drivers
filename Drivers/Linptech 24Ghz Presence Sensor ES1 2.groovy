@@ -40,25 +40,25 @@ metadata
 {
 	definition(name: "Linptech 24Ghz Presence Sensor ES1 2.0", namespace: "Gassgs", author: "Krassimir Kossev", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/Linptech%2024Ghz%20Presence%20Sensor%20ES1.groovy", singleThreaded: true )
 	{
-	capability "Motion Sensor"
-        capability "IlluminanceMeasurement"
-        capability "Actuator"
-	capability "Configuration"
-	capability "Refresh"
-	capability "Sensor"
-
-        command "setMotionSensitivity", [[name:"Set Motion Sensitivity", type: "ENUM",description: "Motion Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
-        command "setStaticSensitivity", [[name:"Set Static Sensitivity", type: "ENUM",description: "Static Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
-        command "setDetectionDistance", [[name:"Set Detection Distance", type: "ENUM",description: "Detection Distance in Meters", constraints: [1.5,2.25,3.0,3.75,4.5,5.25,6.0],defaultValue: 6.0]]
-        command "setFadeTime", [[name:"Set Fade Time", type: "NUMBER",description: "Fade Timeout in Seconds", constraints: "0..10000",defaultValue: "10"]]
-
-        attribute "distance", "number"
-        attribute "motionSensitivity", "string"
-        attribute "staticSensitivity", "string"
-        attribute "distanceLimit", "string"
-        attribute "existanceTime", "number"
-        attribute "fadeTime", "number"
-        attribute "status", "string"
+		capability "Motion Sensor"
+		capability "IlluminanceMeasurement"
+		capability "Actuator"
+		capability "Configuration"
+		capability "Refresh"
+		capability "Sensor"
+		
+		command "setMotionSensitivity", [[name:"Set Motion Sensitivity", type: "ENUM",description: "Motion Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
+		command "setStaticSensitivity", [[name:"Set Static Sensitivity", type: "ENUM",description: "Static Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
+		command "setDetectionDistance", [[name:"Set Detection Distance", type: "ENUM",description: "Detection Distance in Meters", constraints: [1.5,2.25,3.0,3.75,4.5,5.25,6.0],defaultValue: 6.0]]
+		command "setFadeTime", [[name:"Set Fade Time", type: "NUMBER",description: "Fade Timeout in Seconds", constraints: "0..10000",defaultValue: "10"]]
+		
+		attribute "distance", "number"
+		attribute "motionSensitivity", "string"
+		attribute "staticSensitivity", "string"
+		attribute "distanceLimit", "string"
+		attribute "existanceTime", "number"
+		attribute "fadeTime", "number"
+		attribute "status", "string"
 
 	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
