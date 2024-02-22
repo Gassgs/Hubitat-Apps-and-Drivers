@@ -29,7 +29,7 @@
  *  V1.7.0  02-18-2024       Changed commands to replace preference settings, added actuator capability
  *  V1.8.0  02-19-2024       Added Device Health Check (testing)
  *  V1.9.0  02-20-2024       Fix for existance time = 1 and changed atribute to number
- *  V2.0.0  02-21-2024       Changed health check method for lower hub resource usage
+ *  V2.0.0  02-21-2024       Changed health check method for lower hub resource usage, code cleanup
  */
 
 def driverVer() { return "2.0" }
@@ -40,44 +40,44 @@ metadata
 {
 	definition(name: "Linptech 24Ghz Presence Sensor ES1 2.0", namespace: "Gassgs", author: "Krassimir Kossev", importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Drivers/Linptech%2024Ghz%20Presence%20Sensor%20ES1.groovy", singleThreaded: true )
 	{
-		capability "Motion Sensor"
+	capability "Motion Sensor"
         capability "IlluminanceMeasurement"
         capability "Actuator"
-		capability "Configuration"
-		capability "Refresh"
-		capability "Sensor"
-        
+	capability "Configuration"
+	capability "Refresh"
+	capability "Sensor"
+
         command "setMotionSensitivity", [[name:"Set Motion Sensitivity", type: "ENUM",description: "Motion Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
         command "setStaticSensitivity", [[name:"Set Static Sensitivity", type: "ENUM",description: "Static Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
         command "setDetectionDistance", [[name:"Set Detection Distance", type: "ENUM",description: "Detection Distance in Meters", constraints: [1.5,2.25,3.0,3.75,4.5,5.25,6.0],defaultValue: 6.0]]
         command "setFadeTime", [[name:"Set Fade Time", type: "NUMBER",description: "Fade Timeout in Seconds", constraints: "0..10000",defaultValue: "10"]]
 
-        attribute "distance", "number" 
+        attribute "distance", "number"
         attribute "motionSensitivity", "string"
         attribute "staticSensitivity", "string"
         attribute "distanceLimit", "string"
         attribute "existanceTime", "number"
         attribute "fadeTime", "number"
-        attribute "status", "string" 
-          
-		fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
+        attribute "status", "string"
+
+	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
 
 	preferences{
 		section{
-            input "luxThreshold", "number", title: "<b>Lux threshold</b>", description: "<i>Range (0..999)</i>", range: "0..999", defaultValue: 5
-            input "enableDistance", "bool", title: "<b>Enable Distance Reporting?</b>", defaultValue: false, required: false, multiple: false
-            input "healthCheckEnabled", "bool", title: "<b>Enable Health Check</b>", defaultValue: false, required: false
-            if(healthCheckEnabled){
-                def pingRate = [:]
-	                pingRate << ["5 min" : "5 minutes"]
-                    pingRate << ["10 min" : "10 minutes"]
-	                pingRate << ["15 min" : "15 minutes"]
-	                pingRate << ["30 min" : "30 minutes"]
-                    pingRate << ["60 min" : "60 minutes"]
-                input("healthCheckInterval", "enum", title: "<b>Health Check Interval</b>",options: pingRate, defaultValue: "15 min", required: true )
-            }
-            input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
+			input "luxThreshold", "number", title: "<b>Lux threshold</b>", description: "<i>Range (0..999)</i>", range: "0..999", defaultValue: 5
+			input "enableDistance", "bool", title: "<b>Enable Distance Reporting?</b>", defaultValue: false, required: false, multiple: false
+			input "healthCheckEnabled", "bool", title: "<b>Enable Health Check</b>", defaultValue: false, required: false
+			if(healthCheckEnabled){
+				def pingRate = [:]
+				pingRate << ["5 min" : "5 minutes"]
+				pingRate << ["10 min" : "10 minutes"]
+				pingRate << ["15 min" : "15 minutes"]
+				pingRate << ["30 min" : "30 minutes"]
+				pingRate << ["60 min" : "60 minutes"]
+				input("healthCheckInterval", "enum", title: "<b>Health Check Interval</b>",options: pingRate, defaultValue: "15 min", required: true )
+			}
+			input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "<b>Enable debug logging?</b>", defaultValue: false, required: false, multiple: false
 		}
 	}
@@ -97,7 +97,7 @@ Map parseDescriptionAsMap( String description )
             descMap += description.replaceAll('\\[|\\]', '').split(',').collectEntries { entry ->
                 def pair = entry.split(':')
                 [(pair.first().trim()): pair.last().trim()]
-            } 
+            }
             if (descMap.value != null) {
                 descMap.value = zigbee.swapOctets(descMap.value)
             }
@@ -162,16 +162,15 @@ def parse(String description) {
         }
     }
     if (healthCheckEnabled) {
-		if (device.currentValue("status") != "online"){
+        if (device.currentValue("status") != "online"){
             unschedule(healthExpired)
-			sendEvent(name: "status", value:  "online")
-			logInfo ("$device.label Online")
+            sendEvent(name: "status", value:  "online")
+            logInfo ("$device.label Online")
 		}
     }
 }
 
 def healthCheck() {
-    sendEvent(name: "status", value:  "checking")
     runIn(30,healthExpired)
     runIn(2,healthPing)
 }
@@ -257,8 +256,12 @@ def distanceLimit( descMap ) {
     def value = zigbee.convertHexToInt(descMap.value) 
     logDebug "Cluster ${descMap.cluster} Attribute ${descMap.attrId} value is ${value} (0x${descMap.value})"
     distanceValue = (value/100)
-    logInfo "$device.label Distance Detection Limit - $distanceValue meters"
-    sendEvent(name: "distanceLimit",value:"$distanceValue")
+    newDistance = distanceValue as String
+    currentDistance = device.currentValue("distanceLimit")
+    if (newDistance != currentDistance){
+        logInfo "$device.label Distance Detection Limit - $distanceValue meters"
+        sendEvent(name: "distanceLimit",value:"$distanceValue")
+    }
 }
 
 def processDistance( descMap ) {
@@ -407,30 +410,30 @@ def initialize(){
         
         switch(healthCheckInterval) {
 		case "5 min" :
-			runEvery5Minutes(healthCheck)
-            logDebug "Health Check every 5 minutes schedule"
-            logInfo "$device.label Health Check every 5 minutes schedule"
-			break
-        case "10 min" :
-			runEvery10Minutes(healthCheck)
-            logDebug "Health Check every 10 minutes schedule"
-            logInfo "$device.label Health Check every 10 minutes schedule"
-			break
+		runEvery5Minutes(healthCheck)
+		logDebug "Health Check every 5 minutes schedule"
+		logInfo "$device.label Health Check every 5 minutes schedule"
+		break
+        	case "10 min" :
+		runEvery10Minutes(healthCheck)
+		logDebug "Health Check every 10 minutes schedule"
+		logInfo "$device.label Health Check every 10 minutes schedule"
+		break
 		case "15 min" :
-			runEvery15Minutes(healthCheck)
-            logDebug "Health Check every 15 minutes schedule"
-            logInfo "$device.label Health Check every 15 minutes schedule"
-			break
+		runEvery15Minutes(healthCheck)
+		logDebug "Health Check every 15 minutes schedule"
+		logInfo "$device.label Health Check every 15 minutes schedule"
+		break
 		case "30 min" :
-			runEvery30Minutes(healthCheck)
-            logDebug "Health Check every 30 minutes schedule"
-            logInfo "$device.label Health Check every 30 minutes schedule"
-            break
-         case "60 min" :
-			runEvery1Hour(healthCheck)
-            logDebug "Health Check every 60 minutes schedule"
-            logInfo "$device.label Health Check every 60 minutes schedule"
-            break
+		runEvery30Minutes(healthCheck)
+		logDebug "Health Check every 30 minutes schedule"
+		logInfo "$device.label Health Check every 30 minutes schedule"
+		break
+         	case "60 min" :
+		runEvery1Hour(healthCheck)
+		logDebug "Health Check every 60 minutes schedule"
+		logInfo "$device.label Health Check every 60 minutes schedule"
+		break
         }
     }
     if (!healthCheckEnabled){
@@ -439,8 +442,9 @@ def initialize(){
 }
 
 def refresh() {
-    logInfo "Refreshing Values"
+    logInfo "$device.label - Refreshing Values"
     if (healthCheckEnabled){
+        sendEvent(name: "status", value:  "checking")
         healthCheck()
     }
     ArrayList<String> cmds = []
