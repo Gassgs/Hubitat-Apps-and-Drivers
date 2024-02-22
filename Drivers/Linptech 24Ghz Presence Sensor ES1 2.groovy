@@ -162,17 +162,21 @@ def parse(String description) {
         }
     }
     if (healthCheckEnabled) {
-        unschedule(healthExpired)
+        if (!state.healthCheck){
+            unschedule(healthExpired)
+            logInfo ("$device.label Online")
+            state.healthCheck = true
+        }
         if (device.currentValue("status") != "online"){
             sendEvent(name: "status", value:  "online")
-            logInfo ("$device.label Online")
 		}
     }
 }
 
 def healthCheck() {
+    state.healthCheck = false
     runIn(30,healthExpired)
-    runIn(2,healthPing)
+    runIn(1,healthPing)
 }
 
 def healthPing() {
@@ -439,6 +443,7 @@ def initialize(){
     if (!healthCheckEnabled){
         device.deleteCurrentState('status')
         unschedule(healthCheck)
+        state.healthCheck = false
     }   
 }
 
