@@ -75,7 +75,7 @@ metadata
 				pingRate << ["15 min" : "15 minutes"]
 				pingRate << ["30 min" : "30 minutes"]
 				pingRate << ["60 min" : "60 minutes"]
-				input("healthCheckInterval", "enum", title: "<b>Health Check Interval</b>",options: pingRate, defaultValue: "15 min", required: true )
+				input("healthCheckInterval", "enum", title: "<b>Health Check Interval</b>",options: pingRate, defaultValue: "30 min", required: true )
 			}
 			input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "<b>Enable debug logging?</b>", defaultValue: false, required: false, multiple: false
