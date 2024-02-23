@@ -58,7 +58,7 @@ metadata
 		attribute "detectionDistance", "string"
 		attribute "existanceTime", "number"
 		attribute "fadeTime", "number"
-		attribute "status", "string"
+		attribute "healthStatus", "string"
 
 	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
@@ -167,8 +167,8 @@ def parse(String description) {
             logInfo ("$device.label Online")
             state.healthCheck = true
         }
-        if (device.currentValue("status") != "online"){
-            sendEvent(name: "status", value:  "online")
+        if (device.currentValue("healthStatus") != "online"){
+            sendEvent(name: "healthStatus", value:  "online")
 		}
     }
 }
@@ -185,7 +185,7 @@ def healthPing() {
 }
 
 def healthExpired() {
-	sendEvent(name: "status", value:  "offline")
+	sendEvent(name: "healthStatus", value:  "offline")
 	logError "$device.label - Offline"
 }
 
@@ -441,7 +441,7 @@ def initialize(){
         }
     }
     if (!healthCheckEnabled){
-        device.deleteCurrentState('status')
+        device.deleteCurrentState('healthStatus')
         unschedule(healthCheck)
         state.healthCheck = false
     }   
@@ -450,7 +450,7 @@ def initialize(){
 def refresh() {
     logInfo "$device.label - Refreshing Values"
     if (healthCheckEnabled){
-        sendEvent(name: "status", value:  "checking")
+        sendEvent(name: "healthStatus", value:  "checking")
         healthCheck()
     }
     ArrayList<String> cmds = []
