@@ -30,6 +30,7 @@
  *  V1.8.0  02-19-2024       Added Device Health Check (testing)
  *  V1.9.0  02-20-2024       Fix for existance time = 1 and changed attribute to number
  *  V2.0.0  02-22-2024       Changed health check method for lower hub resource usage, code cleanup/ bug fixes
+ *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255.
  */
 
 def driverVer() { return "2.0" }
@@ -285,7 +286,7 @@ def existanceTime( descMap ){
 }
 
 def fadeTime( descMap ) {
-    def value = zigbee.convertHexToInt(descMap?.data[9])
+    def value = zigbee.convertHexToInt(descMap?.data[8]+descMap?.data[9])
     logInfo "$device.label Fade Time - $value seconds"
     sendEvent(name : "fadeTime", value : "$value")
 }
