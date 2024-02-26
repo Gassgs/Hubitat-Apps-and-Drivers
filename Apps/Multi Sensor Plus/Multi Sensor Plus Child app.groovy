@@ -2,7 +2,7 @@
  *  ****************  Multi Sensor Plus  Child App  ****************
  *
  *   Average: Temperature, Humidity, and Illuminance   -
- *   Group:  Locks, Contact, Motion, Water, Presence,Smoke, CO and Sound Sensors  -
+ *   Group:  Locks, Contact, Motion, Water, Presence, Smoke, Carbon Monoxide and Sound Sensors  -
  *   Plus  a Virtual Switch  -  All  In One Device
  *
  *
@@ -40,6 +40,7 @@
  *  V2.4.0 -    7-05-2021       reworked status updating method.
  *  V2.5.0 -    11-17-2023      Added waterLeak attribute for google home.
  *  V2.6.0 -    11-19-2023      Added smoke and CO attribute for google home community app compatibilty.
+ *  V2.7.0 -    02-25-2024      added capability Carbon Dioxide Measurement
  */
 
 import groovy.transform.Field
@@ -48,8 +49,8 @@ definition(
     name: "Multi Sensor Plus Child",
     namespace: "Gassgs",
     author: "Gary G",
-    description: "Average: Temperature, Humidity, and Illuminance"+
-    "-  Group: Locks, Contact, Motion, Water, Presence, and Sound Sensors"+
+    description: "Average: Temperature, Humidity,Illuminance, and Carbon Dioxide"+
+    " -  Group: Locks, Contact, Motion, Water, Presence, Sound, CO, and Smoke Sensors"+
     "-  Plus  a Virtual Switch  -  All  In One Device",
     parent: "Gassgs:Multi Sensor Plus",
     category: "Utilities",
@@ -71,8 +72,8 @@ preferences{
      paragraph(
          title: "Multi Sensor Plus Child",
         required: false,
-    	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, and Illuminance"+
-         "- <b>Group</b>: Locks, Contact, Motion, Water, Presence, CO, Smoke, and Sound Sensors"
+    	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, Illuminance and Carbon Dioxide "+
+         " - <b>Group</b>: Locks, Contact, Motion, Water, Presence, Carbon Monoxide, Smoke, and Sound Sensors"
      	)
         paragraph(
          title: "Multi Sensor Plus Child1",
@@ -122,6 +123,18 @@ preferences{
             )
         if(illuminanceSensors){
             paragraph "Current average is ${averageIlluminance()}"
+        }
+   }
+    section{
+        input(
+            name:"co2Sensors",
+            type:"capability.carbonDioxideMeasurement",
+            title: "<b>Carbon Dioxide</b> Sensors to average (optional)",
+            multiple: true,
+            submitOnChange: true
+            )
+        if(co2Sensors){
+            paragraph "Current average is ${averageCarbonDioxide()}"
         }
    }
     section{
@@ -257,6 +270,7 @@ def initialize(){
     subscribe(settings.temperatureSensors, "temperature", temperatureSensorsHandler)
 	subscribe(settings.humiditySensors, "humidity",humiditySensorsHandler)
     subscribe(settings.illuminanceSensors,"illuminance",illuminanceSensorsHandler)
+    subscribe(settings.co2Sensors,"carbonDioxide",co2SensorsHandler)
 	subscribe(settings.contactSensors, "contact", contactSensorsHandler)
     subscribe(settings.locks, "lock", lockHandler)
     subscribe(settings.waterSensors, "water", waterSensorHandler)
@@ -278,6 +292,9 @@ def loadValues(){
     }
     if (settings.illuminanceSensors){
         getLux()
+    }
+    if (settings.co2Sensors){
+        getCo2()
     }
     if (settings.contactSensors){
         getContacts()
@@ -352,6 +369,23 @@ def getLux(){
 	def avg = averageIlluminance()
     sendEvent(multiSensor,[name:"illuminance",value:"$avg"])
 	logInfo ("Current lux average is ${averageIlluminance()}")
+}
+
+def co2SensorsHandler(evt){
+    getCo2()
+}
+
+def averageCarbonDioxide(){
+	def total = 0
+    def n = settings.co2Sensors.size()
+	settings.co2Sensors.each {total += it.currentCarbonDioxide}
+	return (total /n).toDouble().round()
+}
+
+def getCo2(){
+	def avg = averageCarbonDioxide()
+    sendEvent(multiSensor,[name:"carbonDioxide",value:"$avg"])
+	logInfo ("Current carbon dioxide average is ${averageCarbonDioxide()}")
 }
 
 def contactSensorsHandler(evt){
