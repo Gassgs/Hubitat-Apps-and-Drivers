@@ -1,7 +1,7 @@
 /**
  *  Virtual Multi Sensor Plus
  *
- *  Average: Temperature, Humidity, and Illuminance   -  Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  - Plus  a Virtual Switch  -  All  In One Device
+ *  Average: Temperature, Humidity,Illuminance, and Carbon Dioxide  -  Group:  Locks, Contact, Motion, Water, Presence, Sound, and Smoke Sensors  - Plus  a Virtual Switch  -  All  In One Device
  *
  *  Copyright 2021 Gassgs/ Gary Gassmann
  *
@@ -23,6 +23,7 @@
  *  V2.2.0  7-05-2021       added auto off options, toggle, and status update method redo.
  *  V2.3.0  11-17-2023      added waterLeak attribute for google home app
  *  V2.4.0  11-17-2023      added CO and Smoke capabilities w/ non standard values for google home community app
+ *  V2.5.0  02-25-2024      added capability Carbon Dioxide Measurement
  * 
  */
 
@@ -41,6 +42,7 @@ metadata {
         capability "IlluminanceMeasurement"
         capability "CarbonMonoxideDetector"
         capability "SmokeDetector"
+        capability "CarbonDioxideMeasurement"
         
         command "toggle"
 
