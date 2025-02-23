@@ -30,7 +30,9 @@
  *  V1.8.0  02-19-2024       Added Device Health Check (testing)
  *  V1.9.0  02-20-2024       Fix for existance time = 1 and changed attribute to number
  *  V2.0.0  02-22-2024       Changed health check method for lower hub resource usage, code cleanup/ bug fixes
- *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255.
+ *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255
+ *  V2.0.2  02-22-2025       Added option to disable LED for firmware version 1.0.6, added option to disable lux reports
+
  */
 
 def driverVer() { return "2.0" }
@@ -52,7 +54,7 @@ metadata
 		command "setStaticSensitivity", [[name:"Set Static Sensitivity", type: "ENUM",description: "Static Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
 		command "setDetectionDistance", [[name:"Set Detection Distance", type: "ENUM",description: "Detection Distance in Meters", constraints: [1.5,2.25,3.0,3.75,4.5,5.25,6.0],defaultValue: 6.0]]
 		command "setFadeTime", [[name:"Set Fade Time", type: "NUMBER",description: "Fade Timeout in Seconds", constraints: "0..10000",defaultValue: "10"]]
-		
+        
 		attribute "distance", "number"
 		attribute "motionSensitivity", "string"
 		attribute "staticSensitivity", "string"
@@ -60,14 +62,19 @@ metadata
 		attribute "existanceTime", "number"
 		attribute "fadeTime", "number"
 		attribute "healthStatus", "string"
+        attribute "led", "string"
 
 	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
 
 	preferences{
 		section{
-			input "luxThreshold", "number", title: "<b>Lux threshold</b>", description: "<i>Range (0..999)</i>", range: "0..999", defaultValue: 5
-			input "enableDistance", "bool", title: "<b>Enable Distance Reporting?</b>", defaultValue: false, required: false, multiple: false
+            input "disableLux", "bool", title: "<b>Disable Lux Reporting?</b>", defaultValue: false, required: false, multiple: false
+            if(!disableLux){
+                input "luxThreshold", "number", title: "<b>Lux Threshold</b>", description: "<i>Range (0..999)</i>", range: "0..999", defaultValue: 5
+            }
+            input "ledDisabled", "bool", title: "<b>Disable Led Indicator?</b>", description: "<i>Firmware v1.0.6 Required</i>", defaultValue: false, required: false, multiple: false
+            input "enableDistance", "bool", title: "<b>Enable Distance Reporting?</b>", defaultValue: false, required: false, multiple: false
 			input "healthCheckEnabled", "bool", title: "<b>Enable Health Check?</b>", defaultValue: false, required: false
 			if(healthCheckEnabled){
 				def pingRate = [:]
@@ -128,12 +135,20 @@ def parse(String description) {
             return
         }
         if (descMap.cluster == "0400" && descMap.attrId == "0000") {
-            def rawLux = Integer.parseInt(descMap.value,16)
-            illuminanceEvent( rawLux )
+            if (!disableLux){
+                def rawLux = Integer.parseInt(descMap.value,16)
+                illuminanceEvent( rawLux )
+            }
+            else{
+                logDebug "ignored illuminance event, Lux reporting is disabled"
+            }
         }
         else if (descMap.cluster  == "E002" && descMap.attrId == "E00A") {
             if (enableDistance){
                 processDistance( descMap )
+            }
+            else{
+                logDebug "ignored distance event, distance reporting is disabled"
             }
         }
         else if (descMap.cluster  == "E002" && descMap.attrId == "E001") {
@@ -147,6 +162,9 @@ def parse(String description) {
         }
         else if (descMap.cluster  == "E002" && descMap.attrId == "E00B") {
             distanceLimit( descMap )
+        }
+        else if (descMap.cluster  == "E002" && descMap.attrId == "E009") {
+           ledStatus( descMap )
         }
     }
     else if (description?.startsWith('catchall')){
@@ -291,6 +309,13 @@ def fadeTime( descMap ) {
     sendEvent(name : "fadeTime", value : "$value")
 }
 
+def ledStatus( descMap ) {
+    def value = zigbee.convertHexToInt(descMap.value)
+    if (value == 0){status = "disabled"}else{status = "enabled"}
+    logInfo "$device.label LED STATUS - $status"
+    sendEvent(name : "led", value : "$status")
+}
+
 def updatePreferences(){
     ArrayList<String> cmds = []
     
@@ -311,6 +336,14 @@ def tuyaBlackMagic() {
     cmds += zigbee.readAttribute(0x0000, [0x0004, 0x000, 0x0001, 0x0005, 0x0007, 0xfffe], [:], delay=200)
     cmds += zigbee.writeAttribute(0x0000, 0xffde, 0x20, 0x13, [:], delay=200)
     return  cmds
+}
+
+def setLedStatus(data) {
+    if (ledDisabled){data = 0}else{data = 1}
+    def value = data as int
+    if (value == 0){status = "disabled"}else{status = "enabled"}
+    logDebug "$device.label setting ledStatus to $status"
+    return zigbee.writeAttribute(0xE002, 0xE009, 0x20, value as int, [:], delay=200)
 }
 
 def setDetectionDistance( data ) {
@@ -411,6 +444,9 @@ def initialize(){
     if (!enableDistance){
         device.deleteCurrentState('distance')
     }
+    if (disableLux){
+        device.deleteCurrentState('illuminance')
+    }
     if (healthCheckEnabled){
         
         switch(healthCheckInterval) {
@@ -445,7 +481,8 @@ def initialize(){
         device.deleteCurrentState('healthStatus')
         unschedule(healthCheck)
         state.healthCheck = false
-    }   
+    }
+    runIn(3,setLedStatus)
 }
 
 def refresh() {
