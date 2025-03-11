@@ -1,5 +1,5 @@
 /*
- *  Third Reality Motion Sensor  model -3RMS16BZ
+ *  Third Reality Motion Sensor  model - 3RMS16BZ
  *
  *
  *  Copyright 2018 SmartThings / Modified by Gassgs for Third Reality Sensor
@@ -19,20 +19,21 @@
  *  Change History:
  *
  *  V1.0.0  07-10-2024      First run, battery and motion reporting.
- *  V1.1.0  07-12-2024      Added battery change date data.
- *  V1.2.0  07-15-2024      Added timeout and Led brightness settings, compatible with latest fiirmware Ver 43 (1233-D3A1-00000043)
+ *  V1.1.0  07-12-2024      Added battery change date data.(removed)
+ *  V1.2.0  07-15-2024      Added timeout and Led brightness settings, compatible with latest firmware Ver 43 (1233-D3A1-00000043)
  *  V1.3.0  07-22-2024      Cleanup and bug fixes
  *  V1.4.0  07-27-2024      Quick fix for battery reporting -200
+ *  V1.5.0  02-26-2024      Name Change since R1 sensor release
  */
 
-def driverVer() { return "1.4" }
+def driverVer() { return "1.5" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 import groovy.transform.Field
 
 metadata
 {
-	definition(name: "ThirdReality Motion Sensor", namespace: "Gassgs", author: "GaryG")
+	definition(name: "ThirdReality PIR Motion Sensor", namespace: "Gassgs", author: "GaryG")
 	{
 		capability "Motion Sensor"
 		capability "Configuration"
@@ -47,7 +48,8 @@ metadata
         attribute "blueLed","string"
         attribute "redLed","string"
 
-        fingerprint inClusters:"0000,0001,0500", outClusters:"0019", manufacturer:"Third Reality, Inc",  model:"3RMS16BZ", deviceJoinName: "Third Reality Motion Sensor", controllerType: "ZGB"}
+        fingerprint inClusters:"0000,0001,0500", outClusters:"0019", manufacturer:"Third Reality, Inc",  model:"3RMS16BZ", deviceJoinName: "Third Reality Motion Sensor", controllerType: "ZGB"
+}
     
 	preferences{
 		section{
@@ -181,7 +183,6 @@ def batteryEvent(rawValue) {
 	def pct = (((rawValue - minVolts) / (maxVolts - minVolts)) * 100).toInteger()
 	def batteryValue = Math.min(100, pct)
 	if (batteryValue > 0){
-        log.trace "WTF"
 		sendEvent("name": "battery", "value": batteryValue, "unit": "%", "displayed": true, isStateChange: true)
 		logInfo "$device.displayName battery changed to $batteryValue%"
 		logdebug "$device.displayName voltage changed to $batteryVolts volts"
