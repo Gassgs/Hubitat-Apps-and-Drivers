@@ -23,7 +23,7 @@
  *  V1.2.0  07-15-2024      Added timeout and Led brightness settings, compatible with latest firmware Ver 43 (1233-D3A1-00000043)
  *  V1.3.0  07-22-2024      Cleanup and bug fixes
  *  V1.4.0  07-27-2024      Quick fix for battery reporting -200
- *  V1.5.0  02-26-2024      Support For new R1 sensor, removed Led commands N/A
+ *  V1.5.0  03-05-2024      Support For new R1 sensor, removed Led commands N/A
  */
 
 def driverVer() { return "1.5" }
