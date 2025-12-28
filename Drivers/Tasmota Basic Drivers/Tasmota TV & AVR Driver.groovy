@@ -24,22 +24,25 @@
  *    V1.4  06-25-2022   -       added tasmota IR into driver, no need for an app anymore
  *    V1.5  06-26-2022   -       Added version for AVR and TV control in one driver
  *    V1.6  06-28-2022   -       Removed "offline, status" moved to wifi atribute and general cleanup and improvments
+ *    V1.7  03-09-2023   -       Improved info logging on refresh
+ *    V1.8.0  05-29-2025         Added networkStatus attibute and changed "wifi" to "rssi" w/ capability 'Signal Strength'
  *  
  */
 
-def driverVer() { return "1.6" }
+def driverVer() { return "1.8" }
 
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
 
 metadata {
-    definition (name:"Tasmota TV & AVR Driver", namespace: "Gassgs", author: "Gary G") {
+    definition (name:"Tasmota TV & AVR", namespace: "Gassgs", author: "Gary G") {
         capability "Actuator"
         capability "AudioVolume"
         capability "Switch"
         capability "Sensor"
         capability "MotionSensor"
         capability "Refresh"
+        capability "Signal Strength"
 
         command"hdmi1"
         command"hdmi2"
@@ -47,7 +50,7 @@ metadata {
         command "toggle"
         
         attribute"outlet","string"
-        attribute"wifi","string"
+        attribute "networkStatus","string"
     }
    
 }
@@ -235,6 +238,7 @@ def relayOff() {
 }
 
 def refresh() {
+    deviceStatus = device.currentValue("switch").toUpperCase()
     if(settings.deviceIp){
         if (logEnable) log.debug "Refreshing Device Status - [${settings.deviceIp}]"
         try {
@@ -246,9 +250,10 @@ def refresh() {
                    status = json.StatusSTS.POWER as String
                    signal = json.StatusSTS.Wifi.Signal as String
                    if (logEnable) log.debug "Wifi signal strength $signal db"
-                   sendEvent(name:"wifi",value:"${signal}db")
+                   sendEvent(name:"rssi",value:"${signal}")
+                   sendEvent(name:"networkStatus",value:"online")
                    if (logEnable) log.debug "$device.label $deviceIp - $status"
-                   if (logInfo) log.info "$device.label Plug is - $status"
+                   if (logInfo) log.info "Relay is $status - $device.label is $deviceStatus"
                    }   
                    if (status == "ON"){
                        sendEvent(name:"outlet",value:"on")
@@ -257,7 +262,8 @@ def refresh() {
                    }
            }
         }catch (Exception e) {
-            sendEvent(name:"wifi",value:"offline")
+            sendEvent(name:"networkStatus",value:"offline")
+            if (logInfo) log.error "$device.label Unable to connect, device is <b>OFFLINE</b>"
             log.warn "Call to on failed: ${e.message}"
         }
     }
@@ -425,12 +431,14 @@ def sendIr(cmd){
            def json = (resp.data)
                if (logEnable) log.debug "${json}"
                if (json.IRSend == "Done"){
+                   sendEvent(name:"networkStatus",value:"online")
                    if (logEnable) log.debug "Command Success response from Device"
                }else{
                    if (logEnable) log.debug "Command -ERROR- response from Device- $json"
                }
            }
         }catch (Exception e) {
+            sendEvent(name:"networkStatus",value:"offline")
             log.warn "Call to on failed: ${e.message}"
         }
     }
