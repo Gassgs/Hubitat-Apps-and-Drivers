@@ -18,7 +18,7 @@
  *
  *  Change History:
  *
- *  V1.0.0  12-07-2025       Moddified to add motion options
+ *  V1.0.0  12-07-2025       Moddified for gen5 ecolink and to add motion options + added tasmota relay control to Zwave Contact sensor driver
  */
 
 def driverVer() { return "1.0" }
