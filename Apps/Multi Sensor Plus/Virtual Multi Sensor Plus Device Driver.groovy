@@ -1,7 +1,7 @@
 /**
  *  Virtual Multi Sensor Plus
  *
- *  Average: Temperature, Humidity,Illuminance, and Carbon Dioxide  -  Group:  Locks, Contact, Motion, Water, Presence, Sound, and Smoke Sensors  - Plus  a Virtual Switch  -  All  In One Device
+ *  Average: Temperature, Humidity,Illuminance,AQI, and Carbon Dioxide  -  Group:  Locks, Contact, Motion, Water, Presence, Sound, and Smoke Sensors  - Plus  a Virtual Switch  -  All  In One Device
  *
  *  Copyright 2021 Gassgs/ Gary Gassmann
  *
@@ -24,12 +24,13 @@
  *  V2.3.0  11-17-2023      added waterLeak attribute for google home app
  *  V2.4.0  11-17-2023      added CO and Smoke capabilities w/ non standard values for google home community app
  *  V2.5.0  02-25-2024      added capability Carbon Dioxide Measurement
+ *  V2.6.0  04-25-2026      added capability AQI/Air Quality Index, value and description
  * 
  */
 
 metadata {
     definition (name: "Virtual Multi Sensor Plus", namespace: "Gassgs", author: "Gary G", importUrl:"https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Apps/Multi%20Sensor%20Plus/Virtual%20Multi%20Sensor%20Plus%20Device%20Driver.groovy"){
-        capability"Actuator"
+        capability "Actuator"
         capability "Switch"
         capability "Sensor"
         capability "ContactSensor"
@@ -43,6 +44,7 @@ metadata {
         capability "CarbonMonoxideDetector"
         capability "SmokeDetector"
         capability "CarbonDioxideMeasurement"
+        capability "Air Quality"
         
         command "toggle"
 
@@ -57,6 +59,7 @@ metadata {
         attribute"waterLeak","string"
         attribute"CarbonMonoxide_Sensors","string"
         attribute"Smoke_Sensors","string"
+        attribute"airQuality","string"
     }
 }
     preferences {
