@@ -2,7 +2,7 @@
  //**********Multi Sensor Plus********
  *
  * Average: Temperature, Humidity, Illuminance, AQI, and Carbon Dioxide   - 
- * Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  -
+ * Group:  Locks, Contact, Motion, Water, Presence, Smoke, Carbon Monoxide and Sound Sensors  -
  * Plus  a Virtual Switch  -  All  In One Device
  *
  *
@@ -23,7 +23,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 1/26/2021
+ *  Last Update: 4/26/2026
  *
  *  Changes:
  *
@@ -31,6 +31,7 @@
  *  V2.0.0  -       1-11-2021       Improvements
  *  V2.1.0  -       1-26-2021       Code Cleanup
  *  V2.2.0  -       7-05-2021       Added import url
+ *  V2.3.0  -       4-25-2026       Added new sections
  *
  */
 
@@ -40,8 +41,8 @@ definition(
     name: "Multi Sensor Plus",
     namespace: "Gassgs",
     author: "Gary G",
-    description: "Average: Temperature, Humidity, and Illuminance  -"+
-    "Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors   -"+
+    description: "Average: Temperature, Humidity, Illuminance, AQI, and Carbon Dioxide  -"+
+    "Group:  Locks, Contact, Motion, Water, Presence, Smoke, Carbon Monoxide and Sound Sensors   -"+
     "Plus  a Virtual Switch  -  All  In One Device",
     category: "",
     importUrl: "https://raw.githubusercontent.com/Gassgs/Hubitat-Apps-and-Drivers/master/Apps/Multi%20Sensor%20Plus/Multi%20Sensor%20Plus%20Parent%20app.groovy",
