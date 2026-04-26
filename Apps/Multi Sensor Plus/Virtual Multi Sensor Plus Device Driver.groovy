@@ -1,7 +1,7 @@
 /**
  *  Virtual Multi Sensor Plus
  *
- *  Average: Temperature, Humidity,Illuminance,AQI, and Carbon Dioxide  -  Group:  Locks, Contact, Motion, Water, Presence, Sound, and Smoke Sensors  - Plus  a Virtual Switch  -  All  In One Device
+ *  Average: Temperature, Humidity, Illuminance, AQI, and Carbon Dioxide  -  Group:  Locks, Contact, Motion, Water, Presence, Smoke, Carbon Monoxide and Sound Sensors  - Plus  a Virtual Switch  -  All  In One Device
  *
  *  Copyright 2021 Gassgs/ Gary Gassmann
  *
