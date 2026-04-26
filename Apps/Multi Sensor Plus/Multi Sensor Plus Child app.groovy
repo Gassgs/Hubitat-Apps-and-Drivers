@@ -1,7 +1,7 @@
 /**
  *  ****************  Multi Sensor Plus  Child App  ****************
  *
- *   Average: Temperature, Humidity, and Illuminance   -
+ *   Average: Temperature, Humidity, Illuminance, AQI, and Carbon Dioxide   -
  *   Group:  Locks, Contact, Motion, Water, Presence, Smoke, Carbon Monoxide and Sound Sensors  -
  *   Plus  a Virtual Switch  -  All  In One Device
  *
@@ -23,7 +23,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 1/09/2021
+ *  Last Update: 4/26/2026
  *
  *  Changes:
  *
@@ -41,6 +41,7 @@
  *  V2.5.0 -    11-17-2023      Added waterLeak attribute for google home.
  *  V2.6.0 -    11-19-2023      Added smoke and CO attribute for google home community app compatibilty.
  *  V2.7.0 -    02-25-2024      added capability Carbon Dioxide Measurement
+ *  V2.8.0 -    04-25-2026      added capability AQI/Air Quality Index, value and description
  */
 
 import groovy.transform.Field
@@ -49,8 +50,8 @@ definition(
     name: "Multi Sensor Plus Child",
     namespace: "Gassgs",
     author: "Gary G",
-    description: "Average: Temperature, Humidity,Illuminance, and Carbon Dioxide"+
-    " -  Group: Locks, Contact, Motion, Water, Presence, Sound, CO, and Smoke Sensors"+
+    description: "Average: Temperature, Humidity, Illuminance, AQI, and Carbon Dioxide "+
+    " -  Group: Locks, Contact, Motion, Water, Presence, Smoke, Carbon Monoxide and Sound Sensors"+
     "-  Plus  a Virtual Switch  -  All  In One Device",
     parent: "Gassgs:Multi Sensor Plus",
     category: "Utilities",
@@ -72,7 +73,7 @@ preferences{
      paragraph(
          title: "Multi Sensor Plus Child",
         required: false,
-    	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, Illuminance and Carbon Dioxide "+
+    	"<div style='text-align:center'><b>Average</b>: Temperature, Humidity, Illuminance, AQI, and Carbon Dioxide  "+
          " - <b>Group</b>: Locks, Contact, Motion, Water, Presence, Carbon Monoxide, Smoke, and Sound Sensors"
      	)
         paragraph(
@@ -123,6 +124,18 @@ preferences{
             )
         if(illuminanceSensors){
             paragraph "Current average is ${averageIlluminance()}"
+        }
+   }
+    section{
+        input(
+            name:"aqiSensors",
+            type:"capability.airQuality",
+            title: "<b>AQI</b> Sensors to average (optional)",
+            multiple: true,
+            submitOnChange: true
+            )
+        if(aqiSensors){
+            paragraph "Current average is ${averageAqi()}aqi"
         }
    }
     section{
@@ -270,6 +283,7 @@ def initialize(){
     subscribe(settings.temperatureSensors, "temperature", temperatureSensorsHandler)
 	subscribe(settings.humiditySensors, "humidity",humiditySensorsHandler)
     subscribe(settings.illuminanceSensors,"illuminance",illuminanceSensorsHandler)
+    subscribe(settings.aqiSensors,"airQualityIndex",aqiSensorsHandler)
     subscribe(settings.co2Sensors,"carbonDioxide",co2SensorsHandler)
 	subscribe(settings.contactSensors, "contact", contactSensorsHandler)
     subscribe(settings.locks, "lock", lockHandler)
@@ -292,6 +306,9 @@ def loadValues(){
     }
     if (settings.illuminanceSensors){
         getLux()
+    }
+    if (settings.aqiSensors){
+        getAqi()
     }
     if (settings.co2Sensors){
         getCo2()
@@ -370,6 +387,41 @@ def getLux(){
     sendEvent(multiSensor,[name:"illuminance",value:"$avg"])
 	logInfo ("Current lux average is ${averageIlluminance()}")
 }
+
+def aqiSensorsHandler(evt){
+    getAqi()
+}
+
+def averageAqi(){
+	def total = 0
+    def n = settings.aqiSensors.size()
+	settings.aqiSensors.each {total += it.currentAirQualityIndex}
+	return (total /n).toDouble().round()
+}
+
+def getAqi(){
+	def avg = averageAqi()
+    sendEvent(multiSensor,[name:"airQualityIndex",value:"$avg"])
+    if      (avg <  51) { status = "good"}
+    else if (avg < 101) { status = "moderate"}
+    else if (avg < 151) { status = "unhealthy for sensitive groups"}
+    else if (avg < 201) { status = "unhealthy"}
+    else if (avg < 301) { status = "very unhealthy"}
+    else if (avg < 401) { status = "hazardous"}
+    else {                status = "hazardous"}
+    sendEvent(multiSensor,[name:"airQuality",value:"$status"])
+    logInfo ("Current AQI average is ${averageAqi()}aqi ($status)")
+}
+/*  Values for AQI description, colors not needed
+
+        if      (aqi <  51) { danger = "good";                           color = "7e0023"; }
+        else if (aqi < 101) { danger = "moderate";                       color = "fff300"; }
+        else if (aqi < 151) { danger = "unhealthy for sensitive groups"; color = "f18b00"; }
+        else if (aqi < 201) { danger = "unhealthy";                      color = "e53210"; }
+        else if (aqi < 301) { danger = "very unhealthy";                 color = "b567a4"; }
+        else if (aqi < 401) { danger = "hazardous";                      color = "7e0023"; }
+        else {                danger = "hazardous";                      color = "7e0023"; }
+*/
 
 def co2SensorsHandler(evt){
     getCo2()
