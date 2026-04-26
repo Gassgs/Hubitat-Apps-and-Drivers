@@ -1,7 +1,7 @@
  /**
  //**********Multi Sensor Plus********
  *
- * Average: Temperature, Humidity, and Illuminance   - 
+ * Average: Temperature, Humidity, Illuminance, AQI, and Carbon Dioxide   - 
  * Group:  Locks, Contact, Motion, Water, Presence, and Sound Sensors  -
  * Plus  a Virtual Switch  -  All  In One Device
  *
