@@ -32,12 +32,19 @@
  *  V2.0.0  02-22-2024       Changed health check method for lower hub resource usage, code cleanup/ bug fixes
  *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255
  *  V2.0.2  02-22-2025       Added option to disable LED for firmware version 1.0.6, added option to disable lux reports
+ *  V2.1.0  10-29-2026       Added silence detection (reporting attribute), rejoin network command and optional automatic rejoin
 
  */
 
 def driverVer() { return "2.0" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
+import groovy.transform.Field
+import java.util.concurrent.ConcurrentHashMap
+
+// Time of the last report per device, kept in memory to avoid a state write on every report
+@Field static final Map<Long, Long> lastReportTime = new ConcurrentHashMap<Long, Long>()
+@Field static final long AUTO_REJOIN_MIN_INTERVAL = 6 * 60 * 60 * 1000L
 
 metadata
 {
@@ -54,7 +61,8 @@ metadata
 		command "setStaticSensitivity", [[name:"Set Static Sensitivity", type: "ENUM",description: "Static Detection Sensitivity", constraints: ["low","medium-low","medium","medium-high","high"],defaultValue: "high"]]
 		command "setDetectionDistance", [[name:"Set Detection Distance", type: "ENUM",description: "Detection Distance in Meters", constraints: [1.5,2.25,3.0,3.75,4.5,5.25,6.0],defaultValue: 6.0]]
 		command "setFadeTime", [[name:"Set Fade Time", type: "NUMBER",description: "Fade Timeout in Seconds", constraints: "0..10000",defaultValue: "10"]]
-        
+		command "rejoinNetwork"
+
 		attribute "distance", "number"
 		attribute "motionSensitivity", "string"
 		attribute "staticSensitivity", "string"
@@ -63,6 +71,7 @@ metadata
 		attribute "fadeTime", "number"
 		attribute "healthStatus", "string"
         attribute "led", "string"
+        attribute "reporting", "enum", ["active", "silent"]
 
 	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
@@ -84,6 +93,16 @@ metadata
 				pingRate << ["30 min" : "30 minutes"]
 				pingRate << ["60 min" : "60 minutes"]
 				input("healthCheckInterval", "enum", title: "<b>Health Check Interval</b>",options: pingRate, defaultValue: "30 min", required: true )
+			}
+			input "silenceCheckEnabled", "bool", title: "<b>Enable Silence Detection?</b>", description: "<i>Sets reporting to silent when the sensor sends no reports</i>", defaultValue: false, required: false
+			if(silenceCheckEnabled){
+				def silenceTimes = [:]
+				silenceTimes << ["30 min" : "30 minutes"]
+				silenceTimes << ["60 min" : "60 minutes"]
+				silenceTimes << ["2 hours" : "2 hours"]
+				silenceTimes << ["4 hours" : "4 hours"]
+				input("silenceTimeout", "enum", title: "<b>Silent After</b>", options: silenceTimes, defaultValue: "60 min", required: true )
+				input "autoRejoin", "bool", title: "<b>Rejoin Network When Silent?</b>", description: "<i>At most every 6 hours. If the sensor does not rejoin, it must be paired again</i>", defaultValue: false, required: false
 			}
 			input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "<b>Enable debug logging?</b>", defaultValue: false, required: false, multiple: false
@@ -122,6 +141,10 @@ Map parseDescriptionAsMap( String description )
 def parse(String description) {
     Map descMap = [:]
     logDebug "parse: zone status: $description"
+    // Only reports sent by the sensor count, not replies to commands from the hub
+    if (description?.startsWith('zone status') || description?.contains('command: 0A')){
+        reportReceived()
+    }
     if (description?.startsWith('zone status')){
         logDebug "parse: zone status: $description"
         parseIasMessage(description)
@@ -206,6 +229,51 @@ def healthPing() {
 def healthExpired() {
 	sendEvent(name: "healthStatus", value:  "offline")
 	logError "$device.label - Offline"
+}
+
+// The sensor can stop reporting while it stays on the network and still answers commands.
+// It sends reports on its own every few minutes when it works, so a long silence means it is stuck.
+def reportReceived() {
+    lastReportTime[device.id as Long] = now()
+    if (silenceCheckEnabled && device.currentValue("reporting") != "active"){
+        sendEvent(name: "reporting", value: "active")
+        logInfo "$device.label Reporting"
+    }
+}
+
+def checkSilence() {
+    if (!silenceCheckEnabled) return
+    Long last = lastReportTime[device.id as Long]
+    if (last == null){
+        // No report seen since the hub started or the driver was saved
+        lastReportTime[device.id as Long] = now()
+        return
+    }
+    if (now() - last < silenceTimeoutMillis()) return
+    if (device.currentValue("reporting") != "silent"){
+        sendEvent(name: "reporting", value: "silent")
+        logWarn "$device.label - No reports for ${silenceTimeout}"
+    }
+    if (autoRejoin && now() - (state.lastAutoRejoin ?: 0) > AUTO_REJOIN_MIN_INTERVAL){
+        state.lastAutoRejoin = now()
+        rejoinNetwork()
+    }
+}
+
+long silenceTimeoutMillis() {
+    switch(silenceTimeout) {
+        case "30 min" : return 30 * 60 * 1000L
+        case "2 hours" : return 2 * 60 * 60 * 1000L
+        case "4 hours" : return 4 * 60 * 60 * 1000L
+        default : return 60 * 60 * 1000L
+    }
+}
+
+// ZDO Mgmt_Leave_req with the rejoin flag: the sensor leaves and rejoins at once, keeping its pairing
+def rejoinNetwork() {
+    logWarn "$device.label - Asking the sensor to leave and rejoin the network"
+    String ieee = device.zigbeeId.collect { it }.collate(2).reverse().collect { it.join() }.join(" ")
+    sendZigbeeCommands(["he raw 0x${device.deviceNetworkId} 0 0 0x0034 {00 ${ieee} 80} {0x0000}"])
 }
 
 private Map parseIasMessage(String description) {
@@ -481,6 +549,13 @@ def initialize(){
         device.deleteCurrentState('healthStatus')
         unschedule(healthCheck)
         state.healthCheck = false
+    }
+    if (silenceCheckEnabled){
+        runEvery5Minutes(checkSilence)
+    }
+    else{
+        unschedule(checkSilence)
+        device.deleteCurrentState('reporting')
     }
     runIn(3,setLedStatus)
 }
