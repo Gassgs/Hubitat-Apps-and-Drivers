@@ -44,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 // Time of the last report per device, kept in memory to avoid a state write on every report
 @Field static final Map<Long, Long> lastReportTime = new ConcurrentHashMap<Long, Long>()
-@Field static final long AUTO_REJOIN_MIN_INTERVAL = 6 * 60 * 60 * 1000L
+@Field static final long REJOIN_RECOVERY_TIME = 10 * 60 * 1000L
 
 metadata
 {
@@ -94,15 +94,17 @@ metadata
 				pingRate << ["60 min" : "60 minutes"]
 				input("healthCheckInterval", "enum", title: "<b>Health Check Interval</b>",options: pingRate, defaultValue: "30 min", required: true )
 			}
-			input "silenceCheckEnabled", "bool", title: "<b>Enable Silence Detection?</b>", description: "<i>Sets reporting to silent when the sensor sends no reports</i>", defaultValue: false, required: false
-			if(silenceCheckEnabled){
-				def silenceTimes = [:]
-				silenceTimes << ["30 min" : "30 minutes"]
-				silenceTimes << ["60 min" : "60 minutes"]
-				silenceTimes << ["2 hours" : "2 hours"]
-				silenceTimes << ["4 hours" : "4 hours"]
-				input("silenceTimeout", "enum", title: "<b>Silent After</b>", options: silenceTimes, defaultValue: "60 min", required: true )
-				input "autoRejoin", "bool", title: "<b>Rejoin Network When Silent?</b>", description: "<i>At most every 6 hours. If the sensor does not rejoin, it must be paired again</i>", defaultValue: false, required: false
+			def silenceTimes = [:]
+			silenceTimes << ["Off" : "Off"]
+			silenceTimes << ["10 min" : "10 minutes"]
+			silenceTimes << ["15 min" : "15 minutes"]
+			silenceTimes << ["30 min" : "30 minutes"]
+			silenceTimes << ["60 min" : "60 minutes"]
+			silenceTimes << ["2 hours" : "2 hours"]
+			silenceTimes << ["4 hours" : "4 hours"]
+			input("silenceTimeout", "enum", title: "<b>Silent After</b>", description: "<i>Sets reporting to silent when the sensor sends no reports for this long</i>", options: silenceTimes, defaultValue: "30 min", required: true )
+			if(silenceTimeout != "Off"){
+				input "autoRejoin", "bool", title: "<b>Rejoin Network When Silent?</b>", description: "<i>Once each time the sensor goes silent. If the sensor does not rejoin, it must be paired again</i>", defaultValue: false, required: false
 			}
 			input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
 			input "enableDebug", "bool", title: "<b>Enable debug logging?</b>", defaultValue: false, required: false, multiple: false
@@ -235,14 +237,20 @@ def healthExpired() {
 // It sends reports on its own every few minutes when it works, so a long silence means it is stuck.
 def reportReceived() {
     lastReportTime[device.id as Long] = now()
-    if (silenceCheckEnabled && device.currentValue("reporting") != "active"){
+    if (!silenceEnabled()) return
+    String reporting = device.currentValue("reporting")
+    if (reporting != "active"){
+        // First report after a code update that left preferences unsaved: start the checks here
+        if (reporting == null) runEvery5Minutes(checkSilence)
         sendEvent(name: "reporting", value: "active")
         logInfo "$device.label Reporting"
+        state.remove("autoRejoinTime")
+        state.remove("autoRejoinFailed")
     }
 }
 
 def checkSilence() {
-    if (!silenceCheckEnabled) return
+    if (!silenceEnabled()) return
     Long last = lastReportTime[device.id as Long]
     if (last == null){
         // No report seen since the hub started or the driver was saved
@@ -252,20 +260,36 @@ def checkSilence() {
     if (now() - last < silenceTimeoutMillis()) return
     if (device.currentValue("reporting") != "silent"){
         sendEvent(name: "reporting", value: "silent")
-        logWarn "$device.label - No reports for ${silenceTimeout}"
+        logWarn "$device.label - No reports for ${silenceSetting()}"
     }
-    if (autoRejoin && now() - (state.lastAutoRejoin ?: 0) > AUTO_REJOIN_MIN_INTERVAL){
-        state.lastAutoRejoin = now()
+    if (!autoRejoin) return
+    // One rejoin per silence: a rejoin that does not bring reports back is not repeated
+    if (state.autoRejoinTime == null){
+        state.autoRejoinTime = now()
         rejoinNetwork()
+    }
+    else if (!state.autoRejoinFailed && now() - (state.autoRejoinTime as long) > REJOIN_RECOVERY_TIME){
+        state.autoRejoinFailed = true
+        logError "$device.label - Still silent after rejoining the network; power cycle the sensor"
     }
 }
 
+String silenceSetting() {
+    return silenceTimeout ?: "30 min"
+}
+
+boolean silenceEnabled() {
+    return silenceSetting() != "Off"
+}
+
 long silenceTimeoutMillis() {
-    switch(silenceTimeout) {
-        case "30 min" : return 30 * 60 * 1000L
+    switch(silenceSetting()) {
+        case "10 min" : return 10 * 60 * 1000L
+        case "15 min" : return 15 * 60 * 1000L
+        case "60 min" : return 60 * 60 * 1000L
         case "2 hours" : return 2 * 60 * 60 * 1000L
         case "4 hours" : return 4 * 60 * 60 * 1000L
-        default : return 60 * 60 * 1000L
+        default : return 30 * 60 * 1000L
     }
 }
 
@@ -550,7 +574,7 @@ def initialize(){
         unschedule(healthCheck)
         state.healthCheck = false
     }
-    if (silenceCheckEnabled){
+    if (silenceEnabled()){
         runEvery5Minutes(checkSilence)
     }
     else{
