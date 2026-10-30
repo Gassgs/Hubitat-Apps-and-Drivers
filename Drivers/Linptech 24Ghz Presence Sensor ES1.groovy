@@ -32,7 +32,7 @@
  *  V2.0.0  02-22-2024       Changed health check method for lower hub resource usage, code cleanup/ bug fixes
  *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255
  *  V2.0.2  02-22-2025       Added option to disable LED for firmware version 1.0.6, added option to disable lux reports
- *  V2.1.0  10-29-2026       Added silence detection (reporting attribute), rejoin network command and optional automatic rejoin
+ *  V2.1.0  10-29-2026       Added silence detection (reportStatus attribute), rejoin network command and optional automatic rejoin
 
  */
 
@@ -71,7 +71,7 @@ metadata
 		attribute "fadeTime", "number"
 		attribute "healthStatus", "string"
         attribute "led", "string"
-        attribute "reporting", "enum", ["active", "silent"]
+        attribute "reportStatus", "enum", ["ok", "silent"]
 
 	fingerprint inClusters: "0000,0003,0004,0005,E002,4000,EF00,0500", outClusters: "0019,000A", manufacturer: "_TZ3218_awarhusb", model: "TS0225", deviceJoinName: "LINPTECH 24Ghz Human Presence Detector"
 	}
@@ -102,7 +102,7 @@ metadata
 			silenceTimes << ["60 min" : "60 minutes"]
 			silenceTimes << ["2 hours" : "2 hours"]
 			silenceTimes << ["4 hours" : "4 hours"]
-			input("silenceTimeout", "enum", title: "<b>Silent After</b>", description: "<i>Sets reporting to silent when the sensor sends no reports for this long</i>", options: silenceTimes, defaultValue: "30 min", required: true )
+			input("silenceTimeout", "enum", title: "<b>Silent After</b>", description: "<i>Sets reportStatus to silent when the sensor sends no reports for this long</i>", options: silenceTimes, defaultValue: "30 min", required: true )
 			if(silenceTimeout != "Off"){
 				input "autoRejoin", "bool", title: "<b>Rejoin Network When Silent?</b>", description: "<i>Once each time the sensor goes silent. If the sensor does not rejoin, it must be paired again</i>", defaultValue: false, required: false
 			}
@@ -238,12 +238,12 @@ def healthExpired() {
 def reportReceived() {
     lastReportTime[device.id as Long] = now()
     if (!silenceEnabled()) return
-    String reporting = device.currentValue("reporting")
-    if (reporting != "active"){
+    String reportStatus = device.currentValue("reportStatus")
+    if (reportStatus != "ok"){
         // First report after a code update that left preferences unsaved: start the checks here
-        if (reporting == null) runEvery5Minutes(checkSilence)
-        sendEvent(name: "reporting", value: "active")
-        logInfo "$device.label Reporting"
+        if (reportStatus == null) runEvery5Minutes(checkSilence)
+        sendEvent(name: "reportStatus", value: "ok")
+        logInfo "$device.label Reports resumed"
         state.remove("autoRejoinTime")
         state.remove("autoRejoinFailed")
     }
@@ -258,8 +258,8 @@ def checkSilence() {
         return
     }
     if (now() - last < silenceTimeoutMillis()) return
-    if (device.currentValue("reporting") != "silent"){
-        sendEvent(name: "reporting", value: "silent")
+    if (device.currentValue("reportStatus") != "silent"){
+        sendEvent(name: "reportStatus", value: "silent")
         logWarn "$device.label - No reports for ${silenceSetting()}"
     }
     if (!autoRejoin) return
@@ -579,7 +579,7 @@ def initialize(){
     }
     else{
         unschedule(checkSilence)
-        device.deleteCurrentState('reporting')
+        device.deleteCurrentState('reportStatus')
     }
     runIn(3,setLedStatus)
 }
