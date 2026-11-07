@@ -32,7 +32,7 @@
  *  V2.0.0  02-22-2024       Changed health check method for lower hub resource usage, code cleanup/ bug fixes
  *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255
  *  V2.0.2  02-22-2025       Added option to disable LED for firmware version 1.0.6, added option to disable lux reports
- *  V2.1.0  10-29-2026       Added silence detection (reportStatus attribute), rejoin network command and optional automatic rejoin
+ *  V2.1.0  10-29-2026       Added silence detection (reportStatus attribute), rejoin network command and optional automatic rejoin, sooner after a hub restart
 
  */
 
@@ -45,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap
 // Time of the last report per device, kept in memory to avoid a state write on every report
 @Field static final Map<Long, Long> lastReportTime = new ConcurrentHashMap<Long, Long>()
 @Field static final long REJOIN_RECOVERY_TIME = 10 * 60 * 1000L
+@Field static final int STARTUP_SILENCE_TIME = 5 * 60
 
 metadata
 {
@@ -54,6 +55,7 @@ metadata
 		capability "IlluminanceMeasurement"
 		capability "Actuator"
 		capability "Configuration"
+		capability "Initialize"
 		capability "Refresh"
 		capability "Sensor"
 		
@@ -258,9 +260,21 @@ def checkSilence() {
         return
     }
     if (now() - last < silenceTimeoutMillis()) return
+    silenceDetected(silenceSetting())
+}
+
+// A hub restart can freeze the sensor, so right after one a short silence is enough to rejoin
+def checkStartupSilence(Map data) {
+    if (!silenceEnabled() || !autoRejoin) return
+    Long last = lastReportTime[device.id as Long]
+    if (last != null && last > (data.since as long)) return
+    silenceDetected("${STARTUP_SILENCE_TIME / 60} min after the hub started")
+}
+
+def silenceDetected(String period) {
     if (device.currentValue("reportStatus") != "silent"){
         sendEvent(name: "reportStatus", value: "silent")
-        logWarn "$device.label - No reports for ${silenceSetting()}"
+        logWarn "$device.label - No reports for ${period}"
     }
     if (!autoRejoin) return
     // One rejoin per silence: a rejoin that does not bring reports back is not repeated
@@ -576,6 +590,13 @@ def initialize(){
     }
     if (silenceEnabled()){
         runEvery5Minutes(checkSilence)
+        // No report seen since the hub started (or the code was saved): watch the first minutes closely
+        Long id = device.id as Long
+        if (autoRejoin && lastReportTime[id] == null){
+            long since = now()
+            lastReportTime[id] = since
+            runIn(STARTUP_SILENCE_TIME, checkStartupSilence, [data: [since: since]])
+        }
     }
     else{
         unschedule(checkSilence)
