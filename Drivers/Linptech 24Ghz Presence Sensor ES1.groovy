@@ -32,11 +32,11 @@
  *  V2.0.0  02-22-2024       Changed health check method for lower hub resource usage, code cleanup/ bug fixes
  *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255
  *  V2.0.2  02-22-2025       Added option to disable LED for firmware version 1.0.6, added option to disable lux reports
- *  V2.1.0  10-29-2026       Added silence detection (reportStatus attribute), rejoin network command and optional automatic rejoin, sooner after a hub restart
+ *  V2.0.3  10-29-2026       Added silence detection (reportStatus attribute, warning), sooner check after a hub restart, rejoin network command and optional automatic rejoin
 
  */
 
-def driverVer() { return "2.0" }
+def driverVer() { return "2.0.3" }
 
 import hubitat.zigbee.clusters.iaszone.ZoneStatus
 import groovy.transform.Field
@@ -105,7 +105,7 @@ metadata
 			silenceTimes << ["2 hours" : "2 hours"]
 			silenceTimes << ["4 hours" : "4 hours"]
 			input("silenceTimeout", "enum", title: "<b>Silent After</b>", description: "<i>Sets reportStatus to silent when the sensor sends no reports for this long</i>", options: silenceTimes, defaultValue: "30 min", required: true )
-			if(silenceTimeout != "Off"){
+			if(silenceTimeout && silenceTimeout != "Off"){
 				input "autoRejoin", "bool", title: "<b>Rejoin Network When Silent?</b>", description: "<i>Once each time the sensor goes silent. If the sensor does not rejoin, it must be paired again</i>", defaultValue: false, required: false
 			}
 			input "enableInfo", "bool", title: "<b>Enable info logging?</b>", defaultValue: true, required: false, multiple: false
@@ -265,7 +265,7 @@ def checkSilence() {
 
 // A hub restart can freeze the sensor, so right after one a short silence is enough to rejoin
 def checkStartupSilence(Map data) {
-    if (!silenceEnabled() || !autoRejoin) return
+    if (!silenceEnabled()) return
     Long last = lastReportTime[device.id as Long]
     if (last != null && last > (data.since as long)) return
     silenceDetected("${STARTUP_SILENCE_TIME / 60} min after the hub started")
@@ -592,7 +592,7 @@ def initialize(){
         runEvery5Minutes(checkSilence)
         // No report seen since the hub started (or the code was saved): watch the first minutes closely
         Long id = device.id as Long
-        if (autoRejoin && lastReportTime[id] == null){
+        if (lastReportTime[id] == null){
             long since = now()
             lastReportTime[id] = since
             runIn(STARTUP_SILENCE_TIME, checkStartupSilence, [data: [since: since]])
