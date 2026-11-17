@@ -32,7 +32,7 @@
  *  V2.0.0  02-22-2024       Changed health check method for lower hub resource usage, code cleanup/ bug fixes
  *  V2.0.1  02-25-2024       Bug fix for returned fade time values over 255
  *  V2.0.2  02-22-2025       Added option to disable LED for firmware version 1.0.6, added option to disable lux reports
- *  V2.0.3  10-29-2026       Added silence detection (reportStatus attribute, warning), sooner check after a hub restart, rejoin network command and optional automatic rejoin
+ *  V2.0.3  10-29-2026       Added silence detection (reportStatus attribute, warning), sooner check after a hub restart, rejoin network command, optional automatic rejoin (healthStatus offline if it fails)
 
  */
 
@@ -98,6 +98,7 @@ metadata
 			}
 			def silenceTimes = [:]
 			silenceTimes << ["Off" : "Off"]
+			silenceTimes << ["5 min" : "5 minutes"]
 			silenceTimes << ["10 min" : "10 minutes"]
 			silenceTimes << ["15 min" : "15 minutes"]
 			silenceTimes << ["30 min" : "30 minutes"]
@@ -213,7 +214,8 @@ def parse(String description) {
             logInfo ("$device.label Online")
             state.healthCheck = true
         }
-        if (device.currentValue("healthStatus") != "online"){
+        // A stuck sensor still answers the ping; it stays offline until its reports resume
+        if (!state.autoRejoinFailed && device.currentValue("healthStatus") != "online"){
             sendEvent(name: "healthStatus", value:  "online")
 		}
     }
@@ -247,7 +249,11 @@ def reportReceived() {
         sendEvent(name: "reportStatus", value: "ok")
         logInfo "$device.label Reports resumed"
         state.remove("autoRejoinTime")
-        state.remove("autoRejoinFailed")
+        if (state.autoRejoinFailed){
+            state.remove("autoRejoinFailed")
+            if (healthCheckEnabled) sendEvent(name: "healthStatus", value: "online")
+            else device.deleteCurrentState('healthStatus')
+        }
     }
 }
 
@@ -284,6 +290,7 @@ def silenceDetected(String period) {
     }
     else if (!state.autoRejoinFailed && now() - (state.autoRejoinTime as long) > REJOIN_RECOVERY_TIME){
         state.autoRejoinFailed = true
+        sendEvent(name: "healthStatus", value: "offline")
         logError "$device.label - Still silent after rejoining the network; power cycle the sensor"
     }
 }
@@ -298,6 +305,7 @@ boolean silenceEnabled() {
 
 long silenceTimeoutMillis() {
     switch(silenceSetting()) {
+        case "5 min" : return 5 * 60 * 1000L
         case "10 min" : return 10 * 60 * 1000L
         case "15 min" : return 15 * 60 * 1000L
         case "60 min" : return 60 * 60 * 1000L
